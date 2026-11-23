@@ -7,8 +7,8 @@ All notable changes are documented here. The format follows Keep a Changelog and
 ### Added
 
 - PR-Agent workflow (`.github/workflows/pr-agent.yml`) reviews pull requests on open, reopen,
-  ready-for-review and synchronize, and responds to `/review` comments. It uses the AMR
-  OpenAI-compatible endpoint and `deepseek-v4.1-flash-eco`; the review is advisory.
+  ready-for-review and synchronize, and responds to `/review` comments. It uses the Zen
+  OpenAI-compatible endpoint and `deepseek-v4.1-flash`; the review is advisory.
 - ADRs 0001–0008, including ADR 0008 (custom agent gate replaced by PR-Agent) and ADR 0007
   (`main` is pull-request-only).
 - Chinese README alongside the English one.

@@ -25,9 +25,10 @@ jobs:
         uses: the-pr-agent/pr-agent@v0.50.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          OPENAI__KEY: ${{ secrets.AMR_API_KEY }}
-          OPENAI__API_BASE: https://amr-link.open-design.ai/v1
-          CONFIG__MODEL: openai/deepseek-v4.1-flash-eco
+          OPENAI__KEY: ${{ secrets.ZEN_API_KEY }}
+          OPENAI__API_BASE: https://opencode.ai/zen/go/v1
+          CONFIG__MODEL: openai/deepseek-v4.1-flash
+          LITELLM__EXTRA_HEADERS: '{"x-opencode-session": "11111111-1111-4111-8111-111111111111"}'
           CONFIG__FALLBACK_MODELS: '[]'
           CONFIG__CUSTOM_MODEL_MAX_TOKENS: '32000'
           github_action_config.auto_review: 'true'

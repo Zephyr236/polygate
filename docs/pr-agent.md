@@ -14,17 +14,19 @@ merge by themselves. The required checks are `gate` (all CI gates) and the pull-
 
 ## Model and credentials
 
-The action uses the AMR OpenAI-compatible endpoint:
+The action uses the Zen OpenAI-compatible endpoint:
 
 | Setting | Value |
 | --- | --- |
-| `OPENAI__API_BASE` | `https://amr-link.open-design.ai/v1` |
-| `CONFIG__MODEL` | `openai/deepseek-v4.1-flash-eco` |
-| `OPENAI__KEY` | `AMR_API_KEY` repository secret |
+| `OPENAI__API_BASE` | `https://opencode.ai/zen/go/v1` |
+| `CONFIG__MODEL` | `openai/deepseek-v4.1-flash` |
+| `OPENAI__KEY` | `ZEN_API_KEY` repository secret |
+| `LITELLM__EXTRA_HEADERS` | `{"x-opencode-session": "11111111-1111-4111-8111-111111111111"}` |
 | `CONFIG__CUSTOM_MODEL_MAX_TOKENS` | `32000` |
 
-No fallback model is configured. The AMR channel has a concurrency limit, so several simultaneous
-PR reviews queue at the provider.
+No fallback model is configured. Zen requires the `x-opencode-session` header; the fixed UUID keeps
+all PR-Agent calls in one session. The AMR channel was tried first but its wallet balance was
+exhausted.
 
 ## Commands
 

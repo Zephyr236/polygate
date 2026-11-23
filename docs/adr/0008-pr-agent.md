@@ -21,8 +21,9 @@ for OpenAI-compatible models, automatic review on PR events and `/review` comman
   and promotion scripts, rule-coverage helper, fixtures and tests.
 - Add `.github/workflows/pr-agent.yml` using `the-pr-agent/pr-agent@v0.50.0` on PR `opened`,
   `reopened`, `ready_for_review` and `synchronize`, plus `issue_comment` for `/review`.
-- Use the AMR OpenAI-compatible endpoint with model `openai/deepseek-v4.1-flash-eco`
-  (`AMR_API_KEY`), no fallback model, and a 32k custom context limit.
+- Use the Zen OpenAI-compatible endpoint with model `openai/deepseek-v4.1-flash`
+  (`ZEN_API_KEY`) and the required `x-opencode-session` header, no fallback model, and a 32k custom
+  context limit. The AMR channel was tried first but its wallet balance was exhausted.
 - Enable automatic review only; leave describe and improve off. PR-Agent posts a review comment and
   is **advisory** initially. Branch protection requires only `gate`.
 - Do not auto-add rules or tests from the review. Findings are for the author to act on.
@@ -33,7 +34,7 @@ for OpenAI-compatible models, automatic review on PR events and `/review` comman
   gate or its acceptance/promotion code.
 - PR-Agent comments do not block a merge by themselves. If the workflow fails to run, `gate` still
   blocks on CI; making PR-Agent required is a later decision after observing its signal/noise.
-- The review uses the AMR channel and its key; the AMR concurrency limit applies. Fork PRs do not
+- The review uses the Zen channel and its key; the Zen session limit applies. Fork PRs do not
   receive repository secrets, so external contributions need a maintainer to run `/review` from the
   base repository or a separate trusted workflow.
 - Main remains PR-only with zero required reviews and `gate` required (ADR 0004, ADR 0007).
