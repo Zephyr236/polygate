@@ -1,6 +1,6 @@
 # ADR 0005: Agent-proposed gates are promoted only after deterministic acceptance
 
-- Status: Superseded by [0006](0006-pr-review-gate.md)
+- Status: Superseded by [0008](0008-ci-only-gates.md)
 - Date: 2026-11-23
 - Deciders: polygate maintainers
 
@@ -57,4 +57,4 @@ promotion target stay as accepted issues and require a human.
 - `agent/policy.toml`, `scripts/agent_gate/accept.py`, `scripts/agent_gate/promote.py`
 - `.github/workflows/gate-candidate.md`, `.github/workflows/agent-accept.yml`
 - `rules/promoted.yml`, `agent/accepted.json`, `backend/tests/agent_accepted/`
-- [ADR 0008](0008-pr-agent.md)
+- [ADR 0008](0008-ci-only-gates.md)

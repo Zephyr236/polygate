@@ -24,7 +24,6 @@ REQUIRED_DOCS = [
     "docs/frontend.md",
     "docs/api.md",
     "docs/config-reference.md",
-    "docs/pr-agent.md",
     "docs/adr/index.md",
 ]
 AGENT_SECTIONS = [

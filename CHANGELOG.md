@@ -6,21 +6,16 @@ All notable changes are documented here. The format follows Keep a Changelog and
 
 ### Added
 
-- PR-Agent workflow (`.github/workflows/pr-agent.yml`) reviews pull requests on open, reopen,
-  ready-for-review and synchronize, and responds to `/review` comments. It uses the Zen
-  OpenAI-compatible endpoint and `deepseek-v4.1-flash`; the review is advisory.
-- ADRs 0001–0008, including ADR 0008 (custom agent gate replaced by PR-Agent) and ADR 0007
+- ADRs 0001–0008, including ADR 0008 (CI-only merge gates) and ADR 0007
   (`main` is pull-request-only).
 - Chinese README alongside the English one.
 - Mutation gates re-measured from an empty cache: `mutmut` 80.78%, Stryker 77.78%.
 
 ### Changed
 
-- Branch protection requires `gate`; force pushes, deletions and direct pushes are blocked, including
-  for administrators (`enforce_admins`). Pull requests require zero approving reviews (ADR 0004,
-  ADR 0007).
-- Removed the custom `gate-candidate` workflow, candidate policy, acceptance/promotion scripts,
-  rule-coverage helper, fixtures and tests. PR review is now PR-Agent, not a custom check.
+- Removed all agent review gates and their tooling. A pull request merges only after the aggregated
+  `gate` check passes; branch protection requires `gate`, and direct pushes, force pushes and
+  deletions are blocked, including for administrators (ADR 0004, ADR 0007, ADR 0008).
 
 ### Fixed
 
