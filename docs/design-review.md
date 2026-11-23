@@ -51,8 +51,11 @@ still be correlated; use different models or providers if you need genuinely ind
 ## CI with Claude Code
 
 `.github/workflows/design-review.yml` runs the panel in CI when a pull request has the
-`design-review` label. It installs Claude Code, uses the PR body as the design brief, passes
-`--engine claude-code`, uploads the reports as an artifact, and comments the index on the PR.
+`design-review` label. It uses `pull_request_target`, checks out the **base** commit and runs the
+trusted base script; the pull request head is fetched only as git data for the diff and docs. It
+never executes PR-controlled code with the model secret. It installs Claude Code, uses the PR body
+as the design brief, passes `--engine claude-code`, uploads the reports as an artifact, and
+comments the index on the PR.
 
 The workflow uses the Zen endpoint through `ZEN_API_KEY`; it is **advisory** and is not a required
 check. It is limited to same-repository PRs because fork PRs do not receive the secret. Add the label

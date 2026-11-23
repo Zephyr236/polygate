@@ -20,7 +20,8 @@ questions, but its output is heuristic and can rationalize a weak design.
   `security`, `evidence`) and writes one report per role plus an index. The reports are not averaged
   into a single verdict.
 - `.github/workflows/design-review.yml` runs the panel with the Claude Code CLI in CI when a PR has
-  the `design-review` label. It is advisory and is not a required check.
+  the `design-review` label. It uses `pull_request_target`, runs the base-branch script, and fetches
+  the PR head only as git data; it is advisory and is not a required check.
 - It is not part of `ci.yml`, `gate` or branch protection. It cannot approve, reject or merge.
 - The model credential is supplied through the environment; the script redacts obvious secret
   assignments but treats repository text as untrusted.

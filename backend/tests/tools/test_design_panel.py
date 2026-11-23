@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import subprocess
 from pathlib import Path
 from types import ModuleType
 
@@ -82,6 +83,32 @@ def test_panel_writes_one_report_per_role(tmp_path: Path, monkeypatch: pytest.Mo
     index = (out / "index.md").read_text(encoding="utf-8")
     assert "problem" in index and "architecture" in index
     assert "needs-decision" in index
+
+
+def test_complete_claude_parses_the_cli_result(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(
+        panel.subprocess,
+        "run",
+        lambda *args, **kwargs: subprocess.CompletedProcess(
+            args=[], returncode=0, stdout='{"is_error": false, "result": "ok"}', stderr=""
+        ),
+    )
+    assert (
+        panel.complete_claude("prompt", model="m", base_url="https://example.test/v1", api_key="k", timeout=1)
+        == "ok"
+    )
+
+
+def test_complete_claude_rejects_cli_error(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(
+        panel.subprocess,
+        "run",
+        lambda *args, **kwargs: subprocess.CompletedProcess(
+            args=[], returncode=1, stdout='{"is_error": true, "result": "bad"}', stderr=""
+        ),
+    )
+    with pytest.raises(panel.PanelError, match="bad"):
+        panel.complete_claude("prompt", model="m", base_url="https://example.test", api_key="k", timeout=1)
 
 
 def test_panel_uses_claude_code_engine(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
