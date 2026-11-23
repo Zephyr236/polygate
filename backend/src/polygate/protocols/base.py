@@ -27,6 +27,11 @@ class InternalRequest:
     extra: dict[str, Any] = field(default_factory=dict)
 
 
+def as_int(value: Any) -> int:
+    """Convert a possibly null numeric field to an integer."""
+    return int(value or 0)
+
+
 @dataclass(frozen=True)
 class Usage:
     """Token accounting for one upstream call."""
