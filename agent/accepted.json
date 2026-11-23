@@ -1,1 +1,17 @@
-[]
+[
+  {
+    "id": "usage-null-tokens",
+    "artifact": "property_test",
+    "gap_type": "business_invariant",
+    "issue": "https://github.com/Zephyr236/polygate/issues/5",
+    "accepted_at": "2026-11-23T11:10:30.268163+00:00",
+    "oracle": "pre_post",
+    "source": "backend/tests/agent/test_usage_null_tokens.py",
+    "target": "backend/tests/agent_accepted/test_usage_null_tokens.py",
+    "fixtures": [
+      "",
+      ""
+    ],
+    "invariant": "For any usage payload whose numeric fields are null, absent or non-negative integers, openai.parse_usage and anthropic.parse_usage return exactly those counts with null mapped to 0 and never raise"
+  }
+]

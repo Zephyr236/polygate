@@ -1,0 +1,12 @@
+{
+  "id": "usage-null-tokens",
+  "gap_type": "business_invariant",
+  "artifact": "property_test",
+  "summary": "usage parsers treat a null token field as zero instead of raising",
+  "incident_ref": "commit f2984cab: fix: tolerate null token fields in usage parsing",
+  "invariant": "For any usage payload whose numeric fields are null, absent or non-negative integers, openai.parse_usage and anthropic.parse_usage return exactly those counts with null mapped to 0 and never raise",
+  "test_file": "backend/tests/agent/test_usage_null_tokens.py",
+  "pre_fix_commit": "92117754f8ca60addbff1e54eaacc2820654a09f",
+  "post_fix_commit": "f2984cabb8c0bab5c6578c3fefa4226b6fd9a271",
+  "base_commit": "f2984cabb8c0bab5c6578c3fefa4226b6fd9a271"
+}
