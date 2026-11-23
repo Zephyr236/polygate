@@ -14,7 +14,9 @@ rules and the PR diff. A push to `main` reviews the pushed commit against its pa
 same check; it is an audit because the push has already happened.
 
 The agent is read-only. Its only write is `create-check-run`; it cannot edit files, push, or open
-issues or pull requests.
+issues or pull requests. The checkout has full history, and `reports/change-range.txt` records the
+`base`/`head` for the run, so a multi-commit push is reviewed as a range rather than as `HEAD^`.
+Concurrency is keyed by PR number or commit SHA and never cancels an earlier audit.
 
 ## Check outcomes
 

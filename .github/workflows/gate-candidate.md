@@ -10,6 +10,11 @@ permissions:
   issues: read
   pull-requests: read
   actions: read
+concurrency:
+  group: "gh-aw-${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}"
+  cancel-in-progress: false
+checkout:
+  - fetch-depth: 0
 engine:
   id: claude
   model: deepseek-v4.1-flash
@@ -19,6 +24,16 @@ engine:
 network:
   allowed: [defaults, github, opencode.ai]
 steps:
+  - name: Record change range
+    run: |
+      mkdir -p reports
+      if [ "${{ github.event_name }}" = "push" ]; then
+        echo "base=${{ github.event.before }}" > reports/change-range.txt
+        echo "head=${{ github.event.after }}" >> reports/change-range.txt
+      else
+        echo "base=${{ github.event.pull_request.base.sha }}" > reports/change-range.txt
+        echo "head=${{ github.event.pull_request.head.sha }}" >> reports/change-range.txt
+      fi
   - name: Build rule coverage map
     run: |
       python3 scripts/rule_coverage.py \
@@ -54,11 +69,13 @@ is an audit and cannot be blocked after the fact.
 - `reports/rule-coverage.json` and `reports/rule-coverage.md`
 - `rules/` and `rules/ast-grep/` (existing rules)
 - `backend/src/`, `backend/tests/`, `frontend/src/`
-- for a pull request, the diff from `get_pull_request_diff`;
-- for a push to `main`, the pushed commit against its parent (`git show`, `git diff HEAD^ HEAD`).
+- `reports/change-range.txt`, which contains `base` and `head` for this run;
+- the diff from `git diff base..head` and the commits from `git log base..head` (the checkout has
+  full history);
+- for a pull request, also `get_pull_request_diff`.
 
 Read the whole repository to understand the business rule the change touches. The diff is the
-trigger, not the only input.
+trigger, not the only input. Never assume `HEAD^`: a push may contain several commits.
 
 ## Decide
 

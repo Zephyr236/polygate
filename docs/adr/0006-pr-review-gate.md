@@ -31,7 +31,9 @@ makes the agent a source of gate configuration rather than a reviewer.
   check blocks the merge until the code is fixed and the new commit passes the agent again. A push
   to `main` is audited after the fact; its check cannot block the already-completed push.
 - The agent is read-only. It cannot edit rules, tests, workflows or gate configuration; the only
-  write is the bounded `create-check-run` safe output.
+  write is the bounded `create-check-run` safe output. The checkout fetches full history and the
+  run records `base`/`head` in `reports/change-range.txt`; concurrency is keyed per commit and
+  never cancels an earlier audit.
 - The rule/test promotion pipeline from ADR 0005 is removed from CI. `agent/policy.toml`,
   `scripts/agent_gate/` and the acceptance/promotion scripts remain as offline tooling for a human
   who wants to add a permanent rule; they are not triggered by pull requests.
