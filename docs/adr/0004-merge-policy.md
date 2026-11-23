@@ -1,6 +1,6 @@
 # ADR 0004: Merge policy — pull requests with zero required reviews
 
-- Status: Accepted
+- Status: Accepted (the `enforce_admins` decision is superseded by [0007](0007-protect-main.md))
 - Date: 2026-11-23
 - Deciders: polygate maintainers
 

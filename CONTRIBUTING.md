@@ -13,13 +13,14 @@ This is a single-maintainer repository, and GitHub does not allow an author to a
 request. Branch protection therefore requires **zero approving reviews**; requiring one would deadlock every
 change. The gates are the merge criterion instead:
 
-- Pull requests are the only path to `main`.
-- The aggregated `gate` check must be green. It fails on `failure`, `cancelled` **and `skipped`**
-  dependencies, so a gate that never ran cannot be mistaken for one that passed.
+- Pull requests are the only path to `main`, including for administrators (`enforce_admins`).
+- The aggregated `gate` check and the agent's `gate-candidate` check must both be green. `gate` fails
+  on `failure`, `cancelled` **and `skipped`** dependencies, so a gate that never ran cannot be
+  mistaken for one that passed.
 - Force pushes and branch deletion are disabled.
 
 If a second maintainer joins, raise the review requirement to one in repository settings; nothing else
-changes. The rationale is recorded in [ADR 0004](docs/adr/0004-merge-policy.md).
+changes. The rationale is recorded in [ADR 0004](docs/adr/0004-merge-policy.md) and [ADR 0007](docs/adr/0007-protect-main.md).
 
 ## Commit style
 
