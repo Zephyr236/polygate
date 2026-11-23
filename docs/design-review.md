@@ -59,7 +59,8 @@ comments the index on the PR.
 
 The workflow uses the Zen endpoint through `ZEN_API_KEY`; it is **advisory** and is not a required
 check. It is limited to same-repository PRs because fork PRs do not receive the secret. Add the label
-when you want a review; remove it to stop future synchronize runs.
+when you want a review; remove it to stop future synchronize runs. Adding the label is also the
+explicit token-spend decision: five role calls run for each labelled synchronize event.
 
 Other forms:
 
