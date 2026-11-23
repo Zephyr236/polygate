@@ -83,4 +83,4 @@ CRAP combines complexity with coverage, so a complex but well-tested function ca
 ## Merge policy
 
 A pull request merges only when the aggregated `gate` check passes. See
-[ADR 0008](adr/0008-missing.md) for the CI-only policy.
+[ADR 0008](adr/0008-ci-only-gates.md) for the CI-only policy.
