@@ -96,6 +96,8 @@ def backend_stages(with_mutation: bool, with_e2e: bool) -> list[Stage]:
                 "scan",
                 "--config",
                 "rules/architecture.yml",
+                "--config",
+                "rules/promoted.yml",
                 "--error",
                 "--quiet",
                 "backend/src",

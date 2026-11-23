@@ -68,7 +68,7 @@ jobs:
           enable-cache: true
       - run: uv sync --project backend --extra dev --frozen
       - name: semgrep design rules
-        run: uv run --project backend semgrep scan --config rules/architecture.yml --error --quiet backend/src frontend/src
+        run: uv run --project backend semgrep scan --config rules/architecture.yml --config rules/promoted.yml --error --quiet backend/src frontend/src
       - name: ast-grep structural rules
         run: |
           curl -sSL -o /tmp/sg.zip https://github.com/ast-grep/ast-grep/releases/latest/download/app-x86_64-unknown-linux-gnu.zip

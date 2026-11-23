@@ -101,9 +101,26 @@ Exit codes: `0` pass, `1` fail, `2` needs a human decision.
   patch, runs the full acceptance script, and comments the report with `agent-accepted`,
   `agent-rejected` or `agent-needs-human`.
 
-Promotion is still explicit: an accepted candidate is labeled, not merged. A later step can move
-accepted artifacts into `rules/` or the test suite; the patch path allowlist and the acceptance
-report are the audit trail.
+## Promotion and auto-merge
+
+Accepted candidates with a `promotion` target are promoted automatically:
+
+- semgrep rules are appended to `rules/promoted.yml`, which the design-rules gate loads;
+- ast-grep rules move to `rules/ast-grep/`, which `sgconfig.yml` already loads;
+- tests move to `backend/tests/agent_accepted/`, which normal pytest collection runs;
+- every promotion is recorded in `agent/accepted.json`.
+
+`agent-accept` then creates a branch `agent/<id>`, pushes it with the
+`AGENT_PROMOTE_TOKEN` secret (a bot-created PR with `GITHUB_TOKEN` would not trigger CI), opens a
+PR titled `[agent-accepted] <id>`, and enables squash auto-merge. The PR's own `gate` run is the
+final check; auto-merge only proceeds when it is green. Test candidates are promoted only when
+their `post_fix_commit` is already an ancestor of the current branch; otherwise promotion stops
+with a comment and the candidate stays accepted until the fixing PR merges. Rules and tests in promotion targets are
+ignored by the gate-candidate trigger, so promotion PRs do not spawn new candidates.
+
+Artifacts without a promotion target (ADR, policy proposal, gap report, doc or deploy check) stay
+as accepted issues and are promoted by a human. The token is a write-capable credential: keep it
+rotated and scoped to this repository.
 
 The policy and acceptance code are exercised by `backend/tests/agent_gate/test_policy.py`,
 `test_accept.py`, `test_issue.py` and `test_rule_coverage.py`.

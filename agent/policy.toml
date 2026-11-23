@@ -41,30 +41,35 @@ artifacts = ["gap_report"]
 [artifacts.semgrep_rule]
 acceptance = "auto"
 oracle = "rule"
+promotion = "rules/promoted.yml"
 paths = ["rules/candidates/"]
 requires = ["rule_file", "positive_fixture", "negative_fixture", "incident_ref"]
 
 [artifacts.ast_grep_rule]
 acceptance = "auto"
 oracle = "rule"
+promotion = "rules/ast-grep/<id>.yml"
 paths = ["rules/candidates/"]
 requires = ["rule_file", "positive_fixture", "negative_fixture", "incident_ref"]
 
 [artifacts.property_test]
 acceptance = "auto"
 oracle = "pre_post"
+promotion = "backend/tests/agent_accepted/test_<id>.py"
 paths = ["backend/tests/agent/"]
 requires = ["test_file", "invariant", "pre_fix_commit", "post_fix_commit", "incident_ref"]
 
 [artifacts.stateful_test]
 acceptance = "auto"
 oracle = "pre_post"
+promotion = "backend/tests/agent_accepted/test_<id>.py"
 paths = ["backend/tests/agent/"]
 requires = ["test_file", "invariant", "pre_fix_commit", "post_fix_commit", "incident_ref"]
 
 [artifacts.e2e_test]
 acceptance = "auto"
 oracle = "pre_post"
+promotion = "backend/tests/agent_accepted/test_<id>.py"
 paths = ["backend/tests/agent/"]
 requires = ["test_file", "invariant", "pre_fix_commit", "post_fix_commit", "incident_ref"]
 
@@ -76,7 +81,8 @@ requires = ["artifact_file", "invariant", "command", "positive_fixture", "negati
 
 [artifacts.architecture_test]
 acceptance = "auto"
-oracle = "fixture_command"
+oracle = "pre_post"
+promotion = "backend/tests/agent_accepted/test_<id>.py"
 paths = ["backend/tests/agent/"]
 requires = ["artifact_file", "invariant", "command", "positive_fixture", "negative_fixture", "incident_ref"]
 

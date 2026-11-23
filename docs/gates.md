@@ -15,7 +15,7 @@ Every merge must pass the aggregated `gate` job. The same checks run locally thr
 | Backend security | `bandit` | zero issues |
 | Backend dependencies (`backend deps export`, `backend deps`) | `uv export` + `pip-audit` on the runtime set | zero advisories |
 | Backend dependency hygiene | `deptry` | no unused or missing dependencies |
-| Backend design rules | `semgrep` (`rules/architecture.yml`) | zero blocking findings |
+| Backend design rules | `semgrep` (`rules/architecture.yml`, `rules/promoted.yml`) | zero blocking findings |
 | Backend structural rules | `ast-grep` (`sgconfig.yml`) | zero findings |
 | Backend cognitive complexity | `flake8-cognitive-complexity` (`.flake8`) | cognitive complexity ≤ 9 per function |
 | Backend property tests | `hypothesis` state machines | invariants hold over randomized operation sequences |

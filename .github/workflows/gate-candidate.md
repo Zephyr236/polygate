@@ -2,6 +2,14 @@
 on:
   pull_request:
     types: [opened, synchronize, reopened]
+    paths-ignore:
+      - "agent/**"
+      - "rules/promoted.yml"
+      - "rules/candidates/**"
+      - "rules/ast-grep/**"
+      - "backend/tests/agent_accepted/**"
+      - "scripts/agent_checks/**"
+      - "docs/proposals/**"
   workflow_dispatch:
 permissions:
   contents: read

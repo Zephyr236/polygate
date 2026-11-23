@@ -27,6 +27,7 @@ class ArtifactSpec:
     kind: str
     acceptance: str
     oracle: str
+    promotion: str
     paths: tuple[str, ...]
     requires: tuple[str, ...]
 
@@ -76,9 +77,10 @@ def _parse_artifacts(raw: dict[str, Any]) -> dict[str, ArtifactSpec]:
             raise PolicyError(f"artifact {kind!r} has invalid oracle: {oracle!r}")
         paths = tuple(str(item) for item in entry.get("paths", []))
         requires = tuple(str(item) for item in entry.get("requires", []))
+        promotion = str(entry.get("promotion", ""))
         if not paths or not requires:
             raise PolicyError(f"artifact {kind!r} needs non-empty paths and requires")
-        artifacts[kind] = ArtifactSpec(kind, acceptance, oracle, paths, requires)
+        artifacts[kind] = ArtifactSpec(kind, acceptance, oracle, promotion, paths, requires)
     return artifacts
 
 
