@@ -34,7 +34,7 @@ Every merge must pass the aggregated `gate` job. The same checks run locally thr
 | Frontend CRAP (report: `frontend CRAP report`, threshold: `frontend CRAP`) | `crap-score` plus `scripts/crap_js_gate.py` | every function ≤ 6 |
 | Frontend mutation | `stryker` | break below 70 |
 | Frontend E2E | `playwright` | all pass |
-| PR agent review | gh-aw `gate-candidate` check | success required; findings block the merge |
+| PR/push agent review | gh-aw `gate-candidate` check | success required on PRs; push to `main` records an audit |
 | Docs | `scripts/docs_gate.py` | zero problems, including ADR numbering, sections and index links |
 | Security history | `gitleaks` | no leaked secrets |
 

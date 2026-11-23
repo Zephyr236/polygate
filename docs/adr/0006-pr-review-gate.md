@@ -18,17 +18,18 @@ makes the agent a source of gate configuration rather than a reviewer.
 
 ## Decision
 
-- `.github/workflows/gate-candidate.md` runs on pull-request `opened`, `synchronize` and `reopened`
-  (and manual dispatch). It always creates exactly one check run named `gate-candidate` on the
-  triggering commit:
+- `.github/workflows/gate-candidate.md` runs on pull-request `opened`, `synchronize` and `reopened`,
+  on every push to `main`, and on manual dispatch. It always creates exactly one check run named
+  `gate-candidate` on the triggering commit:
   - `conclusion: success` when the change is covered by the existing gates, with a one-line summary;
   - `conclusion: failure` otherwise, with `path:line`, the missing invariant or rule, why the
     existing gates miss it, the proposed rule or test, and the minimal fix.
 - A finding is only valid when it is caused or exposed by the diff, names a concrete invariant or
   rule, cites a changed location, and has a minimal fix. Style, naming, formatting, speculation and
   unrelated pre-existing issues are explicitly out of scope; uncertainty resolves to success.
-- Branch protection on `main` requires both `gate` and `gate-candidate`. A failing check blocks the
-  merge until the code is fixed and the new commit passes the agent again.
+- Branch protection on `main` requires both `gate` and `gate-candidate` for pull requests. A failing
+  check blocks the merge until the code is fixed and the new commit passes the agent again. A push
+  to `main` is audited after the fact; its check cannot block the already-completed push.
 - The agent is read-only. It cannot edit rules, tests, workflows or gate configuration; the only
   write is the bounded `create-check-run` safe output.
 - The rule/test promotion pipeline from ADR 0005 is removed from CI. `agent/policy.toml`,

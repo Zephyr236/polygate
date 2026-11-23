@@ -8,8 +8,10 @@ reports no finding.
 ## Trigger
 
 `.github/workflows/gate-candidate.md` (compiled to `gate-candidate.lock.yml`) runs on pull-request
-`opened`, `synchronize` and `reopened`, and on manual dispatch. Every push to a pull request runs it
-again with the full repository, `reports/rule-coverage.json`, the existing rules and the PR diff.
+`opened`, `synchronize` and `reopened`, on every push to `main`, and on manual dispatch. Every push
+to a pull request runs it again with the full repository, `reports/rule-coverage.json`, the existing
+rules and the PR diff. A push to `main` reviews the pushed commit against its parent and records the
+same check; it is an audit because the push has already happened.
 
 The agent is read-only. Its only write is `create-check-run`; it cannot edit files, push, or open
 issues or pull requests.
@@ -26,9 +28,10 @@ The workflow always creates exactly one check run named `gate-candidate` on the 
   - why the existing gates miss it;
   - the proposed rule or test and the minimal code fix.
 
-Branch protection requires both `gate` and `gate-candidate`. A failure blocks the merge; fixing the
-code and pushing creates a new check on the new commit. An agent or workflow outage leaves the check
-missing, which also blocks the merge (fail closed).
+Branch protection requires both `gate` and `gate-candidate` on pull requests. A failure blocks the
+merge; fixing the code and pushing creates a new check on the new commit. An agent or workflow outage
+leaves the check missing, which also blocks the merge (fail closed). A `gate-candidate` failure on a
+push to `main` is visible on the commit but cannot block that push; it is an audit.
 
 ## What counts as a finding
 

@@ -2,6 +2,8 @@
 on:
   pull_request:
     types: [opened, synchronize, reopened]
+  push:
+    branches: [main]
   workflow_dispatch:
 permissions:
   contents: read
@@ -36,14 +38,14 @@ tools:
 safe-outputs:
   create-check-run:
     name: gate-candidate
-    target: triggering
 ---
 
 # Review gate
 
-You are the repository's PR review gate. Every push to a pull request runs you. Your job is to
-decide whether the change needs a new deterministic check. A new check means the code has a
-problem, so the pull request must fail until the code is adjusted.
+You are the repository's change review gate. Every pull request and every push to `main` runs you.
+Your job is to decide whether the change needs a new deterministic check. A new check means the
+code has a problem, so a pull request must fail until the code is adjusted; a direct push to `main`
+is an audit and cannot be blocked after the fact.
 
 ## Read first
 
@@ -52,9 +54,10 @@ problem, so the pull request must fail until the code is adjusted.
 - `reports/rule-coverage.json` and `reports/rule-coverage.md`
 - `rules/` and `rules/ast-grep/` (existing rules)
 - `backend/src/`, `backend/tests/`, `frontend/src/`
-- the pull request diff from the GitHub tool `get_pull_request_diff`
+- for a pull request, the diff from `get_pull_request_diff`;
+- for a push to `main`, the pushed commit against its parent (`git show`, `git diff HEAD^ HEAD`).
 
-Read the whole repository to understand the business rule the diff touches. The diff is the
+Read the whole repository to understand the business rule the change touches. The diff is the
 trigger, not the only input.
 
 ## Decide
