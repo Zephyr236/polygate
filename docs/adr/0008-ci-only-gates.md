@@ -18,7 +18,8 @@ deterministic CI suite.
   non-blocking `.github/workflows/e2e-real.yml`.
 - The `gate` job in `ci.yml` depends on every CI job (`backend`, `design-rules`, `backend-e2e`,
   `backend-mutation`, `frontend`, `frontend-mutation`, `frontend-e2e`, `docs`, `secrets`,
-  `docker`). It fails when any dependency is not `success`, including `cancelled` and `skipped`.
+  `docker`, `codeql`). It fails when any dependency is not `success`, including `cancelled` and
+  `skipped`. CodeQL analyzes Python and JavaScript/TypeScript and uploads SARIF.
 - Branch protection on `main` requires a pull request and the `gate` check, with `strict`; zero
   approving reviews; `enforce_admins` true; force pushes, deletions and direct pushes blocked.
 - Agent review tooling, workflows, scripts, tests and documentation are removed.

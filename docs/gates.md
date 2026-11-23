@@ -1,6 +1,7 @@
 # Quality gates
 
-Every merge must pass the aggregated `gate` job. The same checks run locally through `scripts/gate.py`.
+Every merge must pass the aggregated `gate` job. Most checks run locally through `scripts/gate.py`;
+CodeQL runs in CI only.
 
 | Gate | Tool | Threshold |
 | --- | --- | --- |
@@ -36,6 +37,7 @@ Every merge must pass the aggregated `gate` job. The same checks run locally thr
 | Frontend E2E | `playwright` | all pass |
 | Docs | `scripts/docs_gate.py` | zero problems, including ADR numbering, sections and index links |
 | Security history | `gitleaks` | no leaked secrets |
+| CodeQL | GitHub CodeQL (`python`, `javascript-typescript`) | analysis completes; SARIF uploaded |
 
 ## Local usage
 

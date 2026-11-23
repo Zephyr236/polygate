@@ -204,6 +204,7 @@ running.
 | | `playwright` | 4 browser tests pass |
 | Repo-wide | module size, LCOM cohesion, `jscpd` | file ≤ 320, function ≤ 60 · ≥ 0.5 · < 5% |
 | | docs gate (incl. ADR shape) and `gitleaks` | zero problems, no secrets |
+| | CodeQL (`python`, `javascript-typescript`) | analysis completes; SARIF uploaded |
 
 Reproduce the whole set locally:
 
@@ -377,6 +378,7 @@ score = w_success · 成功率
 | | `playwright` | 4 个浏览器用例全过 |
 | 全仓库 | 模块体积 / LCOM 内聚 / `jscpd` 重复 | 文件 ≤ 320 行、函数 ≤ 60 行 · ≥ 0.5 · < 5% |
 | | 文档门禁(含 ADR 结构)· `gitleaks` | 0 问题 · 无密钥 |
+| | CodeQL(`python`、`javascript-typescript`) | 分析完成,SARIF 已上传 |
 
 本地一键复现:
 
