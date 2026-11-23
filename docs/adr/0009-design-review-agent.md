@@ -16,6 +16,9 @@ questions, but its output is heuristic and can rationalize a weak design.
 
 - `scripts/design_review.py` is a local, advisory prototype. It reads the merge-base diff and the
   design docs, calls an OpenAI-compatible model, and emits a structured report.
+- `scripts/design_panel.py` runs independent role reviewers (`problem`, `architecture`, `failure`,
+  `security`, `evidence`) and writes one report per role plus an index. The reports are not averaged
+  into a single verdict.
 - It is not part of `ci.yml`, `gate` or branch protection. It cannot approve, reject or merge.
 - The model credential is supplied through the environment; the script redacts obvious secret
   assignments but treats repository text as untrusted.
@@ -35,5 +38,6 @@ questions, but its output is heuristic and can rationalize a weak design.
 
 ## References
 
-- `scripts/design_review.py`, `docs/design-review.md`
+- `scripts/design_review.py`, `scripts/design_panel.py`, `docs/design-review.md`,
+  `docs/templates/design-brief.md`
 - [ADR 0008](0008-ci-only-gates.md)

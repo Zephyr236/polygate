@@ -10,6 +10,7 @@ nav:
   - Operations: operations.md
   - Gates: gates.md
   - Design review: design-review.md
+  - Design brief template: templates/design-brief.md
   - Frontend: frontend.md
   - API: api.md
   - Configuration: config-reference.md
