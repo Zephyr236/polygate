@@ -84,6 +84,39 @@ def test_panel_writes_one_report_per_role(tmp_path: Path, monkeypatch: pytest.Mo
     assert "needs-decision" in index
 
 
+def test_panel_uses_claude_code_engine(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    diff = tmp_path / "x.diff"
+    diff.write_text("diff --git a/x b/x\n", encoding="utf-8")
+    out = tmp_path / "reports"
+
+    def fake_claude(prompt: str, **kwargs: object) -> str:
+        del kwargs
+        for role in panel.ROLES:
+            if f"You are the {role} reviewer" in prompt:
+                return json.dumps(_role_report(role))
+        raise panel.PanelError("unknown role")
+
+    monkeypatch.setenv("DESIGN_REVIEW_API_KEY", "test")
+    monkeypatch.setattr(panel, "complete_claude", fake_claude)
+    assert (
+        panel.main(
+            [
+                "design_panel.py",
+                "--diff-file",
+                str(diff),
+                "--out-dir",
+                str(out),
+                "--roles",
+                "problem",
+                "--engine",
+                "claude-code",
+            ]
+        )
+        == 0
+    )
+    assert (out / "problem.md").is_file()
+
+
 def test_panel_dry_run_prints_each_role(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
     diff = tmp_path / "x.diff"
     diff.write_text("diff --git a/x b/x\n", encoding="utf-8")

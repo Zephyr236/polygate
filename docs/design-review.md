@@ -48,6 +48,16 @@ other roles still review the diff. Start from
 Each role is a separate model call. They share the same model and context, so their blind spots can
 still be correlated; use different models or providers if you need genuinely independent opinions.
 
+## CI with Claude Code
+
+`.github/workflows/design-review.yml` runs the panel in CI when a pull request has the
+`design-review` label. It installs Claude Code, uses the PR body as the design brief, passes
+`--engine claude-code`, uploads the reports as an artifact, and comments the index on the PR.
+
+The workflow uses the Zen endpoint through `ZEN_API_KEY`; it is **advisory** and is not a required
+check. It is limited to same-repository PRs because fork PRs do not receive the secret. Add the label
+when you want a review; remove it to stop future synchronize runs.
+
 Other forms:
 
 ```sh

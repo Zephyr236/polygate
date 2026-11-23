@@ -7,7 +7,8 @@ All notable changes are documented here. The format follows Keep a Changelog and
 ### Added
 
 - Advisory design-review prototype (`scripts/design_review.py`), a multi-role panel
-  (`scripts/design_panel.py`), a design-brief template, and ADR 0009.
+  (`scripts/design_panel.py`), a design-brief template, and ADR 0009. A label-gated Claude Code CI
+  workflow runs the panel and uploads one report per role.
 - CodeQL analysis for Python and JavaScript/TypeScript, with high/critical findings blocking the
   aggregated `gate` job.
 - ADRs 0001–0008, including ADR 0008 (CI-only merge gates) and ADR 0007

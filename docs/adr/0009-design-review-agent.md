@@ -19,6 +19,8 @@ questions, but its output is heuristic and can rationalize a weak design.
 - `scripts/design_panel.py` runs independent role reviewers (`problem`, `architecture`, `failure`,
   `security`, `evidence`) and writes one report per role plus an index. The reports are not averaged
   into a single verdict.
+- `.github/workflows/design-review.yml` runs the panel with the Claude Code CLI in CI when a PR has
+  the `design-review` label. It is advisory and is not a required check.
 - It is not part of `ci.yml`, `gate` or branch protection. It cannot approve, reject or merge.
 - The model credential is supplied through the environment; the script redacts obvious secret
   assignments but treats repository text as untrusted.
@@ -32,7 +34,7 @@ questions, but its output is heuristic and can rationalize a weak design.
 - It can also generate convincing but wrong rationale. It must be evaluated on known changes before
   any blocking use.
 - Keeping it outside branch protection avoids flaky gates and keeps the CI-only merge policy from
-  ADR 0008 intact.
+  ADR 0008 intact. The label gate bounds token cost and keeps the review opt-in.
 - If the prototype proves useful, the next step is to measure its precision/recall, link reports to
   ADRs and specs, and only then consider a non-blocking PR comment workflow.
 
