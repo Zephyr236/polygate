@@ -29,8 +29,8 @@ Split the loop into four deterministic stages:
    overfit and budget checks run for every candidate.
 3. **Promotion.** Accepted rules and tests move into the active suite (`rules/promoted.yml`,
    `rules/ast-grep/`, `backend/tests/agent_accepted/`) and are recorded in `agent/accepted.json`.
-   Test candidates are promoted only when their `post_fix_commit` is already on `origin/main`, so
-   a test cannot land before its fix.
+   Test candidates are promoted only when the candidate test passes on `origin/main`, so a test
+   cannot land before its fix, including after a squash merge.
 4. **Merge.** `agent-accept` opens `agent/<id>` and a PR, then enables squash auto-merge. The PR's
    own `gate` run is the final check. A write-capable `AGENT_PROMOTE_TOKEN` is used because PRs
    created with `GITHUB_TOKEN` do not trigger CI.

@@ -3,8 +3,11 @@
 from __future__ import annotations
 
 import json
+import os
 import shutil
 import subprocess
+import sys
+import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -29,26 +32,56 @@ def _source(repo: Path, meta: dict[str, Any], spec: ArtifactSpec) -> Path:
     raise PromoteError(f"artifact {spec.kind!r} has no artifact file")
 
 
-def _require_merged_fix(repo: Path, meta: dict[str, Any], artifact: str) -> None:
+def _test_passes_on_main(repo: Path, meta: dict[str, Any], artifact: str, source: Path) -> None:
     if artifact not in TEST_ARTIFACTS or not (repo / ".git").exists():
         return
-    commit = str(meta.get("post_fix_commit", "")).strip()
-    if not commit:
-        raise PromoteError("test candidate has no post_fix_commit")
     reference = "origin/main"
-    if subprocess.run(
-        ["git", "rev-parse", "--verify", reference], cwd=repo, capture_output=True, check=False
-    ).returncode != 0:
+    if (
+        subprocess.run(
+            ["git", "rev-parse", "--verify", reference], cwd=repo, capture_output=True, check=False
+        ).returncode
+        != 0
+    ):
         reference = "HEAD"
-    result = subprocess.run(
-        ["git", "merge-base", "--is-ancestor", commit, reference],
-        cwd=repo,
-        capture_output=True,
-        text=True,
-        check=False,
-    )
-    if result.returncode != 0:
-        raise PromoteError("post-fix commit is not on the current branch; promote after the source PR merges")
+    worktree = Path(tempfile.mkdtemp(prefix="promote-check-"))
+    try:
+        added = subprocess.run(
+            ["git", "worktree", "add", "--detach", str(worktree), reference],
+            cwd=repo,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if added.returncode != 0:
+            raise PromoteError(f"cannot check out {reference}: {added.stderr.strip()[:200]}")
+        relative = Path(str(meta["test_file"])).relative_to("backend")
+        destination = worktree / str(meta["test_file"])
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(source, destination)
+        env = {
+            **os.environ,
+            "PYTHONPATH": str(worktree / "backend" / "src"),
+            "PYTHONDONTWRITEBYTECODE": "1",
+        }
+        result = subprocess.run(
+            [sys.executable, "-m", "pytest", str(relative), "-q", "-p", "no:cacheprovider"],
+            cwd=worktree / "backend",
+            env=env,
+            capture_output=True,
+            text=True,
+            check=False,
+            timeout=300,
+        )
+        if result.returncode != 0:
+            raise PromoteError("test does not pass on origin/main; merge the fixing PR first")
+    finally:
+        subprocess.run(
+            ["git", "worktree", "remove", "--force", str(worktree)],
+            cwd=repo,
+            capture_output=True,
+            check=False,
+        )
+        shutil.rmtree(worktree, ignore_errors=True)
 
 
 def _check_report(report: dict[str, Any], meta: dict[str, Any]) -> None:
@@ -143,8 +176,8 @@ def promote(
     if not spec.promotion:
         raise PromoteError(f"artifact {spec.kind!r} is not auto-promotable")
     _check_report(report, meta)
-    _require_merged_fix(repo, meta, spec.kind)
     source = _source(repo, meta, spec)
+    _test_passes_on_main(repo, meta, spec.kind, source)
     if not source.is_file():
         raise PromoteError(f"artifact file not found: {source}")
     identifier = str(meta["id"])

@@ -38,7 +38,7 @@ jobs:
             exit 0
           fi
           number=$(gh issue list --repo "$GITHUB_REPOSITORY" --label agent-candidate --state open --limit 100 \
-            --json number,labels --jq '[.[] | select(([.labels[].name] | index("agent-accepted") | not) and ([.labels[].name] | index("agent-rejected") | not) and ([.labels[].name] | index("agent-needs-human") | not))] | sort_by(.number) | last | .number // empty')
+            --json number,labels --jq '[.[] | select(([.labels[].name] | index("agent-promoted") | not) and ([.labels[].name] | index("agent-rejected") | not) and ([.labels[].name] | index("agent-needs-human") | not))] | sort_by(.number) | last | .number // empty')
           if [ -z "$number" ]; then
             echo "number=" >> "$GITHUB_OUTPUT"
             echo "no unprocessed agent-candidate issue"
@@ -96,12 +96,17 @@ jobs:
             exit 0
           fi
           issue_url="https://github.com/$GITHUB_REPOSITORY/issues/${{ steps.resolve.outputs.number }}"
+          id=$(python3 -c "import json;print(json.load(open('/tmp/agent-candidate/candidate.json'))['id'])")
+          echo "id=$id" >> "$GITHUB_OUTPUT"
+          if python3 -c "import json,sys; data=json.load(open('agent/accepted.json')); sys.exit(0 if any(item.get('id')==sys.argv[1] for item in data) else 1)" "$id"; then
+            gh issue edit "${{ steps.resolve.outputs.number }}" --repo "$GITHUB_REPOSITORY" --add-label agent-promoted
+            echo "already=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
           uv run --project backend python scripts/promote_candidate.py \
             --candidate /tmp/agent-candidate/candidate.json \
             --report /tmp/agent-report.json \
             --repo . --issue "$issue_url"
-          id=$(python3 -c "import json;print(json.load(open('/tmp/agent-candidate/candidate.json'))['id'])")
-          echo "id=$id" >> "$GITHUB_OUTPUT"
           {
             echo "Automated promotion of agent candidate \`$id\`."
             echo ""
@@ -122,6 +127,7 @@ jobs:
           echo "pr=$pr_url" >> "$GITHUB_OUTPUT"
           pr_number="${pr_url##*/}"
           gh pr merge "$pr_number" --repo "$GITHUB_REPOSITORY" --auto --squash || true
+          gh issue edit "${{ steps.resolve.outputs.number }}" --repo "$GITHUB_REPOSITORY" --add-label agent-promoted
 
       - name: Compose comment
         if: steps.resolve.outputs.number != ''
@@ -145,6 +151,10 @@ jobs:
             if [ "${{ steps.promote.outcome }}" = "failure" ]; then
               echo ""
               echo "> Promotion failed; the candidate stays accepted but was not merged. See the workflow log."
+            fi
+            if [ "${{ steps.promote.outputs.already }}" = "true" ]; then
+              echo ""
+              echo "> Already promoted; no new PR was created."
             fi
             if [ -n "${{ steps.promote.outputs.pr }}" ]; then
               echo ""
@@ -171,5 +181,6 @@ jobs:
           gh label create agent-accepted --color 1D76DB --description "Candidate passed acceptance" --force
           gh label create agent-rejected --color B60205 --description "Candidate failed acceptance" --force
           gh label create agent-needs-human --color D93F0B --description "Candidate needs a human decision" --force
+          gh label create agent-promoted --color 5319E7 --description "Candidate is promoted and merged" --force
           gh issue comment "${{ steps.resolve.outputs.number }}" --repo "$GITHUB_REPOSITORY" --body-file /tmp/agent-comment.md
           gh issue edit "${{ steps.resolve.outputs.number }}" --repo "$GITHUB_REPOSITORY" --add-label "${{ steps.comment.outputs.label }}"

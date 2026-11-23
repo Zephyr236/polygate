@@ -114,8 +114,9 @@ Accepted candidates with a `promotion` target are promoted automatically:
 `AGENT_PROMOTE_TOKEN` secret (a bot-created PR with `GITHUB_TOKEN` would not trigger CI), opens a
 PR titled `[agent-accepted] <id>`, and enables squash auto-merge. The PR's own `gate` run is the
 final check; auto-merge only proceeds when it is green. Test candidates are promoted only when
-their `post_fix_commit` is already an ancestor of the current branch; otherwise promotion stops
-with a comment and the candidate stays accepted until the fixing PR merges. Rules and tests in promotion targets are
+the candidate test passes on `origin/main`; otherwise promotion stops with a comment and the
+candidate stays accepted until the fixing PR merges (squash merges are handled because the check
+runs the test, not the commit ancestry). Rules and tests in promotion targets are
 ignored by the gate-candidate trigger, so promotion PRs do not spawn new candidates.
 
 Artifacts without a promotion target (ADR, policy proposal, gap report, doc or deploy check) stay
