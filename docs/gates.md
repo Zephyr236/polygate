@@ -37,7 +37,7 @@ CodeQL runs in CI only.
 | Frontend E2E | `playwright` | all pass |
 | Docs | `scripts/docs_gate.py` | zero problems, including ADR numbering, sections and index links |
 | Security history | `gitleaks` | no leaked secrets |
-| CodeQL | GitHub CodeQL (`python`, `javascript-typescript`) | analysis completes; SARIF uploaded |
+| CodeQL | GitHub CodeQL (`python`, `javascript-typescript`) | no high/critical findings; SARIF uploaded |
 
 ## Local usage
 
