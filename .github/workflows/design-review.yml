@@ -1,0 +1,74 @@
+name: Design review
+
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened, ready_for_review, labeled]
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+
+concurrency:
+  group: design-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  panel:
+    if: >-
+      ${{
+        github.event.pull_request.head.repo.full_name == github.repository &&
+        contains(github.event.pull_request.labels.*.name, 'design-review')
+      }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install Claude Code
+        run: npm install -g @anthropic-ai/claude-code@2.1.330
+      - name: Fetch the pull request head as data
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git fetch --no-tags origin \
+            "pull/${{ github.event.pull_request.number }}/head:refs/remotes/origin/pr-head"
+      - name: Write PR body as the design brief
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh pr view ${{ github.event.pull_request.number }} --json body --jq .body > /tmp/design-brief.md
+      - name: Run the design panel
+        env:
+          DESIGN_REVIEW_API_KEY: ${{ secrets.ZEN_API_KEY }}
+          ANTHROPIC_BASE_URL: https://opencode.ai/zen/go
+          ANTHROPIC_MODEL: deepseek-v4.1-flash
+        run: |
+          HEAD_SHA=$(git rev-parse refs/remotes/origin/pr-head)
+          python3 scripts/design_panel.py \
+            --engine claude-code \
+            --brief /tmp/design-brief.md \
+            --base ${{ github.event.pull_request.base.sha }} \
+            --head "$HEAD_SHA" \
+            --out-dir reports/design-review
+      - name: Upload reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: design-review-reports
+          path: reports/design-review
+          if-no-files-found: warn
+      - name: Comment the index
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [ -f reports/design-review/index.md ]; then
+            gh pr comment ${{ github.event.pull_request.number }} --body-file reports/design-review/index.md
+          else
+            gh pr comment ${{ github.event.pull_request.number }} --body "Design review panel failed; see the workflow log."
+          fi
