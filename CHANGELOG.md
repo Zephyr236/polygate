@@ -2,6 +2,19 @@
 
 All notable changes are documented here. The format follows Keep a Changelog and the project uses semantic versioning.
 
+## [Unreleased]
+
+### Added
+
+- Three architecture decision records and a docs-gate check for ADR numbering, sections and index links.
+- Chinese README alongside the English one.
+
+### Fixed
+
+- Mutation jobs ran only on pull requests, so direct pushes to `main` never exercised them; the aggregated
+  `gate` check now treats a skipped dependency as a failure.
+- Non-JSON or empty request bodies returned 500; `read_json` now answers 400.
+
 ## [0.1.0] - 2026-11-23
 
 ### Added

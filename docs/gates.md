@@ -13,7 +13,7 @@ Every merge must pass the aggregated `gate` job. The same checks run locally thr
 | Backend dead code | `vulture` | zero at confidence 80 |
 | Backend docstrings | `interrogate` | ≥ 80% |
 | Backend security | `bandit` | zero issues |
-| Backend dependencies | `pip-audit` on the exported runtime set | zero advisories |
+| Backend dependencies (`backend deps export`, `backend deps`) | `uv export` + `pip-audit` on the runtime set | zero advisories |
 | Backend dependency hygiene | `deptry` | no unused or missing dependencies |
 | Backend design rules | `semgrep` (`rules/architecture.yml`) | zero blocking findings |
 | Backend structural rules | `ast-grep` (`sgconfig.yml`) | zero findings |
@@ -31,7 +31,7 @@ Every merge must pass the aggregated `gate` job. The same checks run locally thr
 | Frontend dependency boundaries | `dependency-cruiser` | zero violations |
 | Frontend dead code | `knip` | no unused files, exports, types or dependencies |
 | Frontend tests | `vitest --coverage` | 85% branches |
-| Frontend CRAP | `crap-score` plus `scripts/crap_js_gate.py` | every function ≤ 6 |
+| Frontend CRAP (report: `frontend CRAP report`, threshold: `frontend CRAP`) | `crap-score` plus `scripts/crap_js_gate.py` | every function ≤ 6 |
 | Frontend mutation | `stryker` | break below 70 |
 | Frontend E2E | `playwright` | all pass |
 | Docs | `scripts/docs_gate.py` | zero problems, including ADR numbering, sections and index links |

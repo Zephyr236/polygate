@@ -97,7 +97,6 @@ jobs:
       - run: uv run pytest tests/e2e/test_contracts.py -q -m contract
 
   backend-mutation:
-    if: github.event_name == 'pull_request'
     runs-on: ubuntu-24.04
     defaults:
       run:
@@ -111,6 +110,11 @@ jobs:
       - run: uv sync --extra dev --frozen
       - run: uv run mutmut run --max-children 4
       - run: python ../scripts/mutation_gate.py 75
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: backend-mutation
+          path: backend/mutants/mutmut-stats.json
 
   frontend:
     runs-on: ubuntu-24.04
@@ -145,7 +149,6 @@ jobs:
             frontend/crap-report/
 
   frontend-mutation:
-    if: github.event_name == 'pull_request'
     runs-on: ubuntu-24.04
     defaults:
       run:
@@ -162,6 +165,11 @@ jobs:
           cache-dependency-path: frontend/pnpm-lock.yaml
       - run: pnpm install --frozen-lockfile
       - run: pnpm run mutate
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: frontend-mutation
+          path: frontend/reports/mutation.json
 
   frontend-e2e:
     runs-on: ubuntu-24.04
@@ -230,7 +238,14 @@ jobs:
     steps:
       - name: Require every gate to pass
         run: |
-          if [ "${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') }}" = "true" ]; then
-            echo "one or more gates failed"; exit 1
-          fi
-          echo "all gates passed"
+          python3 - <<'PYTHON'
+          import json, os, sys
+          needs = json.loads(os.environ["NEEDS_JSON"])
+          bad = [name for name, item in needs.items() if item["result"] != "success"]
+          if bad:
+              print("gates not successful:", bad)
+              sys.exit(1)
+          print("all gates passed:", ", ".join(sorted(needs)))
+          PYTHON
+        env:
+          NEEDS_JSON: ${{ toJSON(needs) }}

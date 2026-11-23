@@ -133,13 +133,16 @@ def gate_targets() -> set[str]:
     return set(re.findall(r'Stage\("([^"]+)"', text))
 
 
-def readme_targets() -> set[str]:
-    """Return gate names mentioned in the README gate table."""
-    path = ROOT / "README.md"
-    if not path.is_file():
-        return set()
-    text = path.read_text(encoding="utf-8").lower()
-    return {name for name in gate_targets() if name.lower() in text}
+def gate_reference_gaps() -> list[str]:
+    """Require gate stages to be documented and the README to link the gate reference."""
+    problems: list[str] = []
+    reference = ROOT / "docs" / "gates.md"
+    text = reference.read_text(encoding="utf-8").lower() if reference.is_file() else ""
+    problems.extend(f"docs/gates.md does not mention stage: {name}" for name in gate_targets() if name.lower() not in text)
+    readme = ROOT / "README.md"
+    if readme.is_file() and "(docs/gates.md)" not in readme.read_text(encoding="utf-8"):
+        problems.append("README.md does not link to docs/gates.md")
+    return problems
 
 
 def openapi_check() -> list[str]:
@@ -179,7 +182,7 @@ def main() -> int:
         "ADRs": adr_problems(),
         "ADR index linked": adr_index_linked(),
         "internal links": relative_links_missing(),
-        "README gate names": sorted(gate_targets() - readme_targets()),
+        "gate documentation": gate_reference_gaps(),
         "openapi": openapi_check(),
     }
     failed = False
