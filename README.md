@@ -109,6 +109,7 @@ See [docs/gates.md](docs/gates.md) for the full list and [AGENTS.md](AGENTS.md) 
 - [Frontend](docs/frontend.md)
 - [API](docs/api.md)
 - [Configuration reference](docs/config-reference.md)
+- [Architecture decision records](docs/adr/index.md)
 
 ## License
 

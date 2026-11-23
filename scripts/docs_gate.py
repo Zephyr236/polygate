@@ -24,6 +24,7 @@ REQUIRED_DOCS = [
     "docs/frontend.md",
     "docs/api.md",
     "docs/config-reference.md",
+    "docs/adr/index.md",
 ]
 AGENT_SECTIONS = [
     "## Project layout",
@@ -34,6 +35,9 @@ AGENT_SECTIONS = [
 ]
 CONFIG_FIELDS_DOC = ROOT / "docs/config-reference.md"
 CONFIG_MODULE = ROOT / "backend/src/polygate/config.py"
+ADR_DIR = ROOT / "docs" / "adr"
+ADR_SECTIONS = ["## Context", "## Decision", "## Consequences"]
+ADR_NAME = re.compile(r"^(\d{4})-[a-z0-9-]+\.md$")
 
 
 def missing_files() -> list[str]:
@@ -45,7 +49,14 @@ def config_fields() -> list[str]:
     """Extract provider and routing field names from the pydantic models."""
     text = CONFIG_MODULE.read_text(encoding="utf-8")
     fields: list[str] = []
-    for block in ("ProviderConfig", "RoutingConfig", "RoutingWeights", "RetryPolicy", "Timeouts", "TimeWindow"):
+    for block in (
+        "ProviderConfig",
+        "RoutingConfig",
+        "RoutingWeights",
+        "RetryPolicy",
+        "Timeouts",
+        "TimeWindow",
+    ):
         match = re.search(rf"class {block}\(BaseModel\):(.*?)\n\n\nclass ", text, re.S)
         body = match.group(1) if match else ""
         fields.extend(re.findall(r"\n    ([\w_]+):\s", body))
@@ -69,10 +80,44 @@ def agents_sections_missing() -> list[str]:
     return [section for section in AGENT_SECTIONS if section not in text]
 
 
+def adr_names() -> list[Path]:
+    """Return the numbered ADR files, excluding the index."""
+    return sorted(path for path in ADR_DIR.glob("*.md") if path.name != "index.md")
+
+
+def adr_problems() -> list[str]:
+    """Validate ADR numbering, required sections and index linkage."""
+    problems: list[str] = []
+    index = (ADR_DIR / "index.md").read_text(encoding="utf-8")
+    numbers = [int(match.group(1)) for path in adr_names() if (match := ADR_NAME.match(path.name))]
+    expected = list(range(1, len(adr_names()) + 1))
+    if numbers != expected:
+        problems.append(f"ADR numbering is not contiguous from 0001: found {numbers}")
+    for path in adr_names():
+        if not ADR_NAME.match(path.name):
+            problems.append(f"{path.name} does not match NNNN-short-slug.md")
+            continue
+        text = path.read_text(encoding="utf-8")
+        missing = [section for section in ADR_SECTIONS if section not in text]
+        if missing:
+            problems.append(f"{path.name} is missing sections: {', '.join(missing)}")
+        if f"({path.name})" not in index:
+            problems.append(f"{path.name} is not linked from docs/adr/index.md")
+    return problems
+
+
+def adr_index_linked() -> list[str]:
+    """Require the ADR index to be reachable from the documentation index."""
+    problems: list[str] = []
+    if "(adr/index.md)" not in (ROOT / "docs" / "index.md").read_text(encoding="utf-8"):
+        problems.append("docs/index.md does not link to adr/index.md")
+    return problems
+
+
 def relative_links_missing() -> list[str]:
     """Return documented relative paths that do not resolve."""
     broken: list[str] = []
-    for md in [ROOT / "README.md", *sorted((ROOT / "docs").glob("*.md"))]:
+    for md in [ROOT / "README.md", *sorted((ROOT / "docs").glob("*.md")), *sorted(ADR_DIR.glob("*.md"))]:
         if not md.is_file():
             continue
         for target in re.findall(r"\]\(([^)#]+\.md[^)]*)\)", md.read_text(encoding="utf-8")):
@@ -102,7 +147,13 @@ def openapi_check() -> list[str]:
     problems: list[str] = []
     try:
         output = subprocess.run(
-            ["uv", "run", "python", "-c", "from polygate.app import create_app; import json; print(json.dumps(create_app().openapi()))"],
+            [
+                "uv",
+                "run",
+                "python",
+                "-c",
+                "from polygate.app import create_app; import json; print(json.dumps(create_app().openapi()))",
+            ],
             cwd=ROOT / "backend",
             capture_output=True,
             text=True,
@@ -125,6 +176,8 @@ def main() -> int:
         "required docs present": missing_files(),
         "AGENTS sections": agents_sections_missing(),
         "config reference coverage": undocumented_fields(),
+        "ADRs": adr_problems(),
+        "ADR index linked": adr_index_linked(),
         "internal links": relative_links_missing(),
         "README gate names": sorted(gate_targets() - readme_targets()),
         "openapi": openapi_check(),

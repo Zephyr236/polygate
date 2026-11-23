@@ -3,11 +3,9 @@
 from __future__ import annotations
 
 import argparse
-import shutil
 import subprocess
 import sys
 import time
-from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -38,8 +36,12 @@ def _run(stage: Stage) -> bool:
 def backend_stages(with_mutation: bool, with_e2e: bool) -> list[Stage]:
     """Build backend gate stages."""
     stages = [
-        Stage("backend lint", BACKEND, ["uv", "run", "ruff", "check", "src", "tests"]),
-        Stage("backend format", BACKEND, ["uv", "run", "ruff", "format", "--check", "src", "tests"]),
+        Stage("backend lint", BACKEND, ["uv", "run", "ruff", "check", "src", "tests", "../scripts"]),
+        Stage(
+            "backend format",
+            BACKEND,
+            ["uv", "run", "ruff", "format", "--check", "src", "tests", "../scripts"],
+        ),
         Stage("backend types", BACKEND, ["uv", "run", "mypy", "src"]),
         Stage("backend import boundaries", BACKEND, ["uv", "run", "lint-imports"]),
         Stage(
@@ -69,7 +71,16 @@ def backend_stages(with_mutation: bool, with_e2e: bool) -> list[Stage]:
         Stage(
             "backend deps export",
             BACKEND,
-            ["uv", "export", "--no-dev", "--format", "requirements-txt", "--no-hashes", "-o", ".runtime-reqs.txt"],
+            [
+                "uv",
+                "export",
+                "--no-dev",
+                "--format",
+                "requirements-txt",
+                "--no-hashes",
+                "-o",
+                ".runtime-reqs.txt",
+            ],
         ),
         Stage("backend deps", BACKEND, ["uv", "run", "pip-audit", "-r", ".runtime-reqs.txt"]),
         Stage("backend dependency hygiene", BACKEND, ["uv", "run", "deptry", "src"]),
@@ -96,10 +107,16 @@ def backend_stages(with_mutation: bool, with_e2e: bool) -> list[Stage]:
     if with_e2e:
         stages.append(Stage("backend e2e", BACKEND, ["uv", "run", "pytest", "tests/e2e", "-q", "-m", "e2e"]))
         stages.append(
-            Stage("backend contracts", BACKEND, ["uv", "run", "pytest", "tests/e2e/test_contracts.py", "-q", "-m", "contract"])
+            Stage(
+                "backend contracts",
+                BACKEND,
+                ["uv", "run", "pytest", "tests/e2e/test_contracts.py", "-q", "-m", "contract"],
+            )
         )
     if with_mutation:
-        stages.append(Stage("backend mutation", BACKEND, [sys.executable, str(ROOT / "scripts/mutation_gate.py"), "75"]))
+        stages.append(
+            Stage("backend mutation", BACKEND, [sys.executable, str(ROOT / "scripts/mutation_gate.py"), "75"])
+        )
     return stages
 
 
@@ -124,7 +141,11 @@ def frontend_stages(with_mutation: bool) -> list[Stage]:
         Stage(
             "frontend dead code",
             FRONTEND,
-            ["./node_modules/.bin/knip", "--include", "files,exports,types,dependencies,devDependencies,unlisted"],
+            [
+                "./node_modules/.bin/knip",
+                "--include",
+                "files,exports,types,dependencies,devDependencies,unlisted",
+            ],
         ),
     ]
     if with_mutation:

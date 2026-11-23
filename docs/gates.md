@@ -34,7 +34,7 @@ Every merge must pass the aggregated `gate` job. The same checks run locally thr
 | Frontend CRAP | `crap-score` plus `scripts/crap_js_gate.py` | every function ≤ 6 |
 | Frontend mutation | `stryker` | break below 70 |
 | Frontend E2E | `playwright` | all pass |
-| Docs | `scripts/docs_gate.py` | zero problems |
+| Docs | `scripts/docs_gate.py` | zero problems, including ADR numbering, sections and index links |
 | Security history | `gitleaks` | no leaked secrets |
 
 ## Local usage
@@ -45,6 +45,12 @@ uv run python scripts/gate.py --frontend
 uv run python scripts/gate.py --docs
 uv run python scripts/gate.py --all --mutation --e2e
 ```
+
+## Architecture decision records
+
+`docs/adr/` holds numbered records. The docs gate requires contiguous numbering from `0001`, the
+Context / Decision / Consequences sections, a link from `docs/adr/index.md`, and a link from
+`docs/index.md` to the index. See [the ADR index](adr/index.md).
 
 ## Cognitive complexity vs CRAP
 

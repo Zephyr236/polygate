@@ -9,3 +9,4 @@
 - [Frontend](frontend.md)
 - [API](api.md)
 - [Configuration reference](config-reference.md)
+- [Architecture decision records](adr/index.md)

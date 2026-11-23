@@ -93,7 +93,7 @@ fail_under = 90
 [tool.ruff]
 line-length = 110
 target-version = "py310"
-src = ["src", "tests"]
+src = ["src", "tests", "../scripts"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "N", "UP", "B", "C4", "SIM", "ARG", "PTH", "RUF", "D", "ASYNC", "S", "PL"]
@@ -105,6 +105,7 @@ ignore = [
 
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = ["D", "S101", "ARG001", "ARG002", "ARG005", "PLR2004"]
+"../scripts/*" = ["D", "S603", "S607", "PLC0415", "E501", "SIM102"]
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"

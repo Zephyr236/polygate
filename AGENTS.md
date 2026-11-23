@@ -60,10 +60,12 @@ Mutation runs are slow. Backend uses `mutmut` on the routing/provider/protocol l
 | Module size limits | `scripts/size_gate.py` |
 | Cohesion and duplication | `scripts/cohesion_gate.py`, `.jscpd.json` |
 | Property and contract tests | `backend/tests/unit/test_state_machines.py`, `backend/tests/e2e/test_contracts.py` |
+| Architectural decisions | `docs/adr/` plus `docs/adr/index.md` |
 
 ## Definition of done
 
 - `scripts/gate.py --all` is green, including docs.
 - New behaviour has unit tests and at least one integration or e2e case.
 - Docs that describe the changed behaviour are updated in the same commit.
+- A decision that changes architecture, gating or dependencies gets a new ADR linked from `docs/adr/index.md`.
 - Mutation score stays at or above threshold; refactor rather than add `# pragma: no cover`.

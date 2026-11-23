@@ -41,11 +41,7 @@ TYPE_ONLY = ("src/api/types.ts", "src/vite-env.d.ts")
 def frontend_files() -> list[Path]:
     """Return frontend source modules, excluding pure type declaration files."""
     base = ROOT / "frontend" / "src"
-    return sorted(
-        path
-        for path in base.rglob("*")
-        if path.suffix in {".ts", ".tsx"} and not _type_only(path)
-    )
+    return sorted(path for path in base.rglob("*") if path.suffix in {".ts", ".tsx"} and not _type_only(path))
 
 
 def _type_only(path: Path) -> bool:
@@ -155,8 +151,7 @@ def check_module_line_ratio(files: list[Path], limit: int, label: str) -> list[F
 def main(argv: list[str]) -> int:
     """Report every size violation and fail when any limit is exceeded."""
     parser = argparse.ArgumentParser(description="Module size gate")
-    parser.add_argument("--json", action="store_true")
-    options = parser.parse_args(argv[1:])
+    parser.parse_args(argv[1:])
 
     backend_sources = python_files()
     frontend_sources = frontend_files()
