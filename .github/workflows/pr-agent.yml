@@ -31,6 +31,8 @@ jobs:
           LITELLM__EXTRA_HEADERS: '{"x-opencode-session": "11111111-1111-4111-8111-111111111111"}'
           CONFIG__FALLBACK_MODELS: '[]'
           CONFIG__CUSTOM_MODEL_MAX_TOKENS: '32000'
+          CONFIG__AI_TIMEOUT: '600'
+          CONFIG__RETRY_SAME_MODEL_ON_TIMEOUT: 'false'
           github_action_config.auto_review: 'true'
           github_action_config.auto_describe: 'false'
           github_action_config.auto_improve: 'false'
