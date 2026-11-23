@@ -62,12 +62,6 @@ jobs:
         if: steps.resolve.outputs.number != ''
         run: python3 scripts/agent_gate/issue.py --event "${{ steps.resolve.outputs.event }}" --out-dir /tmp/agent-candidate
 
-      - name: Check out candidate base
-        if: steps.resolve.outputs.number != ''
-        run: |
-          base=$(python3 -c "import json; print(json.load(open('/tmp/agent-candidate/candidate.json')).get('base_commit', ''))")
-          if [ -n "$base" ]; then git checkout "$base"; fi
-
       - name: Apply candidate patch
         if: steps.resolve.outputs.number != ''
         run: git apply --whitespace=nowarn /tmp/agent-candidate/candidate.patch
