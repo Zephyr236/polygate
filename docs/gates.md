@@ -15,7 +15,7 @@ Every merge must pass the aggregated `gate` job. The same checks run locally thr
 | Backend security | `bandit` | zero issues |
 | Backend dependencies (`backend deps export`, `backend deps`) | `uv export` + `pip-audit` on the runtime set | zero advisories |
 | Backend dependency hygiene | `deptry` | no unused or missing dependencies |
-| Backend design rules | `semgrep` (`rules/architecture.yml`, `rules/promoted.yml`) | zero blocking findings |
+| Backend design rules | `semgrep` (`rules/architecture.yml`) | zero blocking findings |
 | Backend structural rules | `ast-grep` (`sgconfig.yml`) | zero findings |
 | Backend cognitive complexity | `flake8-cognitive-complexity` (`.flake8`) | cognitive complexity ≤ 9 per function |
 | Backend property tests | `hypothesis` state machines | invariants hold over randomized operation sequences |
@@ -34,7 +34,7 @@ Every merge must pass the aggregated `gate` job. The same checks run locally thr
 | Frontend CRAP (report: `frontend CRAP report`, threshold: `frontend CRAP`) | `crap-score` plus `scripts/crap_js_gate.py` | every function ≤ 6 |
 | Frontend mutation | `stryker` | break below 70 |
 | Frontend E2E | `playwright` | all pass |
-| PR/push agent review | gh-aw `gate-candidate` check | success required on PRs; push to `main` records an audit |
+| PR review | PR-Agent (`pr-agent.yml`) | advisory comments; not a required check |
 | Docs | `scripts/docs_gate.py` | zero problems, including ADR numbering, sections and index links |
 | Security history | `gitleaks` | no leaked secrets |
 

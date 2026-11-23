@@ -6,24 +6,21 @@ All notable changes are documented here. The format follows Keep a Changelog and
 
 ### Added
 
-- Per-change review gate: `.github/workflows/gate-candidate.md` reads the whole repository, the rule
-  coverage map and the change, then creates one `gate-candidate` check. Pull requests block on it;
-  direct pushes to `main` are audited after the fact. Success means the change
-  is covered; failure means a concrete missing rule or invariant, with file/line and a minimal fix.
-- Rule coverage map (`scripts/rule_coverage.py`) and offline candidate tooling
-  (`agent/policy.toml`, `scripts/accept_candidate.py`, `scripts/promote_candidate.py`) for adding a
-  permanent rule or test by hand.
-- ADRs 0001–0006, including the review-gate boundary in ADR 0006 (supersedes ADR 0005).
+- PR-Agent workflow (`.github/workflows/pr-agent.yml`) reviews pull requests on open, reopen,
+  ready-for-review and synchronize, and responds to `/review` comments. It uses the Zen
+  OpenAI-compatible endpoint and `deepseek-v4.1-flash`; the review is advisory.
+- ADRs 0001–0008, including ADR 0008 (custom agent gate replaced by PR-Agent) and ADR 0007
+  (`main` is pull-request-only).
 - Chinese README alongside the English one.
 - Mutation gates re-measured from an empty cache: `mutmut` 80.78%, Stryker 77.78%.
 
 ### Changed
 
-- Branch protection requires both `gate` and the agent's `gate-candidate` check; force pushes,
-  deletions and direct pushes are blocked, including for administrators (`enforce_admins`). Pull
-  requests require zero approving reviews (ADR 0004, ADR 0007).
-- The automatic rule/test promotion workflow was removed: a finding means the code must be fixed,
-  not merged as a rule (ADR 0006).
+- Branch protection requires `gate`; force pushes, deletions and direct pushes are blocked, including
+  for administrators (`enforce_admins`). Pull requests require zero approving reviews (ADR 0004,
+  ADR 0007).
+- Removed the custom `gate-candidate` workflow, candidate policy, acceptance/promotion scripts,
+  rule-coverage helper, fixtures and tests. PR review is now PR-Agent, not a custom check.
 
 ### Fixed
 

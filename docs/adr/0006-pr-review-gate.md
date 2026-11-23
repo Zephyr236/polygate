@@ -1,6 +1,6 @@
 # ADR 0006: The agent is a per-PR review check, not a rule merger
 
-- Status: Accepted (supersedes [0005](0005-agent-candidate-promotion.md))
+- Status: Superseded by [0008](0008-pr-agent.md) (supersedes [0005](0005-agent-candidate-promotion.md))
 - Date: 2026-11-23
 - Deciders: polygate maintainers
 
