@@ -19,7 +19,7 @@ def estimate_cost(config: ProviderConfig, usage: Usage, multiplier: float) -> fl
     return round(base * config.cost_coefficient * multiplier, 8)
 
 
-def cache_savings(config: ProviderConfig, usage: Usage, multiplier: float = 1.0) -> float:
+def cache_savings(config: ProviderConfig, usage: Usage, multiplier: float) -> float:
     """Estimate the USD saved by cached prompt tokens, including the cost settings."""
     base = usage.cache_read_tokens * config.input_price_per_mtok * 0.9
     return round(base * config.cost_coefficient * multiplier / 1_000_000, 8)

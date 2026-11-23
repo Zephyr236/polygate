@@ -27,4 +27,4 @@ def test_cache_savings_includes_cost_coefficient_and_multiplier() -> None:
 
 
 def test_cache_savings_zero_without_cached_tokens() -> None:
-    assert cache_savings(_config(), Usage()) == 0.0
+    assert cache_savings(_config(), Usage(), 1.0) == 0.0
