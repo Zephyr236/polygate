@@ -1,0 +1,10 @@
+# Wire serialization is centralized; hand-rolled json.dumps in proxy handlers drifts from the SSE format.
+id: no-adhoc-json-dumps
+language: python
+severity: error
+message: >-
+  JSON frame serialization belongs to protocols/sse.py; handlers return structured responses instead.
+files:
+  - backend/src/polygate/api/proxy.py
+rule:
+  pattern: json.dumps(...)

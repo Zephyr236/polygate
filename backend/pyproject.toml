@@ -1,0 +1,196 @@
+[project]
+name = "polygate"
+version = "0.1.0"
+description = "Multi-provider routing gateway for DeepSeek V4.1 Flash compatible channels"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+dependencies = [
+  "fastapi>=0.115,<0.140",
+  "uvicorn[standard]>=0.30,<0.55",
+  "httpx>=0.27,<0.29",
+  "pydantic>=2.8,<3",
+  "aiosqlite>=0.20,<0.23",
+  "tomli>=2.0; python_version < '3.11'",
+  "starlette>=1.3.1",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8",
+  "pytest-asyncio>=0.24",
+  "pytest-cov>=6",
+  "pytest-timeout>=2.3",
+  "respx>=0.21",
+  "httpx2>=2.16; python_version >='3.11'",
+  "hypothesis>=6.120",
+  "flake8>=7.1",
+  "flake8-cognitive-complexity>=0.1",
+  "cohesion>=1.2; python_version <'3.13'",
+  "schemathesis>=4.34; python_version >='3.11'",
+  "mutmut>=3.2",
+  "crap4py>=0.1.1",
+  "ruff>=0.8",
+  "mypy>=1.13",
+  "vulture>=2.13",
+  "bandit>=1.8",
+  "pip-audit>=2.9",
+  "interrogate>=1.7",
+  "mkdocs>=1.6",
+  "mkdocs-material>=9.5",
+]
+
+[project.scripts]
+polygate = "polygate.__main__:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/polygate"]
+
+[tool.uv]
+package = true
+# Dev tooling with upstream advisories (semgrep -> pyjwt, mcp -> opentelemetry,
+# wcmatch) runs in CI only and is excluded from the runtime audit.
+
+[tool.deptry]
+extend_exclude = ["tests", "scripts", "mutants", ".venv", "node_modules"]
+per_rule_ignores = { DEP002 = [
+  # Entry points, plugins and gate tooling that are executed rather than imported.
+  "uvicorn", "pytest", "pytest-asyncio", "pytest-cov", "pytest-timeout", "pytest-xdist",
+  "respx", "mutmut", "crap4py", "ruff", "mypy", "vulture", "bandit", "pip-audit",
+  "interrogate", "mkdocs", "mkdocs-material", "import-linter", "deptry", "semgrep",
+  "aiosqlite", "httpx2", "cohesion", "schemathesis", "flake8", "flake8-cognitive-complexity", "hypothesis",
+] }
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+addopts = "--strict-markers --timeout=90 -p no:cacheprovider"
+markers = [
+  "real: hits live upstream providers (requires API keys and network)",
+  "e2e: spins up the gateway and fake upstreams on loopback",
+  "contract: fuzzes the OpenAPI surface with schemathesis",
+]
+filterwarnings = [
+  "error",
+  "ignore:The anyio.abc.BlockingPortal alias is deprecated:DeprecationWarning",
+]
+
+[tool.coverage.run]
+branch = true
+source = ["polygate"]
+omit = ["polygate/__main__.py"]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = true
+fail_under = 90
+
+[tool.ruff]
+line-length = 110
+target-version = "py310"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "N", "UP", "B", "C4", "SIM", "ARG", "PTH", "RUF", "D", "ASYNC", "S", "PL"]
+ignore = [
+  "D203", "D213", "D401", "D105", "D107",
+  "PLR0913", "PLR0917", "PLR0912", "PLR0911", "PLR2004", "PLR0915",
+  "S104", "S311", "S105", "S106",
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["D", "S101", "ARG001", "ARG002", "ARG005", "PLR2004"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.mypy]
+python_version = "3.10"
+strict = true
+warn_unused_ignores = true
+disallow_untyped_defs = true
+no_implicit_optional = true
+files = ["src"]
+
+[tool.mutmut]
+source_paths = ["src/polygate"]
+# Only modules whose tests are fast enough for mutation runs; FastAPI request
+# plumbing and SQLite storage stay covered by unit/integration coverage gates.
+do_not_mutate = [
+  "src/polygate/app.py",
+  "src/polygate/api/*.py",
+  "src/polygate/gateway.py",
+  "src/polygate/metrics.py",
+  "src/polygate/storage.py",
+]
+pytest_add_cli_args_test_selection = ["tests/unit", "tests/integration"]
+
+[tool.interrogate]
+ignore-init-method = true
+tolerance = 0
+ignore-init-module = true
+ignore-magic = true
+ignore-private = true
+ignore-property-decorators = true
+fail-under = 80
+exclude = ["tests", "scripts"]
+
+[tool.bandit]
+exclude_dirs = ["tests", ".venv", "node_modules", ".mypy_cache"]
+
+[dependency-groups]
+dev = [
+    "deptry>=0.25.1",
+    "import-linter>=2.15",
+    "semgrep>=1.172.0",
+]
+
+[tool.importlinter]
+root_package = "polygate"
+include_external_packages = false
+
+[[tool.importlinter.contracts]]
+name = "Layered architecture"
+type = "layers"
+layers = [
+  "polygate.app",
+  "polygate.api",
+  "polygate.gateway",
+  "polygate.routing | polygate.metrics",
+  "polygate.providers",
+  "polygate.protocols",
+  "polygate.config | polygate.storage",
+]
+
+[[tool.importlinter.contracts]]
+name = "Protocols never depend on routing, providers or HTTP layers"
+type = "forbidden"
+source_modules = ["polygate.protocols"]
+forbidden_modules = ["polygate.providers", "polygate.routing", "polygate.gateway", "polygate.api", "polygate.app"]
+
+[[tool.importlinter.contracts]]
+name = "Routing never depends on gateway or HTTP layers"
+type = "forbidden"
+source_modules = ["polygate.routing"]
+forbidden_modules = ["polygate.gateway", "polygate.api", "polygate.app"]
+
+[[tool.importlinter.contracts]]
+name = "Config and storage stay dependency free"
+type = "forbidden"
+source_modules = ["polygate.config", "polygate.storage"]
+forbidden_modules = ["polygate.protocols", "polygate.providers", "polygate.routing", "polygate.gateway", "polygate.api", "polygate.app", "polygate.metrics"]
+
+[[tool.importlinter.contracts]]
+name = "OpenAI and Anthropic translators are independent"
+type = "independence"
+modules = ["polygate.protocols.openai", "polygate.protocols.anthropic", "polygate.protocols.sse"]
+
+[tool.pip-audit]
+# The runtime image installs only project dependencies, so advisories that live
+# exclusively in dev tooling (semgrep, mcp, wcmatch) are tracked separately.
+skip-editable = true

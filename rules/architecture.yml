@@ -1,0 +1,134 @@
+# Design contracts as executable rules. Run through `semgrep --config rules/`.
+rules:
+  - id: http-client-only-in-providers
+    languages: [python]
+    severity: ERROR
+    message: >-
+      Only polygate.providers may import httpx; other layers go through the adapter interface.
+    paths:
+      include:
+        - backend/src/polygate/
+      exclude:
+        - backend/src/polygate/providers/
+        - backend/src/polygate/app.py
+        - backend/src/polygate/gateway.py
+    pattern-either:
+      - pattern: import httpx
+      - pattern: from httpx import $X
+
+  - id: fastapi-only-in-http-layers
+    languages: [python]
+    severity: ERROR
+    message: >-
+      FastAPI belongs to polygate.api and polygate.app only; routing, providers and protocols stay framework free.
+    paths:
+      include:
+        - backend/src/polygate/
+      exclude:
+        - backend/src/polygate/api/
+        - backend/src/polygate/app.py
+    pattern-either:
+      - pattern: import fastapi
+      - pattern: from fastapi import $X
+
+  - id: sqlite-only-in-storage
+    languages: [python]
+    severity: ERROR
+    message: >-
+      Database access stays inside polygate.storage; every other layer uses MetricsStore.
+    paths:
+      include:
+        - backend/src/polygate/
+      exclude:
+        - backend/src/polygate/storage.py
+    pattern-either:
+      - pattern: import aiosqlite
+      - pattern: from aiosqlite import $X
+
+  - id: no-function-level-imports
+    languages: [python]
+    severity: ERROR
+    message: >-
+      Imports belong at module scope so dependency graphs and import-linter contracts see them.
+    paths:
+      include:
+        - backend/src/polygate/
+    pattern-either:
+      - pattern: |
+          def $F(...):
+              ...
+              import $M
+              ...
+      - pattern: |
+          def $F(...):
+              ...
+              from $MOD import $X
+              ...
+      - pattern: |
+          async def $F(...):
+              ...
+              import $M
+              ...
+      - pattern: |
+          async def $F(...):
+              ...
+              from $MOD import $X
+              ...
+
+  - id: no-sleep-outside-scheduler
+    languages: [python]
+    severity: ERROR
+    message: >-
+      Waiting for retries belongs to the scheduler, which injects an awaitable sleep for tests.
+    paths:
+      include:
+        - backend/src/polygate/
+      exclude:
+        - backend/src/polygate/routing/scheduler.py
+        - backend/src/polygate/api/admin.py
+    pattern: asyncio.sleep($DELAY)
+
+  - id: no-direct-time-reads-in-hot-paths
+    languages: [python]
+    severity: ERROR
+    message: >-
+      Routing decisions take an injected clock so they stay deterministic under test.
+    paths:
+      include:
+        - backend/src/polygate/routing/
+      exclude:
+        - backend/src/polygate/routing/state.py
+    pattern: time.monotonic()
+
+  - id: secrets-stay-behind-api-key-env
+    languages: [python]
+    severity: ERROR
+    message: >-
+      Configuration carries environment variable names, never literal credentials.
+    paths:
+      include:
+        - backend/src/polygate/
+    pattern-regex: 'api_key\s*=\s*"[^"]{16,}"'
+
+  - id: no-print-in-gateway
+    languages: [python]
+    severity: ERROR
+    message: >-
+      The gateway reports through structured logging, not stdout writes.
+    paths:
+      include:
+        - backend/src/polygate/
+    pattern-either:
+      - pattern: print(...)
+      - pattern: sys.stdout.write(...)
+
+  - id: frontend-no-datetime-noise-in-render
+    languages: [ts]
+    severity: INFO
+    message: >-
+      Charts receive epoch seconds and format through utils/format so tests stay stable.
+    paths:
+      include:
+        - frontend/src/pages/
+        - frontend/src/components/
+    pattern: new Date($X)

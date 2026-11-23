@@ -1,0 +1,14 @@
+{
+  "settings": {
+    "boundaries/elements": [
+      { "type": "utils", "pattern": "utils" },
+      { "type": "api", "pattern": "api" },
+      { "type": "pages", "pattern": "pages" }
+    ]
+  },
+  "rules": {
+    "boundaries/dependencies": ["error", { "default": "disallow", "policies": [
+      { "from": { "element": { "type": "api" } }, "allow": { "to": { "element": { "types": ["utils"] } } } }
+    ] }]
+  }
+}

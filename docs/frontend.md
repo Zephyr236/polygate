@@ -1,0 +1,47 @@
+# Frontend
+
+The frontend is a React 19 single-page app served by the gateway in production and by Vite in development.
+
+## Stack
+
+| Concern | Choice |
+| --- | --- |
+| Runtime | React 19, TypeScript 5.9 |
+| Build | Vite 7 |
+| Data | TanStack Query 5 |
+| Charts | Recharts 3 |
+| Tests | Vitest 4, Testing Library, MSW 2 |
+| Mutation | Stryker 10 with the Vitest runner |
+| Browser E2E | Playwright 1.65 |
+
+## Pages
+
+- **Dashboard**: KPI tiles, traffic chart, provider cards and a detail table.
+- **Providers**: editable table for ids, URLs, protocol, auth, session headers, lanes, concurrency, cost and priority.
+- **Routes**: simulation of candidate scores and eligibility reasons.
+- **Playground**: live chat through `/v1/chat/completions`, streaming or not.
+
+## Layering
+
+`dependency-cruiser` enforces these boundaries:
+
+- `src/api` may not import pages, components or state.
+- `src/utils` stays pure and may not import React or the API client.
+- `src/state` may not import pages.
+- Production code may not import test tooling or the `tests/` tree.
+- `knip` fails on unused files, exports, types and dependencies.
+
+`eslint-plugin-boundaries` was evaluated for statement-level rules but its selector matching proved inert on this stack (its own documented example produced no diagnostics), so the boundaries live in `dependency-cruiser` instead. See `docs/gates.md`.
+
+## Development
+
+```sh
+pnpm install
+pnpm dev        # proxies /admin and /v1 to 127.0.0.1:8080
+pnpm test       # unit and component tests with coverage
+pnpm run e2e    # Playwright against a preview build
+```
+
+## Coverage and CRAP
+
+Coverage is emitted as Istanbul JSON so `crap-score` can compute per-function risk. `scripts/crap_js_gate.py` reads that report and fails when any function exceeds CRAP 6.

@@ -1,0 +1,12 @@
+# Utility modules stay framework free.
+id: no-react-in-utils
+language: tsx
+severity: error
+message: >-
+  Keep src/utils free of React so helpers stay testable without a renderer.
+files:
+  - frontend/src/utils/**/*.ts
+rule:
+  any:
+    - pattern: import $X from "react"
+    - pattern: import $X from "react-dom"

@@ -1,0 +1,29 @@
+name: e2e-real
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 6 * * 1"
+
+permissions:
+  contents: read
+
+jobs:
+  real-upstreams:
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.12"
+          enable-cache: true
+      - run: uv sync --extra dev --frozen
+      - name: Smoke the live channels
+        env:
+          AMR_API_KEY: ${{ secrets.AMR_API_KEY }}
+          ZEN_API_KEY: ${{ secrets.ZEN_API_KEY }}
+          OK8888_API_KEY: ${{ secrets.OK8888_API_KEY }}
+        run: uv run pytest tests/e2e/test_real_upstreams.py -q -m real

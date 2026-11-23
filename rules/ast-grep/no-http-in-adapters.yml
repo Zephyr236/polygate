@@ -1,0 +1,12 @@
+# HTTP transport is owned by providers/base.py; sibling adapters must reuse its helpers.
+id: no-direct-httpx-client-outside-base
+language: python
+severity: error
+message: >-
+  Instantiate HTTP clients only in providers/base.py so timeouts, auth and retries stay centralized.
+files:
+  - backend/src/polygate/**/*.py
+ignores:
+  - backend/src/polygate/providers/base.py
+rule:
+  pattern: httpx.AsyncClient(...)

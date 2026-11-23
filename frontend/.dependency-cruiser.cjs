@@ -1,0 +1,70 @@
+/** @type {import('dependency-cruiser').IConfiguration} */
+module.exports = {
+  forbidden: [
+    {
+      name: "no-circular",
+      severity: "error",
+      comment: "Circular dependencies make module init order fragile.",
+      from: {},
+      to: { circular: true },
+    },
+    {
+      name: "no-orphans",
+      severity: "error",
+      comment: "Every module must be reachable from the entry point or tests.",
+      from: { orphan: true, pathNot: ["^src/main\\.tsx$", "^(tests|\.dependency-cruiser)"] },
+      to: {},
+    },
+    {
+      name: "api-layer-is-leaf",
+      severity: "error",
+      comment: "The API client may not import pages, components or state.",
+      from: { path: "^src/api/" },
+      to: { path: "^src/(pages|components|state)/" },
+    },
+    {
+      name: "utils-are-pure",
+      severity: "error",
+      comment: "Pure helpers may not import React pages, components or the API client.",
+      from: { path: "^src/utils/" },
+      to: { path: "^src/(pages|components|api/client|state)/" },
+    },
+    {
+      name: "no-dev-dep-in-src",
+      severity: "error",
+      comment: "Production sources may not import test-only tooling.",
+      from: { path: "^src/" },
+      to: { path: "node_modules/(vitest|@stryker-mutator|@playwright|msw|@testing-library)/" },
+    },
+    {
+      name: "no-src-to-tests",
+      severity: "error",
+      comment: "Production sources must never import the test tree.",
+      from: { path: "^src/" },
+      to: { path: "^tests/" },
+    },
+    {
+      name: "state-must-not-import-pages",
+      severity: "error",
+      comment: "Query/state code may not import UI pages, which keeps hooks testable in isolation.",
+      from: { path: "^src/state/" },
+      to: { path: "^src/pages/" },
+    },
+    {
+      name: "no-unknown-resolved",
+      severity: "error",
+      comment: "Every resolvable import chain must stay inside the project tree.",
+      from: {},
+      to: { dependencyTypes: ["unknown"], path: "node_modules" },
+    },
+  ],
+  options: {
+    doNotFollow: { path: "node_modules" },
+    exclude: { path: "node_modules|dist|coverage|crap-report|reports|playwright-report" },
+    includeOnly: "^src/|^tests/",
+    tsPreCompilationDeps: true,
+    tsConfig: { fileName: "tsconfig.json" },
+    enhancedResolveOptions: { exportsFields: ["exports"], conditionNames: ["import", "require", "node", "default"] },
+    reporterOptions: { dot: { collapsePattern: "node_modules/[^/]+" } },
+  },
+};

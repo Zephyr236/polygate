@@ -1,0 +1,4 @@
+[flake8]
+select = CCR
+max-cognitive-complexity = 9
+exclude = .venv,tests,src/polygate/__main__.py

@@ -1,0 +1,16 @@
+# Imports stay at module scope; the dependency gates cannot see function-level imports.
+id: no-function-imports
+language: python
+severity: error
+message: >-
+  Move imports to module scope so layer gates and dependency graphs see them.
+files:
+  - backend/src/polygate/**/*.py
+rule:
+  kind: function_definition
+  has:
+    stopBy:
+      kind: function_definition
+    any:
+      - pattern: import $M
+      - pattern: from $MOD import $X

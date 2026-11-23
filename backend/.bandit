@@ -1,0 +1,8 @@
+# Bandit configuration consumed by CI and scripts/gate.py.
+skips:
+  - B311  # retry jitter uses a pseudo-random source by design
+exclude_dirs:
+  - tests
+  - .venv
+  - node_modules
+  - .mypy_cache

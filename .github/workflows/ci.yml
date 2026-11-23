@@ -1,0 +1,236 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.12"
+          enable-cache: true
+      - run: uv sync --extra dev --frozen
+      - name: lint and format
+        run: |
+          uv run ruff check src tests
+          uv run ruff format --check src tests
+      - name: types
+        run: uv run mypy src
+      - name: import boundaries
+        run: uv run lint-imports
+      - name: tests with coverage
+        run: uv run pytest tests --cov=polygate --cov-branch --cov-report=term --cov-report=lcov:lcov.info
+      - name: CRAP gate
+        run: uv run crap4py src --lcov lcov.info --max-crap 6
+      - name: dead code
+        run: uv run vulture src --min-confidence 80
+      - name: docstrings
+        run: uv run interrogate -q src
+      - name: cognitive complexity
+        run: uv run flake8 src
+      - name: security scan
+        run: uv run bandit -q -c .bandit -r src
+      - name: dependency audit (runtime set)
+        run: |
+          uv export --no-dev --format requirements-txt --no-hashes -o .runtime-reqs.txt
+          uv run pip-audit -r .runtime-reqs.txt
+      - name: dependency hygiene
+        run: uv run deptry src
+      - name: coverage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-coverage
+          path: backend/lcov.info
+
+  design-rules:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.12"
+          enable-cache: true
+      - run: uv sync --project backend --extra dev --frozen
+      - name: semgrep design rules
+        run: uv run --project backend semgrep scan --config rules/architecture.yml --error --quiet backend/src frontend/src
+      - name: ast-grep structural rules
+        run: |
+          curl -sSL -o /tmp/sg.zip https://github.com/ast-grep/ast-grep/releases/latest/download/app-x86_64-unknown-linux-gnu.zip
+          unzip -o -q /tmp/sg.zip -d /tmp/sg && chmod +x /tmp/sg/ast-grep
+          /tmp/sg/ast-grep scan --config sgconfig.yml
+      - name: module size
+        run: python scripts/size_gate.py
+      - name: class cohesion
+        run: python scripts/cohesion_gate.py
+      - name: duplicate code
+        run: uv run --project backend --with jscpd jscpd backend/src frontend/src
+
+  backend-e2e:
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.12"
+          enable-cache: true
+      - run: uv sync --extra dev --frozen
+      - run: uv run pytest tests/e2e -q -m e2e
+      - run: uv run pytest tests/e2e/test_contracts.py -q -m contract
+
+  backend-mutation:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.12"
+          enable-cache: true
+      - run: uv sync --extra dev --frozen
+      - run: uv run mutmut run --max-children 4
+      - run: python ../scripts/mutation_gate.py 75
+
+  frontend:
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22.23.5"
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run lint
+      - run: pnpm run format:check
+      - run: pnpm run typecheck
+      - run: ./node_modules/.bin/dependency-cruise src tests --config .dependency-cruiser.cjs
+      - run: ./node_modules/.bin/knip --include files,exports,types,dependencies,devDependencies,unlisted
+      - run: pnpm run test
+      - run: pnpm run crap
+      - run: python ../scripts/crap_js_gate.py crap-report/crap-report.json 6
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: frontend-coverage
+          path: |
+            frontend/coverage/
+            frontend/crap-report/
+
+  frontend-mutation:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22.23.5"
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run mutate
+
+  frontend-e2e:
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22.23.5"
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm run build
+      - run: pnpm exec playwright test
+
+  docs:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.12"
+          enable-cache: true
+      - run: uv sync --project backend --extra dev --frozen
+      - run: uv run --project backend python scripts/docs_gate.py
+      - run: uv run --project backend --with mkdocs --with mkdocs-material mkdocs build --strict
+      - uses: lycheeverse/lychee-action@v2
+        with:
+          args: --no-progress --offline README.md AGENTS.md CONTRIBUTING.md CHANGELOG.md docs/
+
+  secrets:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  docker:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -f deploy/Dockerfile -t polygate:ci .
+      - run: |
+          docker run -d --name polygate-ci -p 8080:8080 -e ADMIN_TOKEN=ci-token polygate:ci
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:8080/healthz >/dev/null; then echo healthy; break; fi
+            sleep 2
+          done
+          curl -fsS http://127.0.0.1:8080/healthz
+          docker rm -f polygate-ci
+
+  gate:
+    if: always()
+    needs:
+      [backend, design-rules, backend-e2e, backend-mutation, frontend, frontend-mutation, frontend-e2e, docs, secrets, docker]
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Require every gate to pass
+        run: |
+          if [ "${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') }}" = "true" ]; then
+            echo "one or more gates failed"; exit 1
+          fi
+          echo "all gates passed"

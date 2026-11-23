@@ -1,0 +1,97 @@
+# Example provider seed. Copy to deploy/providers.toml and fill the env names.
+
+[routing.weights]
+success = 0.4
+speed = 0.25
+cost = 0.25
+cache = 0.1
+
+[routing]
+exploration_ratio = 0.05
+max_switches = 3
+failure_threshold = 3
+cooldown_base_ms = 2000
+cooldown_max_ms = 120000
+half_open_probes = 1
+speed_target_ms = 2500
+
+[[provider]]
+id = "amr"
+base_url = "https://amr-link.open-design.ai/v1"
+protocol = "openai"
+model = "deepseek-v4.1-flash-eco"
+api_key_env = "AMR_API_KEY"
+max_concurrency = 10
+max_tokens_min = 3000
+priority = 1
+cost_coefficient = 1.0
+input_price_per_mtok = 0.15
+output_price_per_mtok = 0.6
+
+[provider.retry]
+attempts = 2
+base_delay_ms = 200
+max_delay_ms = 1200
+jitter = 0.2
+
+[provider.timeouts]
+connect_seconds = 10
+total_seconds = 120
+
+[[provider.error_rules]]
+json_path = "error.code"
+match = "tier_limit_exceeded"
+error_class = "concurrency_limited"
+retryable = true
+
+[[provider]]
+id = "zen"
+base_url = "https://opencode.ai/zen/go/v1"
+protocol = "openai"
+model = "deepseek-v4.1-flash"
+api_key_env = "ZEN_API_KEY"
+session_header = "x-opencode-session"
+session_mode = "uuid-per-request"
+max_concurrency = 20
+priority = 2
+cost_coefficient = 1.0
+input_price_per_mtok = 0.15
+output_price_per_mtok = 0.6
+
+[provider.retry]
+attempts = 2
+base_delay_ms = 250
+max_delay_ms = 2000
+jitter = 0.3
+
+[provider.timeouts]
+connect_seconds = 10
+total_seconds = 120
+
+[[provider.error_rules]]
+match = "missing x-opencode-session"
+error_class = "client_error"
+retryable = false
+
+[[provider]]
+id = "ok8888"
+base_url = "https://8888ok.cc/v1"
+protocol = "openai"
+model = "deepseek-v4.1-flash"
+api_key_env = "OK8888_API_KEY"
+max_concurrency = 2
+lanes = 2
+priority = 5
+cost_coefficient = 0.15
+input_price_per_mtok = 0.02
+output_price_per_mtok = 0.1
+
+[provider.retry]
+attempts = 1
+base_delay_ms = 300
+max_delay_ms = 3000
+jitter = 0.4
+
+[provider.timeouts]
+connect_seconds = 15
+total_seconds = 180

@@ -1,0 +1,12 @@
+# Every HTTP call from the SPA flows through the typed client.
+id: no-fetch-outside-api-client
+language: tsx
+severity: error
+message: >-
+  Call the typed client in src/api/client.ts instead of fetch directly.
+files:
+  - frontend/src/**/*.tsx
+ignores:
+  - frontend/src/api/client.ts
+rule:
+  pattern: fetch($ARGS)

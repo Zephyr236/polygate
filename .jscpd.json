@@ -1,0 +1,11 @@
+{
+  "threshold": 5,
+  "minTokens": 60,
+  "minLines": 12,
+  "reporters": ["console", "json"],
+  "output": "reports/jscpd",
+  "absolute": false,
+  "gitignore": true,
+  "format": ["python", "typescript", "tsx"],
+  "ignore": ["**/node_modules/**", "**/tests/**", "**/e2e/**", "**/coverage/**", "**/dist/**", "**/.venv/**", "**/mutants/**", "**/__pycache__/**", "**/site-packages/**"]
+}

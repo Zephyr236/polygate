@@ -1,0 +1,7 @@
+dist
+coverage
+crap-report
+reports
+node_modules
+playwright-report
+.stryker-tmp

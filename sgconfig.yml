@@ -1,0 +1,4 @@
+# ast-grep project configuration. Rules live in rules/ast-grep/.
+ruleDirs:
+  - rules/ast-grep
+utilDirs: []

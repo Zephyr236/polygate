@@ -1,0 +1,14 @@
+site_name: polygate
+theme:
+  name: material
+nav:
+  - Overview: index.md
+  - Architecture: architecture.md
+  - Routing: routing.md
+  - Providers: providers.md
+  - Metrics: metrics.md
+  - Operations: operations.md
+  - Gates: gates.md
+  - Frontend: frontend.md
+  - API: api.md
+  - Configuration: config-reference.md
