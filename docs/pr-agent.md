@@ -39,6 +39,8 @@ gh pr comment <number> --body "/help"
 ## Limitations
 
 - Fork PRs do not receive repository secrets, so PR-Agent cannot run on them by default. A
-  maintainer can run `/review` from the base repository.
+  maintainer can run `/review` from the base repository. `/review` comments are accepted only from
+  `OWNER`, `MEMBER` or `COLLABORATOR` associations, so an external commenter cannot spend the Zen
+  quota.
 - The review is model-generated. Treat it as a second opinion, not a deterministic gate.
 - The action needs `issues: write` and `pull-requests: write` to post comments.

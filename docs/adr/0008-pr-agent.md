@@ -36,7 +36,8 @@ for OpenAI-compatible models, automatic review on PR events and `/review` comman
   blocks on CI; making PR-Agent required is a later decision after observing its signal/noise.
 - The review uses the Zen channel and its key; the Zen session limit applies. Fork PRs do not
   receive repository secrets, so external contributions need a maintainer to run `/review` from the
-  base repository or a separate trusted workflow.
+  base repository. Comment-triggered runs are restricted to `OWNER`, `MEMBER` and `COLLABORATOR`
+  associations so external commenters cannot spend the quota.
 - Main remains PR-only with zero required reviews and `gate` required (ADR 0004, ADR 0007).
 
 ## References
