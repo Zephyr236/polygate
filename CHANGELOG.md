@@ -20,8 +20,9 @@ All notable changes are documented here. The format follows Keep a Changelog and
 
 ### Changed
 
-- Branch protection requires both `gate` and the agent's `gate-candidate` check; force pushes and
-  deletions are blocked. Pull requests require zero approving reviews (ADR 0004).
+- Branch protection requires both `gate` and the agent's `gate-candidate` check; force pushes,
+  deletions and direct pushes are blocked, including for administrators (`enforce_admins`). Pull
+  requests require zero approving reviews (ADR 0004, ADR 0007).
 - The automatic rule/test promotion workflow was removed: a finding means the code must be fixed,
   not merged as a rule (ADR 0006).
 
