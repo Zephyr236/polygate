@@ -9,6 +9,8 @@ nav:
   - Metrics: metrics.md
   - Operations: operations.md
   - Gates: gates.md
+  - Design review: design-review.md
+  - Design brief template: templates/design-brief.md
   - Frontend: frontend.md
   - API: api.md
   - Configuration: config-reference.md
@@ -21,3 +23,4 @@ nav:
   - ADR 0006 - PR review gate: adr/0006-pr-review-gate.md
   - ADR 0007 - Protect main: adr/0007-protect-main.md
   - ADR 0008 - CI-only gates: adr/0008-ci-only-gates.md
+  - ADR 0009 - Design review agent: adr/0009-design-review-agent.md
