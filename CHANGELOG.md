@@ -6,6 +6,7 @@ All notable changes are documented here. The format follows Keep a Changelog and
 
 ### Added
 
+- CodeQL analysis for Python and JavaScript/TypeScript, required by the aggregated `gate` job.
 - ADRs 0001–0008, including ADR 0008 (CI-only merge gates) and ADR 0007
   (`main` is pull-request-only).
 - Chinese README alongside the English one.
