@@ -8,6 +8,7 @@ All notable changes are documented here. The format follows Keep a Changelog and
 
 - Pull-request gate-candidate workflow (gh-aw) that reads the whole repository and opens one
   `agent-candidate` issue; `agent-accept` applies the patch, runs acceptance and labels the result.
+- ADR 0005 records the proposal/acceptance/promotion/merge boundary.
 - Automatic promotion of accepted rules and tests: semgrep rules append to `rules/promoted.yml`,
   ast-grep rules move into `rules/ast-grep/`, tests move to `backend/tests/agent_accepted/`, with a
   registry in `agent/accepted.json`; promotion PRs are squash-auto-merged after `gate` passes.

@@ -35,8 +35,13 @@ def _require_merged_fix(repo: Path, meta: dict[str, Any], artifact: str) -> None
     commit = str(meta.get("post_fix_commit", "")).strip()
     if not commit:
         raise PromoteError("test candidate has no post_fix_commit")
+    reference = "origin/main"
+    if subprocess.run(
+        ["git", "rev-parse", "--verify", reference], cwd=repo, capture_output=True, check=False
+    ).returncode != 0:
+        reference = "HEAD"
     result = subprocess.run(
-        ["git", "merge-base", "--is-ancestor", commit, "HEAD"],
+        ["git", "merge-base", "--is-ancestor", commit, reference],
         cwd=repo,
         capture_output=True,
         text=True,
