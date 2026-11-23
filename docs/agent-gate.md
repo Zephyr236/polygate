@@ -17,7 +17,8 @@ protection-disabled recovery.
 
 The agent is read-only. Its only write is `create-check-run`; it cannot edit files, push, or open
 issues or pull requests. The checkout has full history, and `reports/change-range.txt` records the
-`base`/`head` for the run, so a multi-commit push is reviewed as a range rather than as `HEAD^`.
+`base`/`head` for the run, so a multi-commit push is reviewed as a range rather than as `HEAD^`; for
+a pull request, `base` is `git merge-base(base.sha, head.sha)`, not the base branch tip.
 Concurrency is keyed by PR number or commit SHA and never cancels an earlier audit.
 
 ## Check outcomes

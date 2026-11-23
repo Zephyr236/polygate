@@ -31,7 +31,8 @@ steps:
         echo "base=${{ github.event.before }}" > reports/change-range.txt
         echo "head=${{ github.event.after }}" >> reports/change-range.txt
       elif [ "${{ github.event_name }}" = "pull_request" ]; then
-        echo "base=${{ github.event.pull_request.base.sha }}" > reports/change-range.txt
+        base=$(git merge-base "${{ github.event.pull_request.base.sha }}" "${{ github.event.pull_request.head.sha }}")
+        echo "base=$base" > reports/change-range.txt
         echo "head=${{ github.event.pull_request.head.sha }}" >> reports/change-range.txt
       else
         echo "base=$(git rev-parse HEAD^)" > reports/change-range.txt
@@ -72,7 +73,8 @@ is an audit and cannot be blocked after the fact.
 - `reports/rule-coverage.json` and `reports/rule-coverage.md`
 - `rules/` and `rules/ast-grep/` (existing rules)
 - `backend/src/`, `backend/tests/`, `frontend/src/`
-- `reports/change-range.txt`, which contains `base` and `head` for this run;
+- `reports/change-range.txt`, which contains `base` and `head` for this run (`base` is the merge base
+  for a pull request);
 - the diff from `git diff base..head` and the commits from `git log base..head` (the checkout has
   full history);
 - for a pull request, also `get_pull_request_diff`.

@@ -9,7 +9,8 @@ All notable changes are documented here. The format follows Keep a Changelog and
 - Per-change review gate: `.github/workflows/gate-candidate.md` reads the whole repository, the rule
   coverage map and the change, then creates one `gate-candidate` check. Pull requests block on it;
   direct pushes to `main` are audited after the fact. The push audit uses full history plus a
-  recorded base/head range and per-commit concurrency so no commit is skipped. Success means the change
+  recorded base/head range (merge base for PRs) and per-commit concurrency so no commit is
+  skipped and no unrelated base commits are reviewed. Success means the change
   is covered; failure means a concrete missing rule or invariant, with file/line and a minimal fix.
 - Rule coverage map (`scripts/rule_coverage.py`) and offline candidate tooling
   (`agent/policy.toml`, `scripts/accept_candidate.py`, `scripts/promote_candidate.py`) for adding a
