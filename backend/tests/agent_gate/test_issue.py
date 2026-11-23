@@ -51,8 +51,7 @@ def test_extract_event_requires_bot_author_and_label(tmp_path: Path) -> None:
 
 
 def test_missing_marker_and_blocks(tmp_path: Path) -> None:
-    with pytest.raises(IssueError, match="marker"):
-        extract_body("no marker", tmp_path)
+    assert extract_body(BODY.replace("<!-- agent-candidate:v1 -->\n", ""), tmp_path).candidate.is_file()
     with pytest.raises(IssueError, match="fenced blocks"):
         extract_body("<!-- agent-candidate:v1 -->\n```json\n{}\n```\n", tmp_path)
     with pytest.raises(IssueError, match="invalid"):

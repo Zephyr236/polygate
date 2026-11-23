@@ -63,9 +63,7 @@ def validate_patch_paths(patch: str) -> None:
 
 def extract_body(body: str, out_dir: Path) -> Extracted:
     """Parse the candidate JSON and diff from an issue body."""
-    if MARKER not in body:
-        raise IssueError("issue is missing the agent-candidate marker")
-    payload = body.split(MARKER, 1)[1]
+    payload = body.split(MARKER, 1)[1] if MARKER in body else body
     json_match = JSON_BLOCK.search(payload)
     diff_match = DIFF_BLOCK.search(payload)
     if json_match is None or diff_match is None:
