@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Any
 
 MARKER = "<!-- agent-candidate:v1 -->"
+BOT_LOGINS = {"github-actions[bot]", "app/github-actions"}
 JSON_BLOCK = re.compile(r"```json\s*(.*?)```", re.DOTALL)
 DIFF_BLOCK = re.compile(r"```diff\s*(.*?)```", re.DOTALL)
 ALLOWED_PREFIXES = (
@@ -101,7 +102,7 @@ def extract_event(event: dict[str, Any], out_dir: Path) -> Extracted:
     if not isinstance(issue, dict) or not isinstance(label, dict):
         raise IssueError("event must be an issue labeled event")
     author = str((issue.get("user") or {}).get("login", ""))
-    if author != "github-actions[bot]":
+    if author not in BOT_LOGINS:
         raise IssueError(f"unexpected issue author: {author}")
     if label.get("name") != "agent-candidate":
         raise IssueError("issue is not labeled agent-candidate")

@@ -43,6 +43,7 @@ def test_extract_body_writes_candidate_and_patch(tmp_path: Path) -> None:
 
 def test_extract_event_requires_bot_author_and_label(tmp_path: Path) -> None:
     assert extract_event(_event(), tmp_path).candidate.is_file()
+    assert extract_event(_event(author="app/github-actions"), tmp_path).candidate.is_file()
     with pytest.raises(IssueError, match="unexpected issue author"):
         extract_event(_event(author="attacker"), tmp_path)
     with pytest.raises(IssueError, match="not labeled"):
