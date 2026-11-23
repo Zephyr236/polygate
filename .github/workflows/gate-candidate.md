@@ -30,9 +30,12 @@ steps:
       if [ "${{ github.event_name }}" = "push" ]; then
         echo "base=${{ github.event.before }}" > reports/change-range.txt
         echo "head=${{ github.event.after }}" >> reports/change-range.txt
-      else
+      elif [ "${{ github.event_name }}" = "pull_request" ]; then
         echo "base=${{ github.event.pull_request.base.sha }}" > reports/change-range.txt
         echo "head=${{ github.event.pull_request.head.sha }}" >> reports/change-range.txt
+      else
+        echo "base=$(git rev-parse HEAD^)" > reports/change-range.txt
+        echo "head=$(git rev-parse HEAD)" >> reports/change-range.txt
       fi
   - name: Build rule coverage map
     run: |
