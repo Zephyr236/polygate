@@ -95,9 +95,7 @@ def test_diff_file_is_capped(tmp_path: Path, capsys: pytest.CaptureFixture[str])
     diff = tmp_path / "x.diff"
     diff.write_text("A" * 1000 + "UNIQUE_TAIL", encoding="utf-8")
     assert (
-        review.main(
-            ["design_review.py", "--diff-file", str(diff), "--max-diff-chars", "100", "--dry-run"]
-        )
+        review.main(["design_review.py", "--diff-file", str(diff), "--max-diff-chars", "100", "--dry-run"])
         == 0
     )
     out = capsys.readouterr().out
@@ -112,9 +110,7 @@ def test_empty_diff_fails(tmp_path: Path, capsys: pytest.CaptureFixture[str]) ->
     assert "no changes" in capsys.readouterr().err
 
 
-def test_main_writes_report_with_stubbed_model(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
+def test_main_writes_report_with_stubbed_model(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     diff = tmp_path / "x.diff"
     diff.write_text("diff --git a/x b/x\n", encoding="utf-8")
     out = tmp_path / "report.md"
