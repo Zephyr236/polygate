@@ -8,7 +8,8 @@ is discarded.  These parsers must map null to zero instead.
 
 from __future__ import annotations
 
-from hypothesis import example, given, settings, strategies as st
+from hypothesis import example, given, settings
+from hypothesis import strategies as st
 
 from polygate.protocols import anthropic, openai
 
