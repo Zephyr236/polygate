@@ -20,3 +20,4 @@ nav:
   - ADR 0004 - Merge policy: adr/0004-merge-policy.md
   - ADR 0005 - Agent candidate promotion: adr/0005-agent-candidate-promotion.md
   - ADR 0006 - PR review gate: adr/0006-pr-review-gate.md
+  - ADR 0007 - Protect main: adr/0007-protect-main.md

@@ -10,8 +10,10 @@ reports no finding.
 `.github/workflows/gate-candidate.md` (compiled to `gate-candidate.lock.yml`) runs on pull-request
 `opened`, `synchronize` and `reopened`, on every push to `main`, and on manual dispatch. Every push
 to a pull request runs it again with the full repository, `reports/rule-coverage.json`, the existing
-rules and the PR diff. A push to `main` reviews the pushed commit against its parent and records the
-same check; it is an audit because the push has already happened.
+rules and the PR diff. A push to `main` (normally a PR merge) reviews the pushed commit against its
+parent and records the same check; it is an audit because the push has already happened. Direct
+pushes are blocked by branch protection, so the push path only sees merges or an exceptional
+protection-disabled recovery.
 
 The agent is read-only. Its only write is `create-check-run`; it cannot edit files, push, or open
 issues or pull requests.

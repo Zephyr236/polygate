@@ -29,7 +29,8 @@ makes the agent a source of gate configuration rather than a reviewer.
   unrelated pre-existing issues are explicitly out of scope; uncertainty resolves to success.
 - Branch protection on `main` requires both `gate` and `gate-candidate` for pull requests. A failing
   check blocks the merge until the code is fixed and the new commit passes the agent again. A push
-  to `main` is audited after the fact; its check cannot block the already-completed push.
+  to `main` is audited after the fact; its check cannot block the already-completed push. Direct
+  pushes are blocked by ADR 0007; the push trigger audits merges.
 - The agent is read-only. It cannot edit rules, tests, workflows or gate configuration; the only
   write is the bounded `create-check-run` safe output.
 - The rule/test promotion pipeline from ADR 0005 is removed from CI. `agent/policy.toml`,
