@@ -49,8 +49,7 @@ def redact(text: str) -> str:
     """Replace obvious secret assignments before sending context to the model."""
     return SECRET_RE.sub(
         lambda match: (
-            f"{match.group('quote')}{match.group('name')}{match.group('quote')}"
-            f"{match.group('sep')}<redacted>"
+            f"{match.group('quote')}{match.group('name')}{match.group('quote')}{match.group('sep')}<redacted>"
         ),
         text,
     )
@@ -97,8 +96,10 @@ def collect_docs(repo: Path, head: str | None, limit: int) -> str:
     used = 0
     for name in DOCS:
         try:
-            text = _git(repo, "show", f"{head}:{name}") if head else (root / name).read_text(
-                encoding="utf-8", errors="replace"
+            text = (
+                _git(repo, "show", f"{head}:{name}")
+                if head
+                else (root / name).read_text(encoding="utf-8", errors="replace")
             )
         except (ReviewError, OSError):
             continue
