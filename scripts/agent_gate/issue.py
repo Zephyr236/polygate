@@ -6,6 +6,7 @@ import argparse
 import json
 import re
 import sys
+import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -84,6 +85,15 @@ def extract_body(body: str, out_dir: Path) -> Extracted:
     return Extracted(candidate, patch_file)
 
 
+def event_from_issue(issue: dict[str, Any]) -> dict[str, Any]:
+    """Build the minimal event shape from a `gh issue view --json` payload."""
+    author = issue.get("author") or issue.get("user") or {}
+    return {
+        "issue": {"user": {"login": str(author.get("login", ""))}, "body": str(issue.get("body") or "")},
+        "label": {"name": "agent-candidate"},
+    }
+
+
 def extract_event(event: dict[str, Any], out_dir: Path) -> Extracted:
     """Validate the issue author and label, then extract the payload."""
     issue = event.get("issue")
@@ -100,12 +110,25 @@ def extract_event(event: dict[str, Any], out_dir: Path) -> Extracted:
 
 
 def main(argv: list[str]) -> int:
-    """Extract a candidate from an event payload."""
+    """Extract a candidate from an event payload, or build an event from an issue."""
     parser = argparse.ArgumentParser(description="Extract an agent candidate from an issue event")
-    parser.add_argument("--event", required=True, type=Path)
-    parser.add_argument("--out-dir", required=True, type=Path)
+    parser.add_argument("--event", type=Path, default=None)
+    parser.add_argument("--out-dir", type=Path, default=None)
+    parser.add_argument("--issue-json", type=Path, default=None)
+    parser.add_argument("--event-out", type=Path, default=None)
     options = parser.parse_args(argv[1:])
     try:
+        if options.issue_json is not None:
+            issue = json.loads(options.issue_json.read_text(encoding="utf-8"))
+            if not isinstance(issue, dict):
+                raise IssueError("issue JSON must be an object")
+            event = event_from_issue(issue)
+            target = options.event_out or Path(tempfile.gettempdir()) / "agent-event.json"
+            target.write_text(json.dumps(event), encoding="utf-8")
+            print(f"event={target}")
+            return 0
+        if options.event is None or options.out_dir is None:
+            parser.error("--event and --out-dir are required unless --issue-json is used")
         event = json.loads(options.event.read_text(encoding="utf-8"))
         extracted = extract_event(event, options.out_dir)
     except (OSError, json.JSONDecodeError, IssueError) as error:

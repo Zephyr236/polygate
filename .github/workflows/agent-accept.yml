@@ -3,6 +3,10 @@ name: agent-accept
 on:
   issues:
     types: [labeled]
+  workflow_run:
+    workflows: ["Gate candidate"]
+    types: [completed]
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -10,12 +14,12 @@ permissions:
   pull-requests: read
 
 concurrency:
-  group: agent-accept-${{ github.event.issue.number }}
+  group: agent-accept-${{ github.event.issue.number || github.run_id }}
   cancel-in-progress: true
 
 jobs:
   accept:
-    if: github.event.label.name == 'agent-candidate'
+    if: github.event_name != 'issues' || github.event.label.name == 'agent-candidate'
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
@@ -23,26 +27,53 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Resolve candidate issue
+        id: resolve
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ "${{ github.event_name }}" = "issues" ]; then
+            echo "number=${{ github.event.issue.number }}" >> "$GITHUB_OUTPUT"
+            echo "event=$GITHUB_EVENT_PATH" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          number=$(gh issue list --repo "$GITHUB_REPOSITORY" --label agent-candidate --state open --limit 100 \
+            --json number,labels --jq '[.[] | select(([.labels[].name] | index("agent-accepted") | not) and ([.labels[].name] | index("agent-rejected") | not) and ([.labels[].name] | index("agent-needs-human") | not))] | sort_by(.number) | last | .number // empty')
+          if [ -z "$number" ]; then
+            echo "number=" >> "$GITHUB_OUTPUT"
+            echo "no unprocessed agent-candidate issue"
+            exit 0
+          fi
+          echo "number=$number" >> "$GITHUB_OUTPUT"
+          gh issue view "$number" --repo "$GITHUB_REPOSITORY" --json number,body,author > /tmp/agent-issue.json
+          python3 scripts/agent_gate/issue.py --issue-json /tmp/agent-issue.json --event-out /tmp/agent-event.json
+          echo "event=/tmp/agent-event.json" >> "$GITHUB_OUTPUT"
+
       - uses: astral-sh/setup-uv@v5
         with:
           python-version: "3.12"
           enable-cache: true
 
       - name: Install backend dependencies
+        if: steps.resolve.outputs.number != ''
         run: uv sync --project backend --extra dev --frozen
 
       - name: Extract candidate
-        run: python3 scripts/agent_gate/issue.py --event "$GITHUB_EVENT_PATH" --out-dir /tmp/agent-candidate
+        if: steps.resolve.outputs.number != ''
+        run: python3 scripts/agent_gate/issue.py --event "${{ steps.resolve.outputs.event }}" --out-dir /tmp/agent-candidate
 
       - name: Check out candidate base
+        if: steps.resolve.outputs.number != ''
         run: |
           base=$(python3 -c "import json; print(json.load(open('/tmp/agent-candidate/candidate.json')).get('base_commit', ''))")
           if [ -n "$base" ]; then git checkout "$base"; fi
 
       - name: Apply candidate patch
+        if: steps.resolve.outputs.number != ''
         run: git apply --whitespace=nowarn /tmp/agent-candidate/candidate.patch
 
       - name: Run acceptance
+        if: steps.resolve.outputs.number != ''
         id: accept
         run: |
           set +e
@@ -53,6 +84,7 @@ jobs:
           set -e
 
       - name: Compose comment
+        if: steps.resolve.outputs.number != ''
         run: |
           code="${{ steps.accept.outputs.code }}"
           case "$code" in
@@ -71,14 +103,15 @@ jobs:
         id: comment
 
       - name: Comment on failure
-        if: failure()
+        if: failure() && steps.resolve.outputs.number != '' 
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh issue comment "${{ github.event.issue.number }}" --repo "$GITHUB_REPOSITORY" \
+          gh issue comment "${{ steps.resolve.outputs.number }}" --repo "$GITHUB_REPOSITORY" \
             --body "agent-accept failed before a verdict; see the workflow run for details."
 
       - name: Ensure labels and comment
+        if: steps.resolve.outputs.number != ''
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -86,5 +119,5 @@ jobs:
           gh label create agent-accepted --color 1D76DB --description "Candidate passed acceptance" --force
           gh label create agent-rejected --color B60205 --description "Candidate failed acceptance" --force
           gh label create agent-needs-human --color D93F0B --description "Candidate needs a human decision" --force
-          gh issue comment "${{ github.event.issue.number }}" --repo "$GITHUB_REPOSITORY" --body-file /tmp/agent-comment.md
-          gh issue edit "${{ github.event.issue.number }}" --repo "$GITHUB_REPOSITORY" --add-label "${{ steps.comment.outputs.label }}"
+          gh issue comment "${{ steps.resolve.outputs.number }}" --repo "$GITHUB_REPOSITORY" --body-file /tmp/agent-comment.md
+          gh issue edit "${{ steps.resolve.outputs.number }}" --repo "$GITHUB_REPOSITORY" --add-label "${{ steps.comment.outputs.label }}"

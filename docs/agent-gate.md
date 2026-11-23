@@ -93,10 +93,13 @@ Exit codes: `0` pass, `1` fail, `2` needs a human decision.
   patch. It never pushes or opens a pull request. The compiled lock is
   `.github/workflows/gate-candidate.lock.yml`; regenerate it with `gh aw compile` after editing the
   source.
-- `.github/workflows/agent-accept.yml` runs when an issue receives the `agent-candidate` label. It
-  verifies the author is `github-actions[bot]`, extracts the JSON and patch, rejects paths outside
-  the candidate prefixes, applies the patch, runs the full acceptance script, and comments the
-  report with `agent-accepted`, `agent-rejected` or `agent-needs-human`.
+- `.github/workflows/agent-accept.yml` runs when an issue receives the `agent-candidate` label, when
+  a Gate candidate run completes, or manually. GitHub does not trigger workflows from events created
+  with `GITHUB_TOKEN`, so the workflow also resolves the newest unprocessed `agent-candidate` issue
+  after a Gate candidate run. It verifies the author is `github-actions[bot]`, extracts the JSON and
+  patch, rejects paths outside the candidate prefixes, checks out the candidate base, applies the
+  patch, runs the full acceptance script, and comments the report with `agent-accepted`,
+  `agent-rejected` or `agent-needs-human`.
 
 Promotion is still explicit: an accepted candidate is labeled, not merged. A later step can move
 accepted artifacts into `rules/` or the test suite; the patch path allowlist and the acceptance

@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from agent_gate.issue import IssueError, extract_body, extract_event, validate_patch_paths
+from agent_gate.issue import IssueError, event_from_issue, extract_body, extract_event, validate_patch_paths
 
 BODY = """<!-- agent-candidate:v1 -->
 ## Candidate
@@ -67,3 +67,10 @@ def test_patch_paths_are_confined(tmp_path: Path) -> None:
     with pytest.raises(IssueError, match="too large"):
         validate_patch_paths("+++ b/backend/tests/agent/test_x.py\n" + "x" * 210_000)
     del tmp_path
+
+
+def test_event_from_issue_maps_author_and_body() -> None:
+    event = event_from_issue({"author": {"login": "github-actions[bot]"}, "body": "body"})
+    assert event["issue"]["user"]["login"] == "github-actions[bot]"
+    assert event["issue"]["body"] == "body"
+    assert event["label"]["name"] == "agent-candidate"
