@@ -113,6 +113,10 @@ jobs:
           git config user.name "polygate-agent"
           git config user.email "polygate-agent@users.noreply.github.com"
           git checkout -b "agent/$id"
+          if [ -d backend/tests/agent_accepted ]; then
+            uv run --project backend ruff check --fix backend/tests/agent_accepted || true
+            uv run --project backend ruff format backend/tests/agent_accepted
+          fi
           git add -A
           git commit -m "feat: promote agent candidate $id"
           git push "https://x-access-token:${AGENT_PROMOTE_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "HEAD:agent/$id"
