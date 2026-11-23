@@ -89,4 +89,4 @@ Exit codes: `0` pass, `1` fail, `2` needs a human decision.
 
 A GitHub workflow may run the agent on pull requests and call this script. Until that workflow
 exists, the script is exercised by
-`backend/tests/unit/test_agent_gate_policy.py` and `backend/tests/unit/test_agent_gate_accept.py`.
+`backend/tests/agent_gate/test_policy.py` and `backend/tests/agent_gate/test_accept.py`.
