@@ -6,6 +6,9 @@ All notable changes are documented here. The format follows Keep a Changelog and
 
 ### Added
 
+- Agent gate decision policy (`agent/policy.toml`) and acceptance script
+  (`scripts/accept_candidate.py`): maps gap types to allowed artifacts and verifies rules by
+  must-fire/must-not-fire, tests by pre-fix/post-fix, and checks by fixture commands.
 - Three architecture decision records and a docs-gate check for ADR numbering, sections and index links.
 - Chinese README alongside the English one.
 - Mutation gates re-measured from an empty cache: `mutmut` 80.78%, Stryker 77.78%.

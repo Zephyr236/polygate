@@ -236,6 +236,7 @@ scripts/     gate.py plus threshold readers for CRAP, mutation, docs, size, cohe
 - [Frontend](docs/frontend.md)
 - [Quality gates](docs/gates.md)
 - [Configuration reference](docs/config-reference.md)
+- [Agent gate candidates](docs/agent-gate.md)
 - [Architecture decision records](docs/adr/index.md)
 
 Maintainer notes for humans and agents: [AGENTS.md](AGENTS.md) · [CONTRIBUTING.md](CONTRIBUTING.md).

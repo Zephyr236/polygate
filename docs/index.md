@@ -9,4 +9,5 @@
 - [Frontend](frontend.md)
 - [API](api.md)
 - [Configuration reference](config-reference.md)
+- [Agent gate candidates](agent-gate.md)
 - [Architecture decision records](adr/index.md)

@@ -24,6 +24,7 @@ REQUIRED_DOCS = [
     "docs/frontend.md",
     "docs/api.md",
     "docs/config-reference.md",
+    "docs/agent-gate.md",
     "docs/adr/index.md",
 ]
 AGENT_SECTIONS = [
@@ -138,7 +139,9 @@ def gate_reference_gaps() -> list[str]:
     problems: list[str] = []
     reference = ROOT / "docs" / "gates.md"
     text = reference.read_text(encoding="utf-8").lower() if reference.is_file() else ""
-    problems.extend(f"docs/gates.md does not mention stage: {name}" for name in gate_targets() if name.lower() not in text)
+    problems.extend(
+        f"docs/gates.md does not mention stage: {name}" for name in gate_targets() if name.lower() not in text
+    )
     readme = ROOT / "README.md"
     if readme.is_file() and "(docs/gates.md)" not in readme.read_text(encoding="utf-8"):
         problems.append("README.md does not link to docs/gates.md")

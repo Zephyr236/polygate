@@ -61,6 +61,7 @@ Mutation runs are slow. Backend uses `mutmut` on the routing/provider/protocol l
 | Cohesion and duplication | `scripts/cohesion_gate.py`, `.jscpd.json` |
 | Property and contract tests | `backend/tests/unit/test_state_machines.py`, `backend/tests/e2e/test_contracts.py` |
 | Architectural decisions | `docs/adr/` plus `docs/adr/index.md` |
+| Agent-proposed gates | `agent/policy.toml`, `scripts/agent_gate/`, `docs/agent-gate.md` |
 
 ## Merge policy
 
