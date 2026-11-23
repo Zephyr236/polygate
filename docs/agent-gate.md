@@ -104,3 +104,5 @@ report are the audit trail.
 
 The policy and acceptance code are exercised by `backend/tests/agent_gate/test_policy.py`,
 `test_accept.py`, `test_issue.py` and `test_rule_coverage.py`.
+
+<!-- workflow smoke test: the gate-candidate agent should read this change. -->
