@@ -1,6 +1,6 @@
 # ADR 0007: Main is pull-request-only, including for administrators
 
-- Status: Accepted (supersedes the `enforce_admins` part of [0004](0004-merge-policy.md); agent-check detail superseded by [0008](0008-pr-agent.md))
+- Status: Accepted (supersedes the `enforce_admins` part of [0004](0004-merge-policy.md); agent-review detail superseded by [0008](0008-ci-only-gates.md))
 - Date: 2026-11-23
 - Deciders: polygate maintainers
 

@@ -16,7 +16,6 @@ change. The gates are the merge criterion instead:
 - Pull requests are the only path to `main`, including for administrators (`enforce_admins`).
 - The aggregated `gate` check must be green. It fails on `failure`, `cancelled` **and `skipped`**
   dependencies, so a gate that never ran cannot be mistaken for one that passed.
-- PR-Agent posts an advisory review; it is not a required check.
 - Force pushes and branch deletion are disabled.
 
 If a second maintainer joins, raise the review requirement to one in repository settings; nothing else
