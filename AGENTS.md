@@ -61,13 +61,13 @@ Mutation runs are slow. Backend uses `mutmut` on the routing/provider/protocol l
 | Cohesion and duplication | `scripts/cohesion_gate.py`, `.jscpd.json` |
 | Property and contract tests | `backend/tests/unit/test_state_machines.py`, `backend/tests/e2e/test_contracts.py` |
 | Architectural decisions | `docs/adr/` plus `docs/adr/index.md` |
-| Agent-proposed gates | `agent/policy.toml`, `scripts/agent_gate/`, `docs/agent-gate.md` |
-| Promoted rules and tests | `rules/promoted.yml`, `rules/ast-grep/`, `backend/tests/agent_accepted/`, `agent/accepted.json` |
+| Per-PR agent review gate | `.github/workflows/gate-candidate.md`, `docs/agent-gate.md` |
+| Offline candidate tooling | `agent/policy.toml`, `scripts/agent_gate/`, `scripts/accept_candidate.py` |
 
 ## Merge policy
 
 `main` takes pull requests only, with **0 required reviews** (single maintainer; GitHub forbids
-self-approval) and the aggregated `gate` check required. `gate` fails on `failure`, `cancelled` and
+self-approval); the aggregated `gate` check and the agent's `gate-candidate` check are both required. `gate` fails on `failure`, `cancelled` and
 `skipped`, so a conditional job cannot pass by not running. Force pushes and deletions are blocked.
 Rationale: [docs/adr/0004-merge-policy.md](docs/adr/0004-merge-policy.md).
 

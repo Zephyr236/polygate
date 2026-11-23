@@ -9,7 +9,8 @@ considered and what was rejected.
 | [0002](0002-boundary-tools.md) | Boundaries enforced only by tools proven to fail on a probe | Accepted |
 | [0003](0003-runtime-dependency-audit.md) | Audit the exported runtime set; dev advisories stay non-blocking | Accepted |
 | [0004](0004-merge-policy.md) | Pull requests required, zero required reviews; `gate` decides the merge | Accepted |
-| [0005](0005-agent-candidate-promotion.md) | Agent candidates are accepted by oracle, promoted, then auto-merged after `gate` | Accepted |
+| [0005](0005-agent-candidate-promotion.md) | Agent candidates are accepted by oracle, promoted, then auto-merged after `gate` | Superseded by 0006 |
+| [0006](0006-pr-review-gate.md) | Agent runs per PR as a required check; findings block until the code is fixed | Accepted |
 
 ## Writing a new ADR
 

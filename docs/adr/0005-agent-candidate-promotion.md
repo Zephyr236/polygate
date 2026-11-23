@@ -1,6 +1,6 @@
 # ADR 0005: Agent-proposed gates are promoted only after deterministic acceptance
 
-- Status: Accepted
+- Status: Superseded by [0006](0006-pr-review-gate.md)
 - Date: 2026-11-23
 - Deciders: polygate maintainers
 

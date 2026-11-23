@@ -1,127 +1,72 @@
-# Agent gate candidates
+# Agent gate
 
-This page defines how an agent-proposed rule or test is judged. The agent may propose; the
-policy and the acceptance script decide. Nothing here lets an agent write an active gate
-directly.
+The repository runs an AI agent as a **per-pull-request review check**. The agent reads the whole
+repository and the diff. If it finds a concrete problem that the existing gates miss, it reports a
+finding and the pull request fails; the author adjusts the code and pushes again until the agent
+reports no finding.
 
-## Decision policy
+## Trigger
 
-`agent/policy.toml` maps a **gap type** to the **artifact kinds** that may address it, and each
-artifact to its acceptance oracle.
+`.github/workflows/gate-candidate.md` (compiled to `gate-candidate.lock.yml`) runs on pull-request
+`opened`, `synchronize` and `reopened`, and on manual dispatch. Every push to a pull request runs it
+again with the full repository, `reports/rule-coverage.json`, the existing rules and the PR diff.
 
-| Gap type | Allowed artifacts | Oracle |
-| --- | --- | --- |
-| `static_pattern` | `semgrep_rule`, `ast_grep_rule` | rule |
-| `business_invariant` | `property_test`, `stateful_test`, `e2e_test` | pre/post |
-| `module_boundary` | `architecture_rule`, `architecture_test` | fixture command |
-| `doc_contract` | `doc_assertion` | fixture command |
-| `deployment_policy` | `deploy_check`, `policy_proposal` | fixture command / human |
-| `internal_design` | `adr_proposal` | human |
-| `unknown` | `gap_report` | human |
+The agent is read-only. Its only write is `create-check-run`; it cannot edit files, push, or open
+issues or pull requests.
 
-An artifact that is not listed for a gap type is rejected. A gap that cannot be expressed as a
-deterministic check must produce a proposal or gap report, never a synthetic rule or test.
+## Check outcomes
 
-## Candidate layout
+The workflow always creates exactly one check run named `gate-candidate` on the triggering commit.
 
-```text
-agent/candidates/<id>/candidate.json
-agent/fixtures/<name>/...                 # positive and negative fixtures
-rules/candidates/<name>.yml               # rule candidates (not loaded by the gate)
-backend/tests/agent/<name>.py             # test candidates (not run by default)
-docs/proposals/<name>.md                  # design and policy proposals
-```
+- **No finding:** `conclusion: success`, title `No new gate required`, summary
+  `The change is covered by the existing gates.`
+- **Finding(s):** `conclusion: failure`, title `<n> gate finding(s)`, and a summary listing for each:
+  - `path:line` and the changed behavior;
+  - the invariant or rule that is missing;
+  - why the existing gates miss it;
+  - the proposed rule or test and the minimal code fix.
 
-A candidate is a JSON object:
+Branch protection requires both `gate` and `gate-candidate`. A failure blocks the merge; fixing the
+code and pushing creates a new check on the new commit. An agent or workflow outage leaves the check
+missing, which also blocks the merge (fail closed).
 
-```json
-{
-  "id": "candidate-2026-11-23-001",
-  "gap_type": "business_invariant",
-  "artifact": "e2e_test",
-  "summary": "provider edits survive a restart",
-  "incident_ref": "docs/incidents.md#config-restart",
-  "invariant": "PUT /admin/providers takes effect after a restart",
-  "test_file": "backend/tests/agent/test_restart_persistence.py",
-  "pre_fix_commit": "3ee205e",
-  "post_fix_commit": "HEAD"
-}
-```
+## What counts as a finding
 
-Required fields are defined per artifact in `agent/policy.toml`.
+A finding is valid only when all of these hold:
 
-## Acceptance
+1. the change introduces or exposes a concrete defect, leaves a named business invariant untested,
+   or uses a pattern no existing static rule covers;
+2. the agent names the invariant or rule and cites `path:line` in the changed code;
+3. the existing gates (`docs/gates.md`) demonstrably miss it;
+4. a minimal fix exists.
 
-```sh
-uv run --project backend python scripts/accept_candidate.py --candidate agent/candidates/<id>/candidate.json --repo .
-uv run --project backend python scripts/accept_candidate.py --candidate ... --json --soak 3
-```
+Style, naming, formatting, wording, speculation and pre-existing issues unrelated to the diff are
+out of scope. Uncertainty resolves to success: a false failure causes churn, so the prompt is
+deliberately conservative.
 
-The script needs Python 3.11+ for `tomllib`, so run it through the backend environment. Candidate
-rules in `rules/candidates/` are never loaded by the gate; promotion is a separate, explicit step.
+## Forks
 
-| Oracle | Checks |
-| --- | --- |
-| rule | fires on the positive fixture; silent on the negative fixture and on `backend/src` + `frontend/src` |
-| pre/post | test fails at `pre_fix_commit`, passes at `post_fix_commit` (optionally soaked) |
-| fixture command | command exits non-zero on the positive fixture and zero on the negative fixture |
-| human | schema, path and budget checks only; no mechanical oracle |
+Fork pull requests do not receive the model secret, so the agent does not run on them by default.
+They remain blocked by the required `gate-candidate` check until a maintainer reruns the workflow
+from the base repository.
 
-Additional checks for every candidate: schema, gap/artifact compatibility, allowed paths, file
-existence, duplicate fingerprint, and candidate budget. Tests are also parsed and rejected if
-they import `socket`, `subprocess`, `requests`, `httpx` or `urllib`, or call `time.sleep`.
+## Offline tooling for permanent rules
 
-Rules are rejected when they contain absolute paths, commit hashes, an over-long
-`pattern-regex`, or a `paths` entry naming a single file. A rule that embeds the incident text
-is rejected as overfit.
+`agent/policy.toml`, `scripts/accept_candidate.py` and `scripts/promote_candidate.py` remain as
+offline tooling for a human who wants to add a permanent rule or test. They classify a gap, verify
+the artifact against the matching oracle (rule must-fire/must-not-fire, test pre-fix/post-fix,
+fixture command), and can move an accepted artifact into `rules/promoted.yml`,
+`rules/ast-grep/` or `backend/tests/agent_accepted/`. They are not triggered by pull requests and
+do not auto-merge anything.
 
-Exit codes: `0` pass, `1` fail, `2` needs a human decision.
+The offline tooling is exercised by `backend/tests/agent_gate/` (`test_policy.py`,
+`test_accept.py`, `test_issue.py`, `test_rule_coverage.py`, `test_promote.py`).
 
 ## What this is not
 
-- It does not add a test merely to have a test: a candidate without a named invariant and a
-  failing-before/passing-after (or fires-on-bad/silent-on-good) proof fails.
+- It does not merge rules or tests automatically.
+- It does not add a test merely to have a test: an offline candidate without a named invariant and
+  a failing-before/passing-after (or fires-on-bad/silent-on-good) proof is rejected.
 - It does not let an agent modify active rules, thresholds, workflows or gate scripts.
 - It does not turn a design question into a rule. Design proposals and policy proposals stay in
   `docs/proposals/` and require a human decision.
-
-## Workflows
-
-- `.github/workflows/gate-candidate.md` (gh-aw source) runs on pull-request `opened`, `synchronize`
-  and `reopened`. It builds the rule coverage map, reads the whole repository plus the PR diff, and
-  opens at most one issue labeled `agent-candidate` containing the candidate JSON and a unified
-  patch. It never pushes or opens a pull request. The compiled lock is
-  `.github/workflows/gate-candidate.lock.yml`; regenerate it with `gh aw compile` after editing the
-  source.
-- `.github/workflows/agent-accept.yml` runs when an issue receives the `agent-candidate` label, when
-  a Gate candidate run completes, or manually. GitHub does not trigger workflows from events created
-  with `GITHUB_TOKEN`, so the workflow also resolves the newest unprocessed `agent-candidate` issue
-  after a Gate candidate run. It verifies the author is `github-actions[bot]`, extracts the JSON and
-  patch, rejects paths outside the candidate prefixes, checks out the candidate base, applies the
-  patch, runs the full acceptance script, and comments the report with `agent-accepted`,
-  `agent-rejected` or `agent-needs-human`.
-
-## Promotion and auto-merge
-
-Accepted candidates with a `promotion` target are promoted automatically:
-
-- semgrep rules are appended to `rules/promoted.yml`, which the design-rules gate loads;
-- ast-grep rules move to `rules/ast-grep/`, which `sgconfig.yml` already loads;
-- tests move to `backend/tests/agent_accepted/`, which normal pytest collection runs;
-- every promotion is recorded in `agent/accepted.json`.
-
-`agent-accept` then creates a branch `agent/<id>`, pushes it with the
-`AGENT_PROMOTE_TOKEN` secret (a bot-created PR with `GITHUB_TOKEN` would not trigger CI), opens a
-PR titled `[agent-accepted] <id>`, and enables squash auto-merge. The PR's own `gate` run is the
-final check; auto-merge only proceeds when it is green. Test candidates are promoted only when
-the candidate test passes on `origin/main`; otherwise promotion stops with a comment and the
-candidate stays accepted until the fixing PR merges (squash merges are handled because the check
-runs the test, not the commit ancestry). Rules and tests in promotion targets are
-ignored by the gate-candidate trigger, so promotion PRs do not spawn new candidates.
-
-Artifacts without a promotion target (ADR, policy proposal, gap report, doc or deploy check) stay
-as accepted issues and are promoted by a human. The token is a write-capable credential: keep it
-rotated and scoped to this repository.
-
-The policy and acceptance code are exercised by `backend/tests/agent_gate/test_policy.py`,
-`test_accept.py`, `test_issue.py` and `test_rule_coverage.py`.

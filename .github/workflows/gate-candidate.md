@@ -2,14 +2,6 @@
 on:
   pull_request:
     types: [opened, synchronize, reopened]
-    paths-ignore:
-      - "agent/**"
-      - "rules/promoted.yml"
-      - "rules/candidates/**"
-      - "rules/ast-grep/**"
-      - "backend/tests/agent_accepted/**"
-      - "scripts/agent_checks/**"
-      - "docs/proposals/**"
   workflow_dispatch:
 permissions:
   contents: read
@@ -42,108 +34,55 @@ tools:
     - "python3 *"
     - "python *"
 safe-outputs:
-  create-issue:
-    max: 1
-    labels: [agent-candidate]
-    expires: 14d
+  create-check-run:
+    name: gate-candidate
+    target: triggering
 ---
 
-# Gate candidate
+# Review gate
 
-You are the repository's gate-candidate agent. On every pull request you look at the change,
-read the whole repository, and propose **one** deterministic check that the current gates do not
-cover.
+You are the repository's PR review gate. Every push to a pull request runs you. Your job is to
+decide whether the change needs a new deterministic check. A new check means the code has a
+problem, so the pull request must fail until the code is adjusted.
 
 ## Read first
 
-- `AGENTS.md`, `docs/agent-gate.md`, `agent/policy.toml`
-- `docs/gates.md`, `docs/architecture.md`, `docs/routing.md`, `docs/providers.md`
+- `AGENTS.md`, `docs/gates.md`, `docs/agent-gate.md`, `agent/policy.toml`
+- `docs/architecture.md`, `docs/routing.md`, `docs/providers.md`
 - `reports/rule-coverage.json` and `reports/rule-coverage.md`
 - `rules/` and `rules/ast-grep/` (existing rules)
 - `backend/src/`, `backend/tests/`, `frontend/src/`
 - the pull request diff from the GitHub tool `get_pull_request_diff`
 
-Use the whole repository to understand the business rule the diff touches. The diff is the
+Read the whole repository to understand the business rule the diff touches. The diff is the
 trigger, not the only input.
 
-## Choose one gap
+## Decide
 
-Classify the gap and pick at most one artifact allowed by `agent/policy.toml`:
+Report a finding only when all of these hold:
 
-- `static_pattern` -> semgrep or ast-grep rule
-- `business_invariant` -> property, stateful or e2e test
-- `module_boundary` -> architecture rule or architecture test
-- `doc_contract` -> doc assertion
-- `deployment_policy` -> deploy check
-- `internal_design` -> ADR proposal only (no mechanical oracle)
-- `unknown` -> gap report only
+1. the change introduces or exposes a concrete defect, or leaves a named business invariant
+   untested, or uses a pattern that no existing static rule covers;
+2. you can name the invariant or rule precisely and cite `path:line` in the changed code;
+3. you can explain why the existing gates (list them from `docs/gates.md`) do not catch it;
+4. a minimal fix to the code, test or configuration exists.
 
-If the change is already covered, or no deterministic check is justified, stop. Do not invent a
-test just to produce output.
+Do not report style, naming, formatting, wording, speculation, or pre-existing issues unrelated
+to this diff. If you are unsure, pass. A false failure causes churn; silence on a real defect is
+worse. Never edit files, push, or open issues.
 
-## Produce the candidate
+## Report
 
-Create exactly these files:
+Call `create_check_run` exactly once.
 
-- `agent/candidates/<id>/candidate.json` (required fields are in `agent/policy.toml`;
-  also include `base_commit` with the output of `git rev-parse HEAD`)
-- the artifact:
-  - `rules/candidates/<id>.yml` for a rule
-  - `backend/tests/agent/test_<id>.py` for a test
-  - `scripts/agent_checks/<id>.py` plus a test for a fixture-command check
-  - `docs/proposals/<id>.md` for a proposal or gap report
-- positive and negative fixtures under `agent/fixtures/<id>-bad/` and `agent/fixtures/<id>-good/`
-  when the artifact uses an oracle
+- **No finding:** `conclusion: "success"`, title `"No new gate required"`, summary
+  `"The change is covered by the existing gates."`, text with one sentence on what you checked.
+- **One or more findings:** `conclusion: "failure"`, title `"<n> gate finding(s)"`, summary in
+  Markdown listing each finding as:
+  - `path:line` and the changed behavior;
+  - the invariant or rule that is missing;
+  - why the current gates miss it;
+  - the proposed rule or test (one sentence) and the minimal code fix.
 
-For a test, the metadata must name `invariant`, `pre_fix_commit` (the parent of the fixing
-commit) and `post_fix_commit`. For a rule, the positive fixture must fail the rule and the
-negative fixture must pass it.
-
-Do not modify: `rules/` (active), `scripts/gate.py`, `backend/pyproject.toml`, `.github/`,
-`.flake8`, `.bandit`, `.jscpd.json`, `.gitleaks.toml`, `frontend/package.json`, or any existing
-test outside `backend/tests/agent/`.
-
-## Self-check
-
-Run the static checks and fix failures, up to three attempts:
-
-```sh
-python3 scripts/accept_candidate.py --candidate agent/candidates/<id>/candidate.json --repo . --static-only
-```
-
-If it still fails, do not open a candidate issue. Open a gap report instead.
-
-## Build the patch
-
-```sh
-git add -N agent rules/candidates backend/tests/agent docs/proposals scripts/agent_checks
-git diff --no-color -- agent rules/candidates backend/tests/agent docs/proposals scripts/agent_checks
-```
-
-Keep the patch under 120 lines and 60 KB. If it is larger, narrow the candidate.
-
-## Open one issue
-
-Create exactly one issue titled `[gate-candidate] <id>` with this body:
-
-```
-<!-- agent-candidate:v1 -->
-## Candidate
-
-- id:
-- gap type:
-- artifact:
-- summary:
-- self-check: pass / skipped (reason)
-
-```json
-<candidate.json>
-```
-
-```diff
-<the git diff output>
-```
-```
-
-Do not push, do not comment on the pull request, and do not open a pull request. If no candidate
-is justified, call `noop` with a short reason.
+If a proposed rule is worth keeping permanently, describe it in the check text; do not add it to
+the repository.

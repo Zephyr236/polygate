@@ -6,24 +6,22 @@ All notable changes are documented here. The format follows Keep a Changelog and
 
 ### Added
 
-- Pull-request gate-candidate workflow (gh-aw) that reads the whole repository and opens one
-  `agent-candidate` issue; `agent-accept` applies the patch, runs acceptance and labels the result.
-- ADR 0005 records the proposal/acceptance/promotion/merge boundary.
-- Automatic promotion of accepted rules and tests: semgrep rules append to `rules/promoted.yml`,
-  ast-grep rules move into `rules/ast-grep/`, tests move to `backend/tests/agent_accepted/`, with a
-  registry in `agent/accepted.json`; promotion PRs are squash-auto-merged after `gate` passes.
-- Rule coverage map (`scripts/rule_coverage.py`) and issue parser (`scripts/agent_gate/issue.py`).
-- Agent gate decision policy (`agent/policy.toml`) and acceptance script
-  (`scripts/accept_candidate.py`): maps gap types to allowed artifacts and verifies rules by
-  must-fire/must-not-fire, tests by pre-fix/post-fix, and checks by fixture commands.
-- Three architecture decision records and a docs-gate check for ADR numbering, sections and index links.
+- Per-PR review gate: `.github/workflows/gate-candidate.md` reads the whole repository, the rule
+  coverage map and the PR diff, then creates one `gate-candidate` check. Success means the change
+  is covered; failure means a concrete missing rule or invariant, with file/line and a minimal fix.
+- Rule coverage map (`scripts/rule_coverage.py`) and offline candidate tooling
+  (`agent/policy.toml`, `scripts/accept_candidate.py`, `scripts/promote_candidate.py`) for adding a
+  permanent rule or test by hand.
+- ADRs 0001–0006, including the review-gate boundary in ADR 0006 (supersedes ADR 0005).
 - Chinese README alongside the English one.
 - Mutation gates re-measured from an empty cache: `mutmut` 80.78%, Stryker 77.78%.
 
 ### Changed
 
-- Branch protection: pull requests required with zero approving reviews, `gate` as the sole merge
-  criterion, force pushes and deletions blocked (ADR 0004).
+- Branch protection requires both `gate` and the agent's `gate-candidate` check; force pushes and
+  deletions are blocked. Pull requests require zero approving reviews (ADR 0004).
+- The automatic rule/test promotion workflow was removed: a finding means the code must be fixed,
+  not merged as a rule (ADR 0006).
 
 ### Fixed
 
