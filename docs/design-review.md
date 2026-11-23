@@ -34,6 +34,7 @@ uv run --project backend python scripts/design_review.py --base HEAD~1 --head HE
 | `DESIGN_REVIEW_API_BASE` | `https://opencode.ai/zen/go/v1` |
 | `DESIGN_REVIEW_MODEL` | `deepseek-v4.1-flash` |
 | `DESIGN_REVIEW_SESSION` | fixed UUID for the Zen session header |
+| `--max-tokens` | 12000; reasoning models can spend much of this before the JSON |
 
 ## Report shape
 
