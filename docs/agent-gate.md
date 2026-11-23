@@ -85,8 +85,22 @@ Exit codes: `0` pass, `1` fail, `2` needs a human decision.
 - It does not turn a design question into a rule. Design proposals and policy proposals stay in
   `docs/proposals/` and require a human decision.
 
-## Future workflow
+## Workflows
 
-A GitHub workflow may run the agent on pull requests and call this script. Until that workflow
-exists, the script is exercised by
-`backend/tests/agent_gate/test_policy.py` and `backend/tests/agent_gate/test_accept.py`.
+- `.github/workflows/gate-candidate.md` (gh-aw source) runs on pull-request `opened`, `synchronize`
+  and `reopened`. It builds the rule coverage map, reads the whole repository plus the PR diff, and
+  opens at most one issue labeled `agent-candidate` containing the candidate JSON and a unified
+  patch. It never pushes or opens a pull request. The compiled lock is
+  `.github/workflows/gate-candidate.lock.yml`; regenerate it with `gh aw compile` after editing the
+  source.
+- `.github/workflows/agent-accept.yml` runs when an issue receives the `agent-candidate` label. It
+  verifies the author is `github-actions[bot]`, extracts the JSON and patch, rejects paths outside
+  the candidate prefixes, applies the patch, runs the full acceptance script, and comments the
+  report with `agent-accepted`, `agent-rejected` or `agent-needs-human`.
+
+Promotion is still explicit: an accepted candidate is labeled, not merged. A later step can move
+accepted artifacts into `rules/` or the test suite; the patch path allowlist and the acceptance
+report are the audit trail.
+
+The policy and acceptance code are exercised by `backend/tests/agent_gate/test_policy.py`,
+`test_accept.py`, `test_issue.py` and `test_rule_coverage.py`.

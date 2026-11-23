@@ -1,0 +1,90 @@
+name: agent-accept
+
+on:
+  issues:
+    types: [labeled]
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: read
+
+concurrency:
+  group: agent-accept-${{ github.event.issue.number }}
+  cancel-in-progress: true
+
+jobs:
+  accept:
+    if: github.event.label.name == 'agent-candidate'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.12"
+          enable-cache: true
+
+      - name: Install backend dependencies
+        run: uv sync --project backend --extra dev --frozen
+
+      - name: Extract candidate
+        run: python3 scripts/agent_gate/issue.py --event "$GITHUB_EVENT_PATH" --out-dir /tmp/agent-candidate
+
+      - name: Check out candidate base
+        run: |
+          base=$(python3 -c "import json; print(json.load(open('/tmp/agent-candidate/candidate.json')).get('base_commit', ''))")
+          if [ -n "$base" ]; then git checkout "$base"; fi
+
+      - name: Apply candidate patch
+        run: git apply --whitespace=nowarn /tmp/agent-candidate/candidate.patch
+
+      - name: Run acceptance
+        id: accept
+        run: |
+          set +e
+          uv run --project backend python scripts/accept_candidate.py \
+            --candidate /tmp/agent-candidate/candidate.json \
+            --repo . --json --soak 3 > /tmp/agent-report.json
+          echo "code=$?" >> "$GITHUB_OUTPUT"
+          set -e
+
+      - name: Compose comment
+        run: |
+          code="${{ steps.accept.outputs.code }}"
+          case "$code" in
+            0) verdict="passed"; label="agent-accepted" ;;
+            2) verdict="needs a human decision"; label="agent-needs-human" ;;
+            *) verdict="failed"; label="agent-rejected" ;;
+          esac
+          {
+            echo "## Agent candidate: $verdict"
+            echo ""
+            echo '```json'
+            cat /tmp/agent-report.json 2>/dev/null || echo "{\"verdict\":\"error\"}"
+            echo '```'
+          } > /tmp/agent-comment.md
+          echo "label=$label" >> "$GITHUB_OUTPUT"
+        id: comment
+
+      - name: Comment on failure
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh issue comment "${{ github.event.issue.number }}" --repo "$GITHUB_REPOSITORY" \
+            --body "agent-accept failed before a verdict; see the workflow run for details."
+
+      - name: Ensure labels and comment
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh label create agent-candidate --color 0E8A16 --description "Agent-proposed gate candidate" --force
+          gh label create agent-accepted --color 1D76DB --description "Candidate passed acceptance" --force
+          gh label create agent-rejected --color B60205 --description "Candidate failed acceptance" --force
+          gh label create agent-needs-human --color D93F0B --description "Candidate needs a human decision" --force
+          gh issue comment "${{ github.event.issue.number }}" --repo "$GITHUB_REPOSITORY" --body-file /tmp/agent-comment.md
+          gh issue edit "${{ github.event.issue.number }}" --repo "$GITHUB_REPOSITORY" --add-label "${{ steps.comment.outputs.label }}"

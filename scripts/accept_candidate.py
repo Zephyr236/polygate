@@ -17,9 +17,16 @@ def main(argv: list[str]) -> int:
     parser.add_argument("--repo", default=Path(), type=Path)
     parser.add_argument("--policy", type=Path, default=None)
     parser.add_argument("--soak", type=int, default=1)
+    parser.add_argument("--static-only", action="store_true", help="skip runtime oracles")
     parser.add_argument("--json", action="store_true")
     options = parser.parse_args(argv[1:])
-    report = accept(options.candidate, options.repo.resolve(), options.policy, soak=options.soak)
+    report = accept(
+        options.candidate,
+        options.repo.resolve(),
+        options.policy,
+        soak=options.soak,
+        static_only=options.static_only,
+    )
     if options.json:
         print(json.dumps(report.as_dict(), indent=2, ensure_ascii=False))
     else:

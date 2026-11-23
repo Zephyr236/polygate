@@ -382,12 +382,35 @@ def _check_fixture_command(report: Report, repo: Path, meta: dict[str, Any], run
     _add(report, "fixture_negative", good.returncode == 0, "command must pass on the clean fixture")
 
 
+def _check_static_oracle(report: Report, repo: Path, meta: dict[str, Any], spec: ArtifactSpec) -> None:
+    if spec.oracle == "rule":
+        _check_rule_text(report, _artifact_path(repo, meta, spec), meta)
+    elif spec.oracle == "pre_post":
+        _check_test_static_and_paths(report, repo, meta)
+    elif spec.oracle == "fixture_command":
+        if not _command_allowed(meta.get("command")):
+            _add(report, "fixture_command", False, "command head is not allowed")
+        else:
+            for field_name in ("positive_fixture", "negative_fixture"):
+                try:
+                    fixture = _fixture_path(repo, meta, field_name)
+                except PolicyError as error:
+                    _add(report, "fixtures", False, str(error))
+                    return
+                if not fixture.is_dir():
+                    _add(report, "fixtures", False, f"{field_name} must be a directory")
+                    return
+            _add(report, "fixtures", True)
+    report.checks.append(Check("runtime_oracle", "skip", "deferred to CI"))
+
+
 def accept(
     candidate: Path,
     repo: Path,
     policy_path: Path | None = None,
     run: Runner = _run,
     soak: int = 1,
+    static_only: bool = False,
 ) -> Report:
     """Run every applicable check and return the report."""
     policy_file = policy_path or repo / "agent" / "policy.toml"
@@ -419,6 +442,9 @@ def accept(
     _check_duplicates(report, repo, artifact)
     if spec.acceptance == "human":
         _human(report, "human_decision", "artifact has no mechanical oracle")
+        return report
+    if static_only:
+        _check_static_oracle(report, repo, meta, spec)
         return report
     if spec.oracle == "rule":
         _check_rule_text(report, artifact, meta)

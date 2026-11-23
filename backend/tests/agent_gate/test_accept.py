@@ -217,3 +217,37 @@ def test_fixture_command_oracle(tmp_path: Path) -> None:
     }
     report = accept(_write_candidate(tmp_path, meta), tmp_path, POLICY)
     assert report.verdict == "pass", [check.__dict__ for check in report.checks]
+
+
+def test_static_only_skips_missing_tool(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr("agent_gate.accept.shutil.which", lambda _: None)
+    meta = _rule_meta(tmp_path)
+    report = accept(_write_candidate(tmp_path, meta), tmp_path, POLICY, static_only=True)
+    assert report.verdict == "pass", [check.__dict__ for check in report.checks]
+    assert any(check.name == "runtime_oracle" and check.status == "skip" for check in report.checks)
+
+
+def test_static_only_test_checks_paths_and_imports(tmp_path: Path) -> None:
+    (tmp_path / "backend" / "tests" / "agent").mkdir(parents=True)
+    (tmp_path / "backend" / "tests" / "agent" / "test_ok.py").write_text(
+        "def test_ok():\n    assert True\n", encoding="utf-8"
+    )
+    meta = {
+        "id": "candidate-static-test",
+        "gap_type": "business_invariant",
+        "artifact": "e2e_test",
+        "summary": "static check only",
+        "test_file": "backend/tests/agent/test_ok.py",
+        "invariant": "nothing",
+        "pre_fix_commit": "HEAD",
+        "post_fix_commit": "HEAD",
+        "incident_ref": "docs/incidents.md#static",
+    }
+    report = accept(_write_candidate(tmp_path, meta), tmp_path, POLICY, static_only=True)
+    assert report.verdict == "pass", [check.__dict__ for check in report.checks]
+
+    (tmp_path / "backend" / "tests" / "agent" / "test_ok.py").write_text(
+        "import socket\n\ndef test_ok():\n    assert socket\n", encoding="utf-8"
+    )
+    report = accept(_write_candidate(tmp_path, meta), tmp_path, POLICY, static_only=True)
+    assert report.verdict == "fail"

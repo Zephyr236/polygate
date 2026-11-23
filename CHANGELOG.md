@@ -6,6 +6,9 @@ All notable changes are documented here. The format follows Keep a Changelog and
 
 ### Added
 
+- Pull-request gate-candidate workflow (gh-aw) that reads the whole repository and opens one
+  `agent-candidate` issue; `agent-accept` applies the patch, runs acceptance and labels the result.
+- Rule coverage map (`scripts/rule_coverage.py`) and issue parser (`scripts/agent_gate/issue.py`).
 - Agent gate decision policy (`agent/policy.toml`) and acceptance script
   (`scripts/accept_candidate.py`): maps gap types to allowed artifacts and verifies rules by
   must-fire/must-not-fire, tests by pre-fix/post-fix, and checks by fixture commands.
