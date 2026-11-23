@@ -9,8 +9,8 @@
 ADR 0004 left `enforce_admins` off so the owner could recover the repository by pushing directly to
 `main`. In practice that bypassed both the `gate` check and the agent review: a direct push is already
 complete before any check can run, so it cannot be blocked or reverted by the normal flow. The
-repository now uses PR-Agent for advisory review, and the branch protection decision is independent of
-that review.
+the branch protection decision is independent of any agent review; the aggregated CI gate is the
+merge criterion.
 
 ## Decision
 
@@ -41,5 +41,5 @@ audit log and is not part of the normal workflow.
 
 - [ADR 0004](0004-merge-policy.md) (zero-review policy; `enforce_admins` superseded here)
 - [ADR 0006](0006-pr-review-gate.md)
-- `.github/workflows/pr-agent.yml`
+- `.github/workflows/ci.yml`
 - `CONTRIBUTING.md`, `AGENTS.md`
