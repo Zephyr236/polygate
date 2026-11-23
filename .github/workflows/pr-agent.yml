@@ -1,0 +1,37 @@
+name: PR Agent
+
+on:
+  pull_request:
+    types: [opened, reopened, ready_for_review, synchronize]
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+
+concurrency:
+  group: pr-agent-${{ github.event.pull_request.number || github.event.issue.number }}
+  cancel-in-progress: true
+
+jobs:
+  pr_agent:
+    if: ${{ github.event.sender.type != 'Bot' && (github.event_name == 'pull_request' || github.event.issue.pull_request) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Review the pull request
+        uses: the-pr-agent/pr-agent@v0.50.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          OPENAI__KEY: ${{ secrets.AMR_API_KEY }}
+          OPENAI__API_BASE: https://amr-link.open-design.ai/v1
+          CONFIG__MODEL: openai/deepseek-v4.1-flash-eco
+          CONFIG__FALLBACK_MODELS: '[]'
+          CONFIG__CUSTOM_MODEL_MAX_TOKENS: '32000'
+          github_action_config.auto_review: 'true'
+          github_action_config.auto_describe: 'false'
+          github_action_config.auto_improve: 'false'
+          github_action_config.pr_actions: '["opened", "reopened", "ready_for_review", "synchronize"]'
+          github_action_config.fail_on_command_errors: 'true'

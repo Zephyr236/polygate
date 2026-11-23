@@ -1,3 +1,0 @@
-# Rules promoted from agent candidates. Each rule passed the acceptance oracle
-# and is now part of the design-rules gate. Keep this file valid YAML at all times.
-rules: []

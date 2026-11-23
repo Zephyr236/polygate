@@ -57,4 +57,4 @@ promotion target stay as accepted issues and require a human.
 - `agent/policy.toml`, `scripts/agent_gate/accept.py`, `scripts/agent_gate/promote.py`
 - `.github/workflows/gate-candidate.md`, `.github/workflows/agent-accept.yml`
 - `rules/promoted.yml`, `agent/accepted.json`, `backend/tests/agent_accepted/`
-- [docs/agent-gate.md](../agent-gate.md)
+- [ADR 0008](0008-pr-agent.md)

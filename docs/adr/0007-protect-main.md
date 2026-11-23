@@ -1,6 +1,6 @@
 # ADR 0007: Main is pull-request-only, including for administrators
 
-- Status: Accepted (supersedes the `enforce_admins` part of [0004](0004-merge-policy.md))
+- Status: Accepted (supersedes the `enforce_admins` part of [0004](0004-merge-policy.md); agent-check detail superseded by [0008](0008-pr-agent.md))
 - Date: 2026-11-23
 - Deciders: polygate maintainers
 
@@ -9,8 +9,8 @@
 ADR 0004 left `enforce_admins` off so the owner could recover the repository by pushing directly to
 `main`. In practice that bypassed both the `gate` check and the agent review: a direct push is already
 complete before any check can run, so it cannot be blocked or reverted by the normal flow. The
-repository now has an agent check (`gate-candidate`) and a push trigger that can only audit after the
-fact.
+repository now uses PR-Agent for advisory review, and the branch protection decision is independent of
+that review.
 
 ## Decision
 
@@ -18,7 +18,7 @@ Branch protection on `main`:
 
 - pull requests required, with **0 approving reviews** (single maintainer; self-approval is not
   allowed);
-- required checks: `gate` and `gate-candidate`, with `strict` (branch must be up to date);
+- required checks: `gate`, with `strict` (branch must be up to date);
 - `enforce_admins: true` — administrators cannot bypass the pull-request requirement;
 - force pushes and branch deletion disabled.
 
@@ -41,5 +41,5 @@ audit log and is not part of the normal workflow.
 
 - [ADR 0004](0004-merge-policy.md) (zero-review policy; `enforce_admins` superseded here)
 - [ADR 0006](0006-pr-review-gate.md)
-- `.github/workflows/gate-candidate.md`
+- `.github/workflows/pr-agent.yml`
 - `CONTRIBUTING.md`, `AGENTS.md`
