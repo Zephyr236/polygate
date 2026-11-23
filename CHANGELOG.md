@@ -10,6 +10,11 @@ All notable changes are documented here. The format follows Keep a Changelog and
 - Chinese README alongside the English one.
 - Mutation gates re-measured from an empty cache: `mutmut` 80.78%, Stryker 77.78%.
 
+### Changed
+
+- Branch protection: pull requests required with zero approving reviews, `gate` as the sole merge
+  criterion, force pushes and deletions blocked (ADR 0004).
+
 ### Fixed
 
 - Mutation jobs ran only on pull requests, so direct pushes to `main` never exercised them; the aggregated

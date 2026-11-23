@@ -16,3 +16,4 @@ nav:
   - ADR 0001 - CRAP and cognitive complexity: adr/0001-crap-and-cognitive-complexity.md
   - ADR 0002 - Boundary tools: adr/0002-boundary-tools.md
   - ADR 0003 - Runtime dependency audit: adr/0003-runtime-dependency-audit.md
+  - ADR 0004 - Merge policy: adr/0004-merge-policy.md
