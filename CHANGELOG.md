@@ -8,6 +8,7 @@ All notable changes are documented here. The format follows Keep a Changelog and
 
 - Three architecture decision records and a docs-gate check for ADR numbering, sections and index links.
 - Chinese README alongside the English one.
+- Mutation gates re-measured from an empty cache: `mutmut` 80.78%, Stryker 77.78%.
 
 ### Fixed
 
