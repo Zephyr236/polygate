@@ -19,6 +19,11 @@ def estimate_cost(config: ProviderConfig, usage: Usage, multiplier: float) -> fl
     return round(base * config.cost_coefficient * multiplier, 8)
 
 
+def cache_savings(config: ProviderConfig, usage: Usage) -> float:
+    """Estimate the USD saved by cached prompt tokens."""
+    return round(usage.cache_read_tokens * config.input_price_per_mtok * 0.9 / 1_000_000, 8)
+
+
 def _total(rows: list[dict[str, Any]], key: str) -> int:
     """Sum one integer column across metric rows."""
     return sum(int(row.get(key) or 0) for row in rows)
