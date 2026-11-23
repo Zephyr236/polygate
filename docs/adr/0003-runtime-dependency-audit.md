@@ -40,8 +40,8 @@ with per-rule ignores for console entry points (`uvicorn`, `pytest`, `mutmut`, `
   blanket skip.
 - `.runtime-reqs.txt` must be regenerated before auditing, which `scripts/gate.py` does as a separate
   stage so a stale export cannot mask a regression.
-- A future production dependency added only to `[project.dependencies]` is audited automatically; a
-  development-only one is not, which is the intended WORM (write-once, read-many) boundary.
+- A future production dependency added to `[project.dependencies]` is audited automatically; a
+  development-only one is not, which is the intended split between shipped code and tooling.
 
 ## References
 
