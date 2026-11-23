@@ -240,6 +240,14 @@ scripts/     gate.py plus threshold readers for CRAP, mutation, docs, size, cohe
 
 Maintainer notes for humans and agents: [AGENTS.md](AGENTS.md) · [CONTRIBUTING.md](CONTRIBUTING.md).
 
+## Contributing
+
+Pull requests are the only path to `main`. The aggregated `gate` check decides the merge, and it fails on a
+failed, cancelled **or skipped** job, so a gate that does not run is never mistaken for one that passed.
+This is a single-maintainer repository, and GitHub forbids self-approval, so the review requirement is
+**0**: the gates carry the weight. See [CONTRIBUTING.md](CONTRIBUTING.md) and
+[ADR 0004](docs/adr/0004-merge-policy.md).
+
 ## Roadmap
 
 - Weighted least-connections queue behind a saturated channel instead of an immediate skip.
@@ -388,6 +396,13 @@ rules/       semgrep 与 ast-grep 规则:架构与归属契约
 docs/        架构、路由、渠道、指标、运维、门禁、API、ADR
 scripts/     gate.py 以及 CRAP / 变异 / 文档 / 体积 / 内聚阈值读取脚本
 ```
+
+### 贡献
+
+`main` 只接受 Pull Request。合并与否由聚合检查 `gate` 决定,它对 `failure`、`cancelled` **以及 `skipped`**
+都判失败 —— 没有运行的 job 不会被误当成通过。本仓库为单人维护,而 GitHub 不允许作者自审,因此 review
+要求为 **0**:把关的是门禁本身。详见 [CONTRIBUTING.md](CONTRIBUTING.md) 与
+[ADR 0004](docs/adr/0004-merge-policy.md)。
 
 ### 说明
 

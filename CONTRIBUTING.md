@@ -7,6 +7,20 @@
 3. Run `uv run python scripts/gate.py --all` locally; expect it to be green.
 4. Open a pull request. The `gate` workflow must pass before merge.
 
+## Review policy
+
+This is a single-maintainer repository, and GitHub does not allow an author to approve their own pull
+request. Branch protection therefore requires **zero approving reviews**; requiring one would deadlock every
+change. The gates are the merge criterion instead:
+
+- Pull requests are the only path to `main`.
+- The aggregated `gate` check must be green. It fails on `failure`, `cancelled` **and `skipped`**
+  dependencies, so a gate that never ran cannot be mistaken for one that passed.
+- Force pushes and branch deletion are disabled.
+
+If a second maintainer joins, raise the review requirement to one in repository settings; nothing else
+changes. The rationale is recorded in [ADR 0004](docs/adr/0004-merge-policy.md).
+
 ## Commit style
 
 Use imperative subjects (`add lane-aware scheduling`, not `added ...`). Keep one logical change per commit so CRAP and mutation reports stay interpretable.

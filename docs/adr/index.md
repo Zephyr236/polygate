@@ -8,6 +8,7 @@ considered and what was rejected.
 | [0001](0001-crap-and-cognitive-complexity.md) | CRAP and cognitive complexity run as parallel gates | Accepted |
 | [0002](0002-boundary-tools.md) | Boundaries enforced only by tools proven to fail on a probe | Accepted |
 | [0003](0003-runtime-dependency-audit.md) | Audit the exported runtime set; dev advisories stay non-blocking | Accepted |
+| [0004](0004-merge-policy.md) | Pull requests required, zero required reviews; `gate` decides the merge | Accepted |
 
 ## Writing a new ADR
 

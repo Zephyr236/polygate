@@ -62,6 +62,13 @@ Mutation runs are slow. Backend uses `mutmut` on the routing/provider/protocol l
 | Property and contract tests | `backend/tests/unit/test_state_machines.py`, `backend/tests/e2e/test_contracts.py` |
 | Architectural decisions | `docs/adr/` plus `docs/adr/index.md` |
 
+## Merge policy
+
+`main` takes pull requests only, with **0 required reviews** (single maintainer; GitHub forbids
+self-approval) and the aggregated `gate` check required. `gate` fails on `failure`, `cancelled` and
+`skipped`, so a conditional job cannot pass by not running. Force pushes and deletions are blocked.
+Rationale: [docs/adr/0004-merge-policy.md](docs/adr/0004-merge-policy.md).
+
 ## Definition of done
 
 - `scripts/gate.py --all` is green, including docs.
