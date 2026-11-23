@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from polygate.protocols.base import InternalRequest, InternalResponse, Message, Usage
+from polygate.protocols.base import InternalRequest, InternalResponse, Message, Usage, as_int
 
 
 def to_upstream_payload(request: InternalRequest, upstream_model: str, min_tokens: int) -> dict[str, Any]:
@@ -28,10 +28,10 @@ def parse_usage(payload: dict[str, Any]) -> Usage:
     details = raw.get("prompt_tokens_details") or {}
     completion_details = raw.get("completion_tokens_details") or {}
     return Usage(
-        prompt_tokens=int(raw.get("prompt_tokens", 0)),
-        completion_tokens=int(raw.get("completion_tokens", 0)),
-        reasoning_tokens=int(completion_details.get("reasoning_tokens", 0)),
-        cache_read_tokens=int(details.get("cached_tokens", 0)),
+        prompt_tokens=as_int(raw.get("prompt_tokens")),
+        completion_tokens=as_int(raw.get("completion_tokens")),
+        reasoning_tokens=as_int(completion_details.get("reasoning_tokens")),
+        cache_read_tokens=as_int(details.get("cached_tokens")),
     )
 
 
