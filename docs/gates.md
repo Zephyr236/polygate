@@ -79,3 +79,8 @@ CRAP combines complexity with coverage, so a complex but well-tested function ca
 - CRAP reuses the official tools: `crap4py` for Python and `crap-score` for TypeScript, with a thin threshold reader in `scripts/`.
 - The dependency audit runs against the runtime export (`uv export --no-dev`). Dev-only tools (`semgrep` pulls `pyjwt`, `mcp` pulls `opentelemetry`, `wcmatch`) carry upstream advisories that never reach the shipped image; they still run in CI but do not gate the merge on advisories they cannot fix.
 - `deptry` runs with per-rule ignores for console entry points (`uvicorn`, `pytest`, `mutmut`, `ruff`, and similar) because those tools are executed rather than imported.
+
+## Merge policy
+
+A pull request merges only when the aggregated `gate` check passes. See
+[ADR 0008](adr/0008-ci-only-gates.md) for the CI-only policy.
