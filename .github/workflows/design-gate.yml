@@ -44,14 +44,26 @@ jobs:
           fi
           HEAD=$(gh pr view "$PR" --repo "$GITHUB_REPOSITORY" --json headRefOid --jq .headRefOid)
           BASE=$(gh pr view "$PR" --repo "$GITHUB_REPOSITORY" --json baseRefOid --jq .baseRefOid)
-          GATE=$(gh pr view "$PR" --repo "$GITHUB_REPOSITORY" --json statusCheckRollup \
-            --jq '[.statusCheckRollup[] | select(.name == "gate") | .conclusion] | last // ""')
+          GATE=""
+          for _ in $(seq 1 45); do
+            GATE=$(gh pr view "$PR" --repo "$GITHUB_REPOSITORY" --json statusCheckRollup \
+              --jq '[.statusCheckRollup[] | select(.name == "gate") | .conclusion] | last // ""')
+            case "$GATE" in
+              SUCCESS) break ;;
+              FAILURE|CANCELLED|TIMED_OUT|ACTION_REQUIRED|STARTUP_FAILURE)
+                echo "skip=true" >> "$GITHUB_OUTPUT"
+                echo "Current head gate is $GATE; not spending a model call."
+                exit 0
+                ;;
+            esac
+            sleep 20
+          done
           echo "number=$PR" >> "$GITHUB_OUTPUT"
           echo "head=$HEAD" >> "$GITHUB_OUTPUT"
           echo "base=$BASE" >> "$GITHUB_OUTPUT"
           if [ "$GATE" != "SUCCESS" ]; then
             echo "skip=true" >> "$GITHUB_OUTPUT"
-            echo "Current head gate is $GATE; waiting for a successful CI run."
+            echo "Current head gate is $GATE after waiting; skipping."
           else
             echo "skip=false" >> "$GITHUB_OUTPUT"
           fi
