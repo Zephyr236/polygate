@@ -305,6 +305,99 @@ def test_admin_without_token_config(tmp_path: Path) -> None:
     assert response.status_code == 503
 
 
+def test_client_key_selects_provider_and_admin_lists_it(tmp_path: Path, upstreams: Upstreams) -> None:
+    config = tmp_path / "providers.toml"
+    config.write_text(
+        """
+[[provider]]
+id = "amr"
+base_url = "https://amr.example"
+model = "m"
+api_key_env = "AMR_API_KEY"
+
+[[client_key]]
+id = "team-a"
+name = "Team A"
+api_key_env = "TEAM_A_KEY"
+allowed_providers = ["amr"]
+
+[client_key.weights]
+success = 0.5
+speed = 0.2
+cost = 0.2
+cache = 0.1
+""",
+        encoding="utf-8",
+    )
+    env = _env(tmp_path)
+    env["POLYGATE_CONFIG"] = str(config)
+    env["TEAM_A_KEY"] = "team-a-key"
+    upstreams.on("amr.example", upstreams.respond({"choices": [{"message": {"content": "PONG"}}]}))
+    app = create_app(config_env=env, client=httpx.AsyncClient(transport=upstreams.transport()))
+    with _seeded(app) as test_client:
+        ok = test_client.post(
+            "/v1/chat/completions",
+            json={"model": "m", "messages": []},
+            headers={"authorization": "Bearer team-a-key"},
+        )
+        assert ok.status_code == 200
+        assert (
+            test_client.post(
+                "/v1/chat/completions",
+                json={"model": "m", "messages": []},
+                headers={"authorization": "Bearer wrong"},
+            ).status_code
+            == 401
+        )
+        denied = test_client.put(
+            "/admin/providers",
+            json={
+                "providers": [
+                    {
+                        "id": "zen",
+                        "base_url": "https://zen.example",
+                        "model": "m",
+                        "api_key_env": "ZEN_API_KEY",
+                    }
+                ]
+            },
+            headers={"authorization": "Bearer admin-token"},
+        )
+        assert denied.status_code == 400
+        assert "amr" in denied.json()["error"]["message"]
+        collision = test_client.put(
+            "/admin/providers",
+            json={
+                "providers": [
+                    {
+                        "id": "amr",
+                        "base_url": "https://amr.example",
+                        "model": "m",
+                        "api_key_env": "TEAM_A_KEY",
+                    }
+                ]
+            },
+            headers={"authorization": "Bearer admin-token"},
+        )
+        assert collision.status_code == 400
+        assert "aliases a client key" in collision.json()["error"]["message"]
+        listed = test_client.get("/admin/clients", headers={"authorization": "Bearer admin-token"})
+        assert listed.status_code == 200
+        body = listed.json()
+        assert body["clients"][0]["id"] == "team-a"
+        assert body["clients"][0]["key_configured"] is True
+        assert "team-a-key" not in listed.text
+        simulated = test_client.post(
+            "/admin/simulate",
+            json={"model": "m", "prompt": "hello", "api_key_id": "team-a"},
+            headers={"authorization": "Bearer admin-token"},
+        )
+        assert simulated.status_code == 200
+        zen = next(item for item in simulated.json()["decisions"] if item["provider_id"] == "zen")
+        assert zen["eligible"] is False
+        assert "not allowed by client key" in zen["reasons"]
+
+
 def test_proxy_key_required_when_configured(tmp_path: Path, upstreams: Upstreams) -> None:
     env = _env(tmp_path)
     env["PROXY_API_KEY"] = "proxy-key"

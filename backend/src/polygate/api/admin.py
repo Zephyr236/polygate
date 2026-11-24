@@ -14,7 +14,11 @@ from pydantic import ValidationError
 from polygate.api.auth import require_admin
 from polygate.api.bodies import read_json
 from polygate.api.deps import gateway_of
-from polygate.config import ProviderConfig
+from polygate.config import ClientKeyConfig, ClientPolicy, ConfigError, ProviderConfig
+from polygate.config_loader import (
+    validate_client_keys_against_providers,
+    validate_provider_credentials_against_client_keys,
+)
 from polygate.gateway import Gateway, replace_providers
 from polygate.metrics import summarize
 from polygate.routing.scorer import rank_candidates
@@ -39,6 +43,23 @@ def _provider_body(config: ProviderConfig, keys: dict[str, str]) -> dict[str, An
     return body
 
 
+def _client_body(key: ClientKeyConfig, keys: dict[str, str]) -> dict[str, Any]:
+    """Serialize a caller key without its secret value."""
+    body = key.model_dump(mode="json")
+    body["key_configured"] = bool(keys.get(key.api_key_env))
+    return body
+
+
+@router.get("/clients")
+async def list_clients(request: Request) -> dict[str, Any]:
+    """List caller keys, provider allowlists and per-key routing weights."""
+    gateway = gateway_of(request)
+    return {
+        "clients": [_client_body(key, gateway.keys) for key in gateway.config.client_keys],
+        "legacy_key_configured": bool(gateway.config.proxy_api_key),
+    }
+
+
 @router.get("/providers")
 async def list_providers(request: Request) -> dict[str, Any]:
     """List provider configs with secret-presence flags."""
@@ -49,6 +70,21 @@ async def list_providers(request: Request) -> dict[str, Any]:
     }
 
 
+def _parse_provider_pool(raw: list[Any]) -> list[ProviderConfig]:
+    try:
+        return [ProviderConfig.model_validate(item) for item in raw]
+    except ValidationError as error:
+        raise HTTPException(status_code=400, detail=json.loads(error.json())) from error
+
+
+def _validate_provider_pool(gateway: Gateway, configs: list[ProviderConfig]) -> None:
+    try:
+        validate_client_keys_against_providers(gateway.config.client_keys, configs)
+        validate_provider_credentials_against_client_keys(gateway.config.client_keys, configs, gateway.keys)
+    except ConfigError as error:
+        raise HTTPException(status_code=400, detail=str(error)) from error
+
+
 @router.put("/providers")
 async def upsert_providers(request: Request) -> dict[str, Any]:
     """Create or replace provider configs and persist the new pool."""
@@ -57,10 +93,8 @@ async def upsert_providers(request: Request) -> dict[str, Any]:
     if not isinstance(raw, list):
         raise HTTPException(status_code=400, detail="providers must be a list")
     gateway = gateway_of(request)
-    try:
-        configs = [ProviderConfig.model_validate(item) for item in raw]
-    except ValidationError as error:
-        raise HTTPException(status_code=400, detail=json.loads(error.json())) from error
+    configs = _parse_provider_pool(raw)
+    _validate_provider_pool(gateway, configs)
     replace_providers(gateway, configs)
     for config in configs:
         await gateway.store.save_provider(config.id, config.model_dump_json())
@@ -117,12 +151,14 @@ async def metrics_stream(request: Request) -> StreamingResponse:
     return StreamingResponse(metrics_events(gateway), media_type="text/event-stream")
 
 
-def _decision(config: ProviderConfig, eligible: set[str]) -> dict[str, Any]:
+def _decision(config: ProviderConfig, eligible: set[str], policy: ClientPolicy | None) -> dict[str, Any]:
     """Explain why one provider is or is not a routing candidate."""
     reasons: list[str] = []
-    if not config.enabled:
+    if policy is not None and not policy.allows(config.id):
+        reasons.append("not allowed by client key")
+    elif not config.enabled:
         reasons.append("disabled")
-    if config.enabled and config.id not in eligible:
+    elif config.id not in eligible:
         reasons.append("time-window or health")
     return {
         "provider_id": config.id,
@@ -132,18 +168,60 @@ def _decision(config: ProviderConfig, eligible: set[str]) -> dict[str, Any]:
     }
 
 
-def simulate_body(gateway: Gateway, model: str, prompt: str) -> dict[str, Any]:
-    """Explain the routing decision for a candidate request without calling upstreams."""
+def _policy_for(gateway: Gateway, client_key_id: str | None) -> ClientPolicy | None:
+    if not client_key_id:
+        return None
+    for key in gateway.config.client_keys:
+        if key.id == client_key_id:
+            return ClientPolicy(
+                key.id,
+                frozenset(key.allowed_providers),
+                key.weights,
+                key.respect_priority,
+            )
+    raise KeyError(client_key_id)
+
+
+def _simulation_configs(gateway: Gateway, policy: ClientPolicy | None) -> list[ProviderConfig]:
+    if policy is None:
+        return gateway.providers
+    return [config for config in gateway.providers if policy.allows(config.id)]
+
+
+def _simulation_routing(gateway: Gateway, policy: ClientPolicy | None) -> Any:
+    if policy is None or policy.weights is None:
+        return gateway.config.routing
+    return gateway.config.routing.model_copy(update={"weights": policy.weights})
+
+
+def _simulation_rankings(
+    gateway: Gateway, configs: list[ProviderConfig], routing: Any, policy: ClientPolicy | None
+) -> list[Any]:
     now = datetime.now(timezone.utc)
-    rankings = rank_candidates(
-        gateway.providers, gateway.health.states(), gateway.config.routing, now.hour, now.isoweekday()
+    return rank_candidates(
+        configs,
+        gateway.health.states(),
+        routing,
+        now.hour,
+        now.isoweekday(),
+        respect_priority=True if policy is None else policy.respect_priority,
     )
+
+
+def simulate_body(
+    gateway: Gateway, model: str, prompt: str, client_key_id: str | None = None
+) -> dict[str, Any]:
+    """Explain the routing decision for a candidate request without calling upstreams."""
+    policy = _policy_for(gateway, client_key_id)
+    configs = _simulation_configs(gateway, policy)
+    rankings = _simulation_rankings(gateway, configs, _simulation_routing(gateway, policy), policy)
     eligible = {item.provider_id for item in rankings}
     return {
         "model": model,
         "prompt_length": len(prompt),
+        "client_key_id": client_key_id,
         "ranking": [item.__dict__ for item in rankings],
-        "decisions": [_decision(config, eligible) for config in gateway.providers],
+        "decisions": [_decision(config, eligible, policy) for config in gateway.providers],
     }
 
 
@@ -151,4 +229,12 @@ def simulate_body(gateway: Gateway, model: str, prompt: str) -> dict[str, Any]:
 async def simulate(request: Request) -> dict[str, Any]:
     """Explain the routing decision for a candidate request without calling upstreams."""
     body = await read_json(request)
-    return simulate_body(gateway_of(request), str(body.get("model", "")), str(body.get("prompt", "")))
+    try:
+        return simulate_body(
+            gateway_of(request),
+            str(body.get("model", "")),
+            str(body.get("prompt", "")),
+            str(body["api_key_id"]) if body.get("api_key_id") else None,
+        )
+    except KeyError as error:
+        raise HTTPException(status_code=400, detail=f"unknown client key: {error.args[0]}") from error

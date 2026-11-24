@@ -5,7 +5,9 @@ Claude Agent SDK agent, not by a panel and not by five models.
 
 ## What happens on a PR
 
-1. `.github/workflows/design-gate.yml` checks out the base commit and runs the trusted base script.
+1. After the `ci` workflow succeeds for the current PR head, `.github/workflows/design-gate.yml`
+   checks out the base commit and runs the trusted base script. A failing CI run does not call the
+   model; its `gate` check already blocks the PR.
 2. The PR head is fetched into a worktree for the agent to read; PR code is never executed.
 3. The PR body is used as the design brief.
 4. The agent returns `pass`, `needs-changes` or `insufficient-context` with structured findings.
@@ -23,7 +25,9 @@ Claude Agent SDK agent, not by a panel and not by five models.
 - The PR can merge only when the status is `success` and no blocking issues remain.
 
 There is no waiver label. Emergency recovery is temporarily disabling branch protection, which is
-an explicit, logged action.
+an explicit, logged action. The resolve job waits for the current PR head's `gate` status: success runs the gate, failure
+skips without a model call, and a timeout leaves the status missing (fail closed). Fork CI runs resolve the PR from the commit-to-pulls API; if no PR is found,
+the head SHA gets a failure status.
 
 ## Limits
 
@@ -31,6 +35,10 @@ an explicit, logged action.
   alternatives, criteria, assumptions, falsifiers and reversibility.
 - One model means one perspective. It is cheaper than a panel but does not provide independent
   opinions.
-- The agent is read-only (`Read`/`Grep`/`Glob`) and bounded by a USD 4 budget and no turn limit.
+- Trusted PRs give the agent an allowlisted read-only Bash (`git`, `rg`, `ls`, `cat`, `pytest`) and a
+  `verifier` subagent; fork PRs stay read-only with `Read`/`Grep`/`Glob`. Edit/Write/WebFetch/WebSearch
+  and NotebookEdit remain disallowed. The gate removes GitHub/provider credentials from the agent
+  environment, but Bash can run PR code with the model key present; this is not a security sandbox.
+- The agent is bounded by a USD 4 budget and no turn limit.
 - If the workflow, model or status publication fails, the status is missing or failed and the PR
   stays blocked (fail closed).

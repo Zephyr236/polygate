@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import AsyncIterator
+from typing import Annotated
 
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import JSONResponse, Response, StreamingResponse
@@ -10,6 +11,7 @@ from fastapi.responses import JSONResponse, Response, StreamingResponse
 from polygate.api.auth import require_proxy_key
 from polygate.api.bodies import read_json
 from polygate.api.deps import gateway_of
+from polygate.config import ClientPolicy
 from polygate.gateway import Gateway, record_route_result, record_stream_result
 from polygate.protocols import anthropic, openai
 from polygate.protocols.base import AllProvidersFailedError, InternalRequest, Usage
@@ -24,6 +26,7 @@ from polygate.protocols.sse import (
 )
 
 router = APIRouter(tags=["proxy"])
+Policy = Annotated[ClientPolicy, Depends(require_proxy_key)]
 
 
 class StreamState:
@@ -59,27 +62,29 @@ def failure_response(error: AllProvidersFailedError) -> JSONResponse:
     )
 
 
-@router.post("/v1/chat/completions", dependencies=[Depends(require_proxy_key)], response_model=None)
-async def chat_completions(request: Request) -> Response:
+@router.post("/v1/chat/completions", response_model=None)
+async def chat_completions(request: Request, policy: Policy) -> Response:
     """Serve OpenAI chat-completions requests through the router."""
     body = await read_json(request)
     gateway = gateway_of(request)
     internal = openai.parse_request(body)
     if internal.stream:
-        return StreamingResponse(_openai_stream(gateway, internal), media_type="text/event-stream")
+        return StreamingResponse(_openai_stream(gateway, internal, policy), media_type="text/event-stream")
     try:
-        route = await gateway.scheduler.complete(internal, gateway.keys)
+        route = await gateway.scheduler.complete(internal, gateway.keys, policy)
     except AllProvidersFailedError as error:
         return failure_response(error)
     await record_route_result(gateway, internal, route)
     return JSONResponse(openai.build_response_body(route.result.response))
 
 
-async def _openai_stream(gateway: Gateway, internal: InternalRequest) -> AsyncIterator[str]:
+async def _openai_stream(
+    gateway: Gateway, internal: InternalRequest, policy: ClientPolicy
+) -> AsyncIterator[str]:
     """Stream OpenAI chunks while tracking provider and usage."""
     state = StreamState()
     try:
-        async for text, usage, provider in gateway.scheduler.stream(internal, gateway.keys):
+        async for text, usage, provider in gateway.scheduler.stream(internal, gateway.keys, policy):
             state.absorb(provider, usage)
             if text:
                 yield encode_openai_chunk(text, internal.model, provider)
@@ -91,16 +96,16 @@ async def _openai_stream(gateway: Gateway, internal: InternalRequest) -> AsyncIt
     await record_stream_result(gateway, internal, state.provider_id, state.usage, state.switched, True)
 
 
-@router.post("/v1/messages", dependencies=[Depends(require_proxy_key)], response_model=None)
-async def messages(request: Request) -> Response:
+@router.post("/v1/messages", response_model=None)
+async def messages(request: Request, policy: Policy) -> Response:
     """Serve Anthropic messages requests through the router."""
     body = await read_json(request)
     gateway = gateway_of(request)
     internal = anthropic.parse_request(body)
     if internal.stream:
-        return StreamingResponse(_anthropic_stream(gateway, internal), media_type="text/event-stream")
+        return StreamingResponse(_anthropic_stream(gateway, internal, policy), media_type="text/event-stream")
     try:
-        route = await gateway.scheduler.complete(internal, gateway.keys)
+        route = await gateway.scheduler.complete(internal, gateway.keys, policy)
     except AllProvidersFailedError as error:
         return failure_response(error)
     await record_route_result(gateway, internal, route)
@@ -115,11 +120,13 @@ def _open_anthropic_frames(state: StreamState, model: str) -> list[str]:
     return [encode_anthropic_start(model, state.provider_id), encode_anthropic_block_start()]
 
 
-async def _anthropic_stream(gateway: Gateway, internal: InternalRequest) -> AsyncIterator[str]:
+async def _anthropic_stream(
+    gateway: Gateway, internal: InternalRequest, policy: ClientPolicy
+) -> AsyncIterator[str]:
     """Stream Anthropic events while tracking provider and usage."""
     state = StreamState()
     try:
-        async for text, usage, provider in gateway.scheduler.stream(internal, gateway.keys):
+        async for text, usage, provider in gateway.scheduler.stream(internal, gateway.keys, policy):
             state.absorb(provider, usage)
             if text:
                 for frame in _open_anthropic_frames(state, internal.model):

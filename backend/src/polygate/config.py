@@ -3,19 +3,12 @@
 from __future__ import annotations
 
 import os
-import sys
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
-from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
-
-if sys.version_info >= (3, 11):  # pragma: no branch
-    import tomllib
-else:  # pragma: no cover - Python 3.10 fallback
-    import tomli as tomllib
 
 
 class Protocol(str, Enum):
@@ -195,11 +188,39 @@ class RoutingConfig(BaseModel):
     speed_target_ms: float = Field(default=2_500.0, gt=0)
 
 
+class ClientKeyConfig(BaseModel):
+    """One caller key with a provider allowlist and optional routing weights."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid", str_strip_whitespace=True)
+
+    id: str = Field(min_length=1, max_length=64, pattern=r"^[a-z0-9][a-z0-9-]*$")
+    name: str = Field(default="", max_length=120)
+    api_key_env: str = Field(min_length=1)
+    allowed_providers: list[str] = Field(min_length=1)
+    weights: RoutingWeights | None = None
+    respect_priority: bool = True
+
+
+@dataclass(frozen=True)
+class ClientPolicy:
+    """Resolved caller policy used by authentication and routing."""
+
+    key_id: str
+    allowed_providers: frozenset[str] | None = None
+    weights: RoutingWeights | None = None
+    respect_priority: bool = True
+
+    def allows(self, provider_id: str) -> bool:
+        """Report whether the caller may use a provider."""
+        return self.allowed_providers is None or provider_id in self.allowed_providers
+
+
 @dataclass(frozen=True)
 class AppConfig:
     """Runtime application settings aggregated from files and environment."""
 
     providers: list[ProviderConfig] = field(default_factory=list)
+    client_keys: list[ClientKeyConfig] = field(default_factory=list)
     routing: RoutingConfig = field(default_factory=RoutingConfig)
     database_path: Path = Path("data/polygate.db")
     admin_token: str | None = None
@@ -209,46 +230,3 @@ class AppConfig:
 
 class ConfigError(ValueError):
     """Raised when configuration input cannot be parsed or validated."""
-
-
-def _load_toml(path: Path) -> dict[str, Any]:
-    """Parse a TOML file into a mapping, raising ConfigError on failure."""
-    try:
-        parsed: dict[str, Any] = tomllib.loads(path.read_text(encoding="utf-8"))
-        return parsed
-    except FileNotFoundError as error:
-        raise ConfigError(f"config file not found: {path}") from error
-    except tomllib.TOMLDecodeError as error:
-        raise ConfigError(f"invalid TOML in {path}: {error}") from error
-
-
-def parse_providers_document(document: Mapping[str, Any]) -> list[ProviderConfig]:
-    """Validate a providers mapping into provider configs."""
-    providers_raw = document.get("provider", [])
-    if not isinstance(providers_raw, list):
-        raise ConfigError("provider entries must be a list of tables")
-    return [ProviderConfig.model_validate(item) for item in providers_raw]
-
-
-def build_app_config(document: Mapping[str, Any], env: Mapping[str, str]) -> AppConfig:
-    """Build the application config from a document and environment overrides."""
-    providers_file = env.get("POLYGATE_PROVIDERS_FILE")
-    providers = parse_providers_document(document)
-    routing_raw = document.get("routing", {})
-    routing = RoutingConfig.model_validate(routing_raw) if routing_raw else RoutingConfig()
-    return AppConfig(
-        providers=providers,
-        routing=routing,
-        database_path=Path(env.get("POLYGATE_DATABASE", "data/polygate.db")),
-        admin_token=env.get("ADMIN_TOKEN") or None,
-        proxy_api_key=env.get("PROXY_API_KEY") or None,
-        providers_file=Path(providers_file) if providers_file else None,
-    )
-
-
-def load_app_config(env: Mapping[str, str] | None = None) -> AppConfig:
-    """Load configuration from the file named by POLYGATE_CONFIG and the environment."""
-    source = env if env is not None else os.environ
-    config_path = source.get("POLYGATE_CONFIG")
-    document: Mapping[str, Any] = _load_toml(Path(config_path)) if config_path else {}
-    return build_app_config(document, source)

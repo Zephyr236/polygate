@@ -16,7 +16,19 @@ score = w_success * success_rate
 - `inverse_cost` is `1 / (cost_coefficient * window_multiplier)`; it is rescaled so the cheapest current candidate equals 1.
 - `cache_hit_rate` tracks the share of calls that reported cached prompt tokens.
 
-Candidates are ordered by `(priority, -score)`, so a lower `priority` number is always tried first within its tier.
+Candidates are ordered by `(priority, -score)` by default, so a lower `priority` number is tried first.
+A client key with `respect_priority = false` orders its allowed providers by score alone, so its
+per-key weights can cross global priority tiers.
+
+## Per-key policy
+
+A `[[client_key]]` narrows the candidate pool to `allowed_providers` and may override the global
+`weights` with `[client_key.weights]`. Authentication resolves the key to a `ClientPolicy`; the
+scheduler filters providers before scoring and uses the key's weights for that request. A client
+key must list at least one provider; only the legacy `PROXY_API_KEY` policy spans every provider.
+`respect_priority` defaults to `true`; set it to `false` when the key's weights should override
+global tier order. `POST /admin/simulate` accepts `api_key_id` to explain the same filtered ranking.
+The circuit breaker, retries, time windows and concurrency limits remain global provider state.
 
 ## Hard filters
 

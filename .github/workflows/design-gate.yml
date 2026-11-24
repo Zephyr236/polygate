@@ -1,8 +1,9 @@
 name: Design gate
 
 on:
-  pull_request_target:
-    types: [opened, synchronize, reopened, ready_for_review]
+  workflow_run:
+    workflows: ["ci"]
+    types: [completed]
 
 permissions:
   contents: read
@@ -11,17 +12,77 @@ permissions:
   statuses: write
 
 concurrency:
-  group: design-gate-${{ github.event.pull_request.number }}
+  group: design-gate-${{ github.event.workflow_run.head_sha }}
   cancel-in-progress: true
 
 jobs:
+  resolve:
+    if: >-
+      ${{ github.event.workflow_run.conclusion == 'success' &&
+          github.event.workflow_run.event == 'pull_request' }}
+    runs-on: ubuntu-24.04
+    outputs:
+      number: ${{ steps.pr.outputs.number }}
+      head: ${{ steps.pr.outputs.head }}
+      base: ${{ steps.pr.outputs.base }}
+      skip: ${{ steps.pr.outputs.skip }}
+      trusted: ${{ steps.pr.outputs.trusted }}
+    steps:
+      - name: Resolve the pull request and check for a stale CI run
+        id: pr
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PR="${{ github.event.workflow_run.pull_requests[0].number }}"
+          if [ -z "$PR" ]; then
+            PR=$(gh api "repos/$GITHUB_REPOSITORY/commits/${{ github.event.workflow_run.head_sha }}/pulls" --jq '.[0].number // empty')
+          fi
+          if [ -z "$PR" ]; then
+            gh api -X POST "repos/$GITHUB_REPOSITORY/statuses/${{ github.event.workflow_run.head_sha }}" \
+              -f state=failure -f context=design-review -f description="No pull request found for CI run" || true
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          HEAD=$(gh pr view "$PR" --repo "$GITHUB_REPOSITORY" --json headRefOid --jq .headRefOid)
+          BASE=$(gh pr view "$PR" --repo "$GITHUB_REPOSITORY" --json baseRefOid --jq .baseRefOid)
+          ASSOC=$(gh api "repos/$GITHUB_REPOSITORY/pulls/$PR" --jq .author_association)
+          case "$ASSOC" in
+            OWNER|MEMBER|COLLABORATOR) echo "trusted=true" >> "$GITHUB_OUTPUT" ;;
+            *) echo "trusted=false" >> "$GITHUB_OUTPUT" ;;
+          esac
+          GATE=""
+          for _ in $(seq 1 45); do
+            GATE=$(gh pr view "$PR" --repo "$GITHUB_REPOSITORY" --json statusCheckRollup \
+              --jq '[.statusCheckRollup[] | select(.name == "gate") | .conclusion] | last // ""')
+            case "$GATE" in
+              SUCCESS) break ;;
+              FAILURE|CANCELLED|TIMED_OUT|ACTION_REQUIRED|STARTUP_FAILURE)
+                echo "skip=true" >> "$GITHUB_OUTPUT"
+                echo "Current head gate is $GATE; not spending a model call."
+                exit 0
+                ;;
+            esac
+            sleep 20
+          done
+          echo "number=$PR" >> "$GITHUB_OUTPUT"
+          echo "head=$HEAD" >> "$GITHUB_OUTPUT"
+          echo "base=$BASE" >> "$GITHUB_OUTPUT"
+          if [ "$GATE" != "SUCCESS" ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "Current head gate is $GATE after waiting; skipping."
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
   design_gate:
+    needs: resolve
+    if: needs.resolve.outputs.skip != 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.pull_request.base.sha }}
+          ref: ${{ needs.resolve.outputs.base }}
           fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
@@ -33,14 +94,14 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           git fetch --no-tags origin \
-            "pull/${{ github.event.pull_request.number }}/head:refs/remotes/origin/pr-head"
+            "pull/${{ needs.resolve.outputs.number }}/head:refs/remotes/origin/pr-head"
           HEAD_SHA=$(git rev-parse refs/remotes/origin/pr-head)
           echo "HEAD_SHA=$HEAD_SHA" >> "$GITHUB_ENV"
           git worktree add --detach /tmp/pr-head "$HEAD_SHA"
       - name: Write PR body as the design brief
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh pr view ${{ github.event.pull_request.number }} --json body --jq .body > /tmp/design-brief.md
+        run: gh pr view ${{ needs.resolve.outputs.number }} --json body --jq .body > /tmp/design-brief.md
       - name: Run the design gate
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -50,12 +111,13 @@ jobs:
         run: |
           python3 scripts/design_gate.py \
             --repo /tmp/pr-head \
-            --base ${{ github.event.pull_request.base.sha }} \
+            --base ${{ needs.resolve.outputs.base }} \
             --head "$HEAD_SHA" \
             --sha "$HEAD_SHA" \
             --brief /tmp/design-brief.md \
-            --pr ${{ github.event.pull_request.number }} \
+            --pr ${{ needs.resolve.outputs.number }} \
             --repo-slug "$GITHUB_REPOSITORY" \
+            ${{ needs.resolve.outputs.trusted == 'true' && '--allow-bash' || '' }} \
             --budget-usd 4.0 \
             --out reports/design-gate.json
       - name: Upload the gate report
@@ -70,7 +132,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh api -X POST "repos/${{ github.repository }}/statuses/${{ github.event.pull_request.head.sha }}" \
+          gh api -X POST "repos/${{ github.repository }}/statuses/${{ needs.resolve.outputs.head }}" \
             -f state=failure \
             -f context=design-review \
             -f description="Design gate workflow failed"

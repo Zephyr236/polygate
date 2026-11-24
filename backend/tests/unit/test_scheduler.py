@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 
 import pytest
 
-from polygate.config import ProviderConfig, RoutingConfig
+from polygate.config import ClientPolicy, ProviderConfig, RoutingConfig
 from polygate.protocols.base import (
     AllProvidersFailedError,
     InternalRequest,
@@ -103,6 +103,57 @@ async def test_complete_routes_to_first_candidate() -> None:
     assert result.result.response.text == "PONG"
     assert result.result.response.provider_id == "a"
     assert result.attempts == []
+
+
+@pytest.mark.asyncio
+async def test_complete_respects_client_provider_allowlist() -> None:
+    configs = [_config("a", priority=0), _config("b", priority=1)]
+    scheduler = _scheduler(
+        configs,
+        {"a": ScriptedProvider(configs[0]), "b": ScriptedProvider(configs[1])},
+    )
+    result = await scheduler.complete(_request(), {}, ClientPolicy("team", frozenset({"b"})))
+    assert result.result.response.provider_id == "b"
+
+
+@pytest.mark.asyncio
+async def test_failover_stays_inside_the_client_allowlist() -> None:
+    configs = [_config("a", priority=0), _config("b", priority=1), _config("c", priority=2)]
+    adapters = {
+        "a": ScriptedProvider(configs[0], outcome="server_error"),
+        "b": ScriptedProvider(configs[1]),
+        "c": ScriptedProvider(configs[2]),
+    }
+    scheduler = _scheduler(configs, adapters)
+    result = await scheduler.complete(_request(), {}, ClientPolicy("team", frozenset({"a", "b"})))
+    assert result.result.response.provider_id == "b"
+    assert adapters["c"].calls == 0
+
+
+@pytest.mark.asyncio
+async def test_stream_stays_inside_the_client_allowlist() -> None:
+    configs = [_config("a"), _config("b")]
+    adapters = {"a": ScriptedProvider(configs[0]), "b": ScriptedProvider(configs[1])}
+    scheduler = _scheduler(configs, adapters)
+    chunks = [
+        provider
+        async for _text, _usage, provider in scheduler.stream(
+            _request(), {}, ClientPolicy("team", frozenset({"b"}))
+        )
+    ]
+    assert chunks and set(chunks) == {"b"}
+    assert adapters["a"].calls == 0
+
+
+@pytest.mark.asyncio
+async def test_two_client_keys_choose_different_providers() -> None:
+    configs = [_config("a"), _config("b")]
+    adapters = {"a": ScriptedProvider(configs[0]), "b": ScriptedProvider(configs[1])}
+    scheduler = _scheduler(configs, adapters)
+    first = await scheduler.complete(_request(), {}, ClientPolicy("one", frozenset({"a"})))
+    second = await scheduler.complete(_request(), {}, ClientPolicy("two", frozenset({"b"})))
+    assert first.result.response.provider_id == "a"
+    assert second.result.response.provider_id == "b"
 
 
 @pytest.mark.asyncio

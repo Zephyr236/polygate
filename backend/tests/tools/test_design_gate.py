@@ -52,10 +52,19 @@ def _install_fake_sdk(monkeypatch: pytest.MonkeyPatch, *, structured: dict[str, 
         def __init__(self, **kwargs: object) -> None:
             self.kwargs = kwargs
 
+    class AgentDefinition:
+        def __init__(self, **kwargs: object) -> None:
+            self.kwargs = kwargs
+
     monkeypatch.setitem(
         sys.modules,
         "claude_agent_sdk",
-        types.SimpleNamespace(ResultMessage=ResultMessage, query=query, ClaudeAgentOptions=Options),
+        types.SimpleNamespace(
+            ResultMessage=ResultMessage,
+            query=query,
+            ClaudeAgentOptions=Options,
+            AgentDefinition=AgentDefinition,
+        ),
     )
 
 
@@ -95,6 +104,13 @@ def test_pass_requires_no_findings() -> None:
     report = _pass()
     report["findings"] = [_finding()]
     assert gate._validate(report)["verdict"] == "needs-changes"
+
+
+def test_needs_changes_without_findings_gets_a_blocking_finding() -> None:
+    report = gate._validate(
+        {"verdict": "needs-changes", "summary": "no finding", "findings": [], "questions": []}
+    )
+    assert report["findings"][0]["title"].startswith("Agent requested")
 
 
 def test_insufficient_context_gets_a_blocking_finding() -> None:

@@ -95,3 +95,20 @@ jitter = 0.4
 [provider.timeouts]
 connect_seconds = 15
 total_seconds = 180
+
+# Optional caller keys. Each key sees only its allowed providers and may
+# override the global routing weights. The secret is read from the env var,
+# never stored in this file. Uncomment the block and set TEAM_A_KEY to opt in;
+# an uncommented key with no provisioned env value fails startup by design.
+# [[client_key]]
+# id = "team-a"
+# name = "Team A"
+# api_key_env = "TEAM_A_KEY"
+# allowed_providers = ["amr", "zen"]
+# respect_priority = false
+#
+# [client_key.weights]
+# success = 0.6
+# speed = 0.2
+# cost = 0.1
+# cache = 0.1

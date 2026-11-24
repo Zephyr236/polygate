@@ -26,7 +26,10 @@ Keys are referenced by environment variable name. The gateway never stores secre
 ## Authentication
 
 - `ADMIN_TOKEN` protects `/admin/*` and the management UI.
-- `PROXY_API_KEY` protects `/v1/*` when set; leave it unset for loopback-only usage.
+- `PROXY_API_KEY` is the legacy all-provider credential for `/v1/*`.
+- `[[client_key]]` entries protect `/v1/*` with per-caller provider allowlists and weights. Once any
+  client key is configured, a valid client credential is required even when `PROXY_API_KEY` is unset.
+  A client-key set with no active `api_key_env` fails at startup.
 
 ## Health checks
 
@@ -40,7 +43,8 @@ Keys are referenced by environment variable name. The gateway never stores secre
 | `providers_unavailable` | Inspect `attempts` in the error body for per-provider classes. |
 | Slow streaming start | Lower `timeouts.total_seconds` so a stalled channel fails over sooner. |
 | Provider always skipped | Look for an open circuit in the dashboard or events log. |
-| Constant 401 | Verify the env var named by `api_key_env` is present in the container. |
+| Constant 401 | Verify the client credential and the env var named by `api_key_env`. |
+| `/v1` returns 503 | A client-key set exists but none of its `api_key_env` values are set. Fix the deployment env; startup should have caught this. |
 
 ## Metrics retention
 

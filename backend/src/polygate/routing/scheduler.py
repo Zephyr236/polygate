@@ -8,7 +8,7 @@ from collections.abc import AsyncIterator, Awaitable, Callable
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 
-from polygate.config import ProviderConfig, RoutingConfig
+from polygate.config import ClientPolicy, ProviderConfig, RoutingConfig
 from polygate.protocols.base import (
     AllProvidersFailedError,
     InternalRequest,
@@ -131,11 +131,32 @@ class Scheduler:
             self._adapters[config.id] = adapter
         return adapter
 
-    def _candidates(self, excluded: set[str]) -> list[tuple[ProviderConfig, ProviderState]]:
+    def _allowed(self, policy: ClientPolicy | None) -> list[ProviderConfig]:
+        if policy is None:
+            return self.providers
+        return [config for config in self.providers if policy.allows(config.id)]
+
+    def _routing_for(self, policy: ClientPolicy | None) -> RoutingConfig:
+        if policy is None or policy.weights is None:
+            return self.routing
+        return self.routing.model_copy(update={"weights": policy.weights})
+
+    def _candidates(
+        self, excluded: set[str], policy: ClientPolicy | None
+    ) -> list[tuple[ProviderConfig, ProviderState]]:
         """Filter, score and order eligible providers outside the exclusion set."""
         hour, weekday = utc_hour_weekday()
-        ranked = rank_candidates(self.providers, self.health.states(), self.routing, hour, weekday, excluded)
-        configs = {config.id: config for config in self.providers}
+        allowed = self._allowed(policy)
+        ranked = rank_candidates(
+            allowed,
+            self.health.states(),
+            self._routing_for(policy),
+            hour,
+            weekday,
+            excluded,
+            True if policy is None else policy.respect_priority,
+        )
+        configs = {config.id: config for config in allowed}
         pairs: list[tuple[ProviderConfig, ProviderState]] = []
         for score in ranked:
             state = self.health.get(score.provider_id)
@@ -143,20 +164,25 @@ class Scheduler:
                 pairs.append((configs[score.provider_id], state))
         return pairs
 
-    def _select(self, excluded: set[str]) -> Selection | None:
+    def _select(self, excluded: set[str], policy: ClientPolicy | None) -> Selection | None:
         """Reserve the best-scoring provider lane outside the exclusion set."""
-        for config, state in self._candidates(excluded):
+        for config, state in self._candidates(excluded, policy):
             lane = state.acquire()
             if lane is not None:
                 return Selection(config, state, lane)
         return None
 
-    async def complete(self, request: InternalRequest, keys: dict[str, str]) -> RouteResult:
+    async def complete(
+        self,
+        request: InternalRequest,
+        keys: dict[str, str],
+        policy: ClientPolicy | None = None,
+    ) -> RouteResult:
         """Route one non-streaming request, switching providers on failure."""
         attempts: list[Attempt] = []
         excluded: set[str] = set()
         for _ in range(self.routing.max_switches + 1):
-            selection = self._select(excluded)
+            selection = self._select(excluded, policy)
             if selection is None:
                 break
             outcome = await self._run(selection, request, keys, attempts)
@@ -206,12 +232,15 @@ class Scheduler:
         return delay_ms / 1000.0
 
     async def stream(
-        self, request: InternalRequest, keys: dict[str, str]
+        self,
+        request: InternalRequest,
+        keys: dict[str, str],
+        policy: ClientPolicy | None = None,
     ) -> AsyncIterator[tuple[str, Usage | None, str]]:
         """Route one streaming request, yielding deltas tagged with their provider."""
         attempts: list[Attempt] = []
         excluded: set[str] = set()
-        async for buffer in self._stream_attempts(request, keys, attempts, excluded):
+        async for buffer in self._stream_attempts(request, keys, attempts, excluded, policy):
             while buffer.has_items():
                 yield buffer.pop()
             if not buffer.failed:
@@ -224,9 +253,10 @@ class Scheduler:
         keys: dict[str, str],
         attempts: list[Attempt],
         excluded: set[str],
+        policy: ClientPolicy | None = None,
     ) -> AsyncIterator[StreamBuffer]:
         for _ in range(self.routing.max_switches + 1):
-            selection = self._select(excluded)
+            selection = self._select(excluded, policy)
             if selection is None:
                 return
             buffer = await self._fill(selection, request, keys, attempts)
