@@ -393,7 +393,7 @@ cache = 0.1
             headers={"authorization": "Bearer admin-token"},
         )
         assert simulated.status_code == 200
-        zen = [item for item in simulated.json()["decisions"] if item["provider_id"] == "zen"][0]
+        zen = next(item for item in simulated.json()["decisions"] if item["provider_id"] == "zen")
         assert zen["eligible"] is False
         assert "not allowed by client key" in zen["reasons"]
 
