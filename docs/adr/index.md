@@ -17,7 +17,7 @@ considered and what was rejected.
 | [0010](0010-required-design-gate.md) | One agent is a required design gate with blocking issues | Accepted |
 | [0011](0011-client-key-routing-policy.md) | Caller keys select provider allowlists and routing weights | Accepted |
 | [0012](0012-design-gate-bounds.md) | Design gate turn/budget bounds and emergency repair | Accepted |
-| [0013](0013-design-gate-40-turns.md) | Raise the design gate to 40 turns after a second max-turns failure | Accepted |
+| [0013](0013-design-gate-no-turn-limit.md) | Remove the design gate turn limit after repeated max-turns failures | Accepted |
 
 ## Writing a new ADR
 
