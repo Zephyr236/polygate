@@ -31,6 +31,6 @@ an explicit, logged action.
   alternatives, criteria, assumptions, falsifiers and reversibility.
 - One model means one perspective. It is cheaper than a panel but does not provide independent
   opinions.
-- The agent is read-only (`Read`/`Grep`/`Glob`) and bounded by turns and budget.
+- The agent is read-only (`Read`/`Grep`/`Glob`) and bounded by 20 turns and a USD 2 budget.
 - If the workflow, model or status publication fails, the status is missing or failed and the PR
   stays blocked (fail closed).

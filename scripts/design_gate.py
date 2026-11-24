@@ -269,8 +269,8 @@ def main(argv: list[str]) -> int:
     parser.add_argument(
         "--api-base", default=os.environ.get("DESIGN_REVIEW_API_BASE", "https://opencode.ai/zen/go")
     )
-    parser.add_argument("--max-turns", type=int, default=8)
-    parser.add_argument("--budget-usd", type=float, default=1.0)
+    parser.add_argument("--max-turns", type=int, default=20)
+    parser.add_argument("--budget-usd", type=float, default=2.0)
     parser.add_argument("--dry-run", action="store_true")
     options = parser.parse_args(argv[1:])
     repo = options.repo.resolve()
