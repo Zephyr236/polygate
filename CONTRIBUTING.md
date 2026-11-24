@@ -16,6 +16,8 @@ change. The gates are the merge criterion instead:
 - Pull requests are the only path to `main`, including for administrators (`enforce_admins`).
 - The aggregated `gate` check must be green. It fails on `failure`, `cancelled` **and `skipped`**
   dependencies, so a gate that never ran cannot be mistaken for one that passed.
+- The `design-review` design gate must be `success`; it fails while the agent reports any finding or
+  any blocking design-review issue is open.
 - Force pushes and branch deletion are disabled.
 
 If a second maintainer joins, raise the review requirement to one in repository settings; nothing else

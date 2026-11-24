@@ -65,11 +65,12 @@ Mutation runs are slow. Backend uses `mutmut` on the routing/provider/protocol l
 ## Merge policy
 
 `main` takes pull requests only, with **0 required reviews** (single maintainer; GitHub forbids
-self-approval); the aggregated `gate` check is required. `gate` fails on `failure`, `cancelled`
-and `skipped`, so a conditional job cannot pass by not running.
+self-approval); the aggregated `gate` and the agent `design-review` status are required. `gate` fails
+on `failure`, `cancelled` and `skipped`, so a conditional job cannot pass by not running. The design
+gate fails while any blocking finding or issue remains.
 Force pushes, deletions and direct pushes are blocked, including for administrators
 (`enforce_admins`). Rationale: [ADR 0004](docs/adr/0004-merge-policy.md) and
-[ADR 0007](docs/adr/0007-protect-main.md).
+[ADR 0007](docs/adr/0007-protect-main.md), and [ADR 0010](docs/adr/0010-required-design-gate.md).
 
 ## Definition of done
 
