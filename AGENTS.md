@@ -18,16 +18,13 @@ scripts/          gate.py plus per-tool threshold readers
 
 ## Invariants
 
-- Secrets are referenced by environment-variable name (`api_key_env`), never stored in config.
-- A caller key may route only to its `allowed_providers`; no fallback may cross that allowlist.
-- Legacy `PROXY_API_KEY` is an all-provider policy with global weights; client keys may override weights only for their own requests.
-
 - Secrets live only in environment variables. Configuration references them by name through `api_key_env`; never inline a key.
 - A provider that fails before emitting its first delta may be swapped; a failure after delivery must surface to the client instead of silently switching.
 - Every upstream difference must be expressible as a quirk field in `ProviderConfig`. New quirks belong in `config.py` and the provider reference doc, not in adapter if-statements.
 - `src/api` is a leaf in the frontend graph, `polygate.protocols` is a leaf in the backend graph. `import-linter`, `dependency-cruiser`, `semgrep` design rules and `ast-grep` structural rules enforce both.
 - When you add a layer rule, prove it fires on a deliberate violation before trusting it; a no-op rule is worse than no rule. `tach` was evaluated and dropped because its rule evaluation produced no diagnostics even for its own documented layout; `import-linter`, `semgrep` and `dependency-cruiser` carry enforcement instead.
 - Cost is always `cost_coefficient * window_multiplier * price(tokens)`; the dashboard and the `cost` column must agree.
+- A caller key may route only to its non-empty `allowed_providers`; no fallback may cross that allowlist. Only legacy `PROXY_API_KEY` spans every provider.
 
 ## How to run gates
 

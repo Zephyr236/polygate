@@ -97,7 +97,7 @@ by `scripts/gen_config_reference.py`. Run the script after changing the models.
 | `id` | stable channel identifier, lowercase with dashes |
 | `name` | human-readable caller key name |
 | `api_key_env` | environment variable holding the API key |
-| `allowed_providers` | provider ids this caller key may use (empty means all) |
+| `allowed_providers` | provider ids this caller key may use; at least one is required |
 | `weights` | relative weights of the routing score components |
 
 ## AppConfig (dataclass)

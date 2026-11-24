@@ -22,8 +22,8 @@ Candidates are ordered by `(priority, -score)`, so a lower `priority` number is 
 
 A `[[client_key]]` narrows the candidate pool to `allowed_providers` and may override the global
 `weights` with `[client_key.weights]`. Authentication resolves the key to a `ClientPolicy`; the
-scheduler filters providers before scoring and uses the key's weights for that request. An empty
-`allowed_providers` list means every provider, which is also the legacy `PROXY_API_KEY` policy.
+scheduler filters providers before scoring and uses the key's weights for that request. A client
+key must list at least one provider; only the legacy `PROXY_API_KEY` policy spans every provider.
 The circuit breaker, retries, time windows and concurrency limits remain global provider state.
 
 ## Hard filters

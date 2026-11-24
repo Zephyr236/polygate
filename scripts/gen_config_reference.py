@@ -77,7 +77,7 @@ DESCRIPTIONS: dict[str, str] = {
     "cost": "weight of the inverse cost component",
     "cache": "weight of the cache hit component",
     "providers": "channel configurations loaded from the seed file",
-    "allowed_providers": "provider ids this caller key may use (empty means all)",
+    "allowed_providers": "provider ids this caller key may use; at least one is required",
     "name": "human-readable caller key name",
     "client_keys": "caller keys with provider allowlists and routing weights",
     "database_path": "SQLite file for metrics, events and provider overrides",

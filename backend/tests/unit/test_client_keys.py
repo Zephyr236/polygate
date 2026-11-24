@@ -48,6 +48,17 @@ def test_client_key_selects_providers_and_weights() -> None:
     assert key.weights == RoutingWeights(success=1.0, speed=0, cost=0, cache=0)
 
 
+def test_client_key_requires_at_least_one_provider() -> None:
+    with pytest.raises(ValueError):
+        build_app_config(
+            {
+                "provider": [_provider("a")],
+                "client_key": [{"id": "team-a", "api_key_env": "TEAM_A_KEY"}],
+            },
+            {},
+        )
+
+
 def test_unknown_provider_in_client_key_is_rejected() -> None:
     with pytest.raises(ConfigError, match="unknown providers"):
         build_app_config(

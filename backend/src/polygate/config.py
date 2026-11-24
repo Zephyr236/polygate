@@ -203,7 +203,7 @@ class ClientKeyConfig(BaseModel):
     id: str = Field(min_length=1, max_length=64, pattern=r"^[a-z0-9][a-z0-9-]*$")
     name: str = Field(default="", max_length=120)
     api_key_env: str = Field(min_length=1)
-    allowed_providers: list[str] = Field(default_factory=list)
+    allowed_providers: list[str] = Field(min_length=1)
     weights: RoutingWeights | None = None
 
 

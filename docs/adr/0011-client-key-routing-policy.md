@@ -27,7 +27,8 @@ that without separate deployments.
 ## Consequences
 
 - One gateway process can serve multiple caller policies without duplicating providers.
-- A missing provider in `allowed_providers` is a startup error; an empty list means all providers.
+- A missing or empty `allowed_providers` list is a startup error. Only the legacy `PROXY_API_KEY`
+  spans every provider.
 - Per-key policies are read at process start from TOML/env. Runtime key CRUD is not added; adding it
   later needs hashed key storage and a migration.
 - Metrics remain provider-level, not caller-level. Per-key cost attribution needs a separate
