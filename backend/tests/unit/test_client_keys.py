@@ -159,7 +159,7 @@ def test_legacy_key_collision_is_rejected() -> None:
 
 
 def test_unprovisioned_client_keys_fail_closed_at_startup() -> None:
-    with pytest.raises(ConfigError, match="no usable proxy credential"):
+    with pytest.raises(ConfigError, match="no usable proxy credential or admin token"):
         build_app_config(
             {
                 "provider": [_provider("a")],
@@ -178,6 +178,17 @@ def test_unprovisioned_optional_key_does_not_take_down_legacy_access() -> None:
         {"PROXY_API_KEY": "legacy"},
     )
     assert config.client_keys[0].id == "one"
+
+
+def test_unprovisioned_optional_key_does_not_take_down_admin_access() -> None:
+    config = build_app_config(
+        {
+            "provider": [_provider("a")],
+            "client_key": [{"id": "one", "api_key_env": "MISSING", "allowed_providers": ["a"]}],
+        },
+        {"ADMIN_TOKEN": "admin"},
+    )
+    assert config.admin_token == "admin"
 
 
 def test_policy_without_allowlist_allows_all() -> None:

@@ -176,7 +176,7 @@ All `/admin/*` routes require `Authorization: Bearer $ADMIN_TOKEN`. `/v1/*` acce
 `PROXY_API_KEY`, or a `[[client_key]]` credential resolved from its `api_key_env`. Once client keys
 are configured, a valid client credential is required even if `PROXY_API_KEY` is unset. An
 unprovisioned optional key is inactive (`401` for that key) and does not take down legacy/admin
-traffic; startup fails only when no usable proxy credential exists. Leave both unset for
+traffic; startup fails only when no usable proxy credential or admin token exists. Leave both unset for
 loopback-only development.
 
 ## Quality gates

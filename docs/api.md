@@ -30,7 +30,8 @@ Both endpoints return `502` with a `providers_unavailable` envelope when every c
 provider with the global routing weights. A configured `[[client_key]]` instead grants only its
 `allowed_providers` and applies its optional per-key `weights`. An unknown or missing key is `401`.
 An unprovisioned `[[client_key]]` is inactive: its requests get `401`, while `PROXY_API_KEY` and
-admin traffic keep working. Startup fails only when no usable proxy credential exists at all.
+admin traffic keep working. Startup fails only when no usable proxy credential or admin token
+exists at all.
 
 ## Admin
 
