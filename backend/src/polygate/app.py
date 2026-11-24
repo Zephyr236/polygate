@@ -14,7 +14,8 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from polygate.api import admin, health
 from polygate.api.proxy import router as proxy_router
-from polygate.config import AppConfig, load_app_config
+from polygate.config import AppConfig
+from polygate.config_loader import load_app_config
 from polygate.gateway import Gateway, build_gateway
 from polygate.storage import MetricsStore
 

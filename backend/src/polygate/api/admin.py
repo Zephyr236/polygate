@@ -14,7 +14,8 @@ from pydantic import ValidationError
 from polygate.api.auth import require_admin
 from polygate.api.bodies import read_json
 from polygate.api.deps import gateway_of
-from polygate.config import ClientKeyConfig, ConfigError, ProviderConfig, validate_client_keys_against_providers
+from polygate.config import ClientKeyConfig, ConfigError, ProviderConfig
+from polygate.config_loader import validate_client_keys_against_providers
 from polygate.gateway import Gateway, replace_providers
 from polygate.metrics import summarize
 from polygate.routing.scorer import rank_candidates

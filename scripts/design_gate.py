@@ -217,6 +217,17 @@ def _validate(report: dict[str, Any]) -> dict[str, Any]:
         item["line"] = int(item["line"])
     if report["verdict"] == "pass" and findings:
         report["verdict"] = "needs-changes"
+    if report["verdict"] == "needs-changes" and not findings:
+        findings.append(
+            {
+                "title": "Agent requested changes without a finding",
+                "path": "CI",
+                "line": 1,
+                "why": "A non-pass verdict must have a resolvable blocking finding.",
+                "evidence": "The agent returned needs-changes with an empty findings list.",
+                "fix": "Return a concrete finding or pass; do not fail without an issue.",
+            }
+        )
     if report["verdict"] == "insufficient-context" and not findings:
         findings.append(
             {

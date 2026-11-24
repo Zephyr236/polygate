@@ -13,10 +13,8 @@ from polygate.config import (
     SessionMode,
     StreamUsage,
     TimeWindow,
-    build_app_config,
-    load_app_config,
-    parse_providers_document,
 )
+from polygate.config_loader import build_app_config, load_app_config, parse_providers_document
 
 
 def _provider(**overrides: object) -> ProviderConfig:

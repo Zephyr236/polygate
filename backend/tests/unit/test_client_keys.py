@@ -10,8 +10,8 @@ from polygate.config import (
     ProviderConfig,
     RoutingConfig,
     RoutingWeights,
-    build_app_config,
 )
+from polygate.config_loader import build_app_config
 from polygate.routing.scorer import rank_candidates
 from polygate.routing.state import HealthRegistry
 

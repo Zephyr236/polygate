@@ -97,6 +97,13 @@ def test_pass_requires_no_findings() -> None:
     assert gate._validate(report)["verdict"] == "needs-changes"
 
 
+def test_needs_changes_without_findings_gets_a_blocking_finding() -> None:
+    report = gate._validate(
+        {"verdict": "needs-changes", "summary": "no finding", "findings": [], "questions": []}
+    )
+    assert report["findings"][0]["title"].startswith("Agent requested")
+
+
 def test_insufficient_context_gets_a_blocking_finding() -> None:
     report = gate._validate(
         {"verdict": "insufficient-context", "summary": "no brief", "findings": [], "questions": []}
