@@ -176,9 +176,10 @@ leave it unset for loopback-only use.
 
 ## Quality gates
 
-Merge to `main` requires the aggregated `gate` check. Every job in it is a real gate; `gate` fails on any
-`failure`, `cancelled` **and `skipped`** result, so a conditional job can never turn the pipeline green by not
-running.
+Merge to `main` requires the aggregated `gate` check and the agent `design-review` status. Every job in
+`gate` is a real gate; `gate` fails on any `failure`, `cancelled` **and `skipped`** result, so a
+conditional job can never turn the pipeline green by not running. The design gate fails while any
+blocking finding or issue remains.
 
 | Area | Gate | Threshold |
 | --- | --- | --- |
@@ -205,6 +206,7 @@ running.
 | Repo-wide | module size, LCOM cohesion, `jscpd` | file ≤ 320, function ≤ 60 · ≥ 0.5 · < 5% |
 | | docs gate (incl. ADR shape) and `gitleaks` | zero problems, no secrets |
 | | CodeQL (`python`, `javascript-typescript`) | no high/critical findings |
+| | Design gate (Claude Agent SDK) | `design-review` success; no blocking issues |
 
 Reproduce the whole set locally:
 
@@ -243,8 +245,9 @@ Maintainer notes for humans and agents: [AGENTS.md](AGENTS.md) · [CONTRIBUTING.
 
 ## Contributing
 
-Pull requests are the only path to `main`. The aggregated `gate` check decides the merge, and it fails on a
-failed, cancelled **or skipped** job, so a gate that does not run is never mistaken for one that passed.
+Pull requests are the only path to `main`. The aggregated `gate` and the agent `design-review` status decide
+the merge; `gate` fails on a failed, cancelled **or skipped** job, so a gate that does not run is never
+mistaken for one that passed. The design gate fails while any blocking finding or issue remains.
 This is a single-maintainer repository, and GitHub forbids self-approval, so the review requirement is
 **0**: the gates carry the weight. See [CONTRIBUTING.md](CONTRIBUTING.md) and
 [ADR 0004](docs/adr/0004-merge-policy.md).
@@ -379,6 +382,7 @@ score = w_success · 成功率
 | 全仓库 | 模块体积 / LCOM 内聚 / `jscpd` 重复 | 文件 ≤ 320 行、函数 ≤ 60 行 · ≥ 0.5 · < 5% |
 | | 文档门禁(含 ADR 结构)· `gitleaks` | 0 问题 · 无密钥 |
 | | CodeQL(`python`、`javascript-typescript`) | 无 high/critical 告警 |
+| | 设计门禁(Claude Agent SDK) | `design-review` success,无 blocking issue |
 
 本地一键复现:
 

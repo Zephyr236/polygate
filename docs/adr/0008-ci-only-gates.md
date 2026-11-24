@@ -1,6 +1,6 @@
 # ADR 0008: Merge only on the aggregated CI gate
 
-- Status: Accepted (supersedes [0005](0005-agent-candidate-promotion.md) and [0006](0006-pr-review-gate.md))
+- Status: Superseded by [0010](0010-required-design-gate.md) (supersedes [0005](0005-agent-candidate-promotion.md) and [0006](0006-pr-review-gate.md))
 - Date: 2026-11-23
 - Deciders: polygate maintainers
 

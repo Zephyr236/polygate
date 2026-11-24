@@ -10,6 +10,7 @@ nav:
   - Operations: operations.md
   - Gates: gates.md
   - Design review: design-review.md
+  - Required design gate: design-gate.md
   - Design brief template: templates/design-brief.md
   - Frontend: frontend.md
   - API: api.md
@@ -24,3 +25,4 @@ nav:
   - ADR 0007 - Protect main: adr/0007-protect-main.md
   - ADR 0008 - CI-only gates: adr/0008-ci-only-gates.md
   - ADR 0009 - Design review agent: adr/0009-design-review-agent.md
+  - ADR 0010 - Required design gate: adr/0010-required-design-gate.md

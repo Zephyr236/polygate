@@ -1,0 +1,75 @@
+name: Design gate
+
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+  statuses: write
+
+concurrency:
+  group: design-gate-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  gate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install the Claude Agent SDK
+        run: python3 -m pip install 'claude-agent-sdk==0.2.188'
+      - name: Fetch the pull request head as data
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git fetch --no-tags origin \
+            "pull/${{ github.event.pull_request.number }}/head:refs/remotes/origin/pr-head"
+          HEAD_SHA=$(git rev-parse refs/remotes/origin/pr-head)
+          echo "HEAD_SHA=$HEAD_SHA" >> "$GITHUB_ENV"
+          git worktree add --detach /tmp/pr-head "$HEAD_SHA"
+      - name: Write PR body as the design brief
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh pr view ${{ github.event.pull_request.number }} --json body --jq .body > /tmp/design-brief.md
+      - name: Run the design gate
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DESIGN_REVIEW_API_KEY: ${{ secrets.ZEN_API_KEY }}
+          ANTHROPIC_BASE_URL: https://opencode.ai/zen/go
+          ANTHROPIC_MODEL: deepseek-v4.1-flash
+        run: |
+          python3 scripts/design_gate.py \
+            --repo /tmp/pr-head \
+            --base ${{ github.event.pull_request.base.sha }} \
+            --head "$HEAD_SHA" \
+            --sha "$HEAD_SHA" \
+            --brief /tmp/design-brief.md \
+            --pr ${{ github.event.pull_request.number }} \
+            --repo-slug "$GITHUB_REPOSITORY" \
+            --out reports/design-gate.json
+      - name: Upload the gate report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: design-gate-report
+          path: reports/design-gate.json
+          if-no-files-found: warn
+      - name: Fail closed on workflow errors
+        if: failure()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh api -X POST "repos/${{ github.repository }}/statuses/${{ github.event.pull_request.head.sha }}" \
+            -f state=failure \
+            -f context=design-review \
+            -f description="Design gate workflow failed"

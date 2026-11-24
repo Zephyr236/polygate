@@ -1,6 +1,6 @@
 # ADR 0009: Design review agent is advisory
 
-- Status: Provisional (prototype)
+- Status: Provisional (the required gate is ADR 0010)
 - Date: 2026-11-24
 - Deciders: polygate maintainers
 

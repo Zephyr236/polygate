@@ -38,6 +38,7 @@ CodeQL runs in CI only.
 | Docs | `scripts/docs_gate.py` | zero problems, including ADR numbering, sections and index links |
 | Security history | `gitleaks` | no leaked secrets |
 | CodeQL | GitHub CodeQL (`python`, `javascript-typescript`) | no high/critical findings; SARIF uploaded |
+| Design gate | Claude Agent SDK (`scripts/design_gate.py`) | `design-review` success; no blocking issues |
 
 ## Local usage
 
