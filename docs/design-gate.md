@@ -12,7 +12,8 @@ Claude Agent SDK agent, not by a panel and not by five models.
 5. Every finding becomes a `design-review-blocking` issue; resolved findings are closed on the next
    review.
 6. The workflow writes the `design-review` commit status. It is `success` only for `pass` with no
-   findings; otherwise it is `failure`. A missing status blocks merge.
+   findings; otherwise it is `failure`. A missing status blocks merge. This is a commit status, not
+   a check run; branch protection reads the status context.
 
 ## Resolving a blocked PR
 
