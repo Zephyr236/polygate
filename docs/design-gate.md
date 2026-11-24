@@ -47,5 +47,6 @@ failure status.
 - If the workflow, model or status publication fails, the status is missing or failed and the PR
   stays blocked (fail closed).
 
-The gate is keyed by the CI head SHA; fork PRs resolve through the commit-to-pulls API.
-See [ADR 0014](adr/0014-ci-first-design-gate.md) for the trigger rules.
+The gate is keyed by the PR number, falling back to the CI head SHA for forks; fork PRs resolve
+through the commit-to-pulls API. See [ADR 0014](adr/0014-ci-first-design-gate.md) for the trigger
+rules.
