@@ -21,7 +21,7 @@ polygate is a single-process ASGI gateway that fronts several DeepSeek-compatibl
 | Routing | `routing.*`, `metrics` | Pure ranking and health state; no HTTP awareness. |
 | Upstream adapters | `providers.*` | Protocol transport, quirks, error normalization. |
 | Translation | `protocols.*` | Pure request/response and SSE mapping. |
-| Foundations | `config`, `storage`, `protocols.base` | No dependencies on the layers above. |
+| Foundations | `config`, `config_loader`, `storage`, `protocols.base` | No dependencies on the layers above. |
 
 These directions are enforced by `import-linter` contracts in `backend/pyproject.toml`.
 

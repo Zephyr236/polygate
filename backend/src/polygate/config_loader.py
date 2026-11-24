@@ -86,8 +86,9 @@ def validate_client_key_provisioning(
     upstream = {provider.api_key(env) for provider in providers}
     if any(value in upstream for value in active):
         raise ConfigError("a client key resolves to an upstream provider credential")
-    if keys and not proxy_api_key and not active:
-        raise ConfigError("client keys are configured but no api_key_env is set")
+    unprovisioned = [key.id for key, value in zip(keys, values, strict=True) if not value]
+    if unprovisioned:
+        raise ConfigError(f"client keys have no api_key_env value: {sorted(unprovisioned)}")
 
 
 def build_app_config(document: Mapping[str, Any], env: Mapping[str, str]) -> AppConfig:

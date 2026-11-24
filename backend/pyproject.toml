@@ -165,6 +165,7 @@ layers = [
   "polygate.routing | polygate.metrics",
   "polygate.providers",
   "polygate.protocols",
+  "polygate.config_loader",
   "polygate.config | polygate.storage",
 ]
 
@@ -183,7 +184,7 @@ forbidden_modules = ["polygate.gateway", "polygate.api", "polygate.app"]
 [[tool.importlinter.contracts]]
 name = "Config and storage stay dependency free"
 type = "forbidden"
-source_modules = ["polygate.config", "polygate.storage"]
+source_modules = ["polygate.config", "polygate.config_loader", "polygate.storage"]
 forbidden_modules = ["polygate.protocols", "polygate.providers", "polygate.routing", "polygate.gateway", "polygate.api", "polygate.app", "polygate.metrics"]
 
 [[tool.importlinter.contracts]]

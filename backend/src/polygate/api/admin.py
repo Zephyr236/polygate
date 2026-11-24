@@ -14,7 +14,7 @@ from pydantic import ValidationError
 from polygate.api.auth import require_admin
 from polygate.api.bodies import read_json
 from polygate.api.deps import gateway_of
-from polygate.config import ClientKeyConfig, ConfigError, ProviderConfig
+from polygate.config import ClientKeyConfig, ClientPolicy, ConfigError, ProviderConfig
 from polygate.config_loader import validate_client_keys_against_providers
 from polygate.gateway import Gateway, replace_providers
 from polygate.metrics import summarize
@@ -138,12 +138,14 @@ async def metrics_stream(request: Request) -> StreamingResponse:
     return StreamingResponse(metrics_events(gateway), media_type="text/event-stream")
 
 
-def _decision(config: ProviderConfig, eligible: set[str]) -> dict[str, Any]:
+def _decision(config: ProviderConfig, eligible: set[str], policy: ClientPolicy | None) -> dict[str, Any]:
     """Explain why one provider is or is not a routing candidate."""
     reasons: list[str] = []
-    if not config.enabled:
+    if policy is not None and not policy.allows(config.id):
+        reasons.append("not allowed by client key")
+    elif not config.enabled:
         reasons.append("disabled")
-    if config.enabled and config.id not in eligible:
+    elif config.id not in eligible:
         reasons.append("time-window or health")
     return {
         "provider_id": config.id,
@@ -153,18 +155,47 @@ def _decision(config: ProviderConfig, eligible: set[str]) -> dict[str, Any]:
     }
 
 
-def simulate_body(gateway: Gateway, model: str, prompt: str) -> dict[str, Any]:
+def _policy_for(gateway: Gateway, client_key_id: str | None) -> ClientPolicy | None:
+    if not client_key_id:
+        return None
+    for key in gateway.config.client_keys:
+        if key.id == client_key_id:
+            return ClientPolicy(
+                key.id,
+                frozenset(key.allowed_providers),
+                key.weights,
+                key.respect_priority,
+            )
+    raise KeyError(client_key_id)
+
+
+def simulate_body(
+    gateway: Gateway, model: str, prompt: str, client_key_id: str | None = None
+) -> dict[str, Any]:
     """Explain the routing decision for a candidate request without calling upstreams."""
     now = datetime.now(timezone.utc)
+    policy = _policy_for(gateway, client_key_id)
+    configs = [
+        config for config in gateway.providers if policy is None or policy.allows(config.id)
+    ]
+    routing = gateway.config.routing
+    if policy is not None and policy.weights is not None:
+        routing = routing.model_copy(update={"weights": policy.weights})
     rankings = rank_candidates(
-        gateway.providers, gateway.health.states(), gateway.config.routing, now.hour, now.isoweekday()
+        configs,
+        gateway.health.states(),
+        routing,
+        now.hour,
+        now.isoweekday(),
+        respect_priority=policy.respect_priority if policy is not None else True,
     )
     eligible = {item.provider_id for item in rankings}
     return {
         "model": model,
         "prompt_length": len(prompt),
+        "client_key_id": client_key_id,
         "ranking": [item.__dict__ for item in rankings],
-        "decisions": [_decision(config, eligible) for config in gateway.providers],
+        "decisions": [_decision(config, eligible, policy) for config in gateway.providers],
     }
 
 
@@ -172,4 +203,12 @@ def simulate_body(gateway: Gateway, model: str, prompt: str) -> dict[str, Any]:
 async def simulate(request: Request) -> dict[str, Any]:
     """Explain the routing decision for a candidate request without calling upstreams."""
     body = await read_json(request)
-    return simulate_body(gateway_of(request), str(body.get("model", "")), str(body.get("prompt", "")))
+    try:
+        return simulate_body(
+            gateway_of(request),
+            str(body.get("model", "")),
+            str(body.get("prompt", "")),
+            str(body["api_key_id"]) if body.get("api_key_id") else None,
+        )
+    except KeyError as error:
+        raise HTTPException(status_code=400, detail=f"unknown client key: {error.args[0]}") from error

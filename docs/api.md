@@ -44,7 +44,7 @@ All admin routes require `Authorization: Bearer $ADMIN_TOKEN`.
 | `/admin/metrics` | GET | Aggregates for a range. |
 | `/admin/metrics/stream` | GET | SSE snapshot every two seconds. |
 | `/admin/events` | GET | Recent operational events. |
-| `/admin/simulate` | POST | Score breakdown without calling upstreams. |
+| `/admin/simulate` | POST | Score breakdown without calling upstreams; optional `api_key_id` applies that caller's allowlist and weights. |
 
 ## Health
 

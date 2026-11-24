@@ -27,8 +27,8 @@ A `[[client_key]]` narrows the candidate pool to `allowed_providers` and may ove
 scheduler filters providers before scoring and uses the key's weights for that request. A client
 key must list at least one provider; only the legacy `PROXY_API_KEY` policy spans every provider.
 `respect_priority` defaults to `true`; set it to `false` when the key's weights should override
-global tier order. The circuit breaker, retries, time windows and concurrency limits remain global
-provider state.
+global tier order. `POST /admin/simulate` accepts `api_key_id` to explain the same filtered ranking.
+The circuit breaker, retries, time windows and concurrency limits remain global provider state.
 
 ## Hard filters
 

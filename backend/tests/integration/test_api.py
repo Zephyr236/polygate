@@ -371,6 +371,15 @@ cache = 0.1
         assert body["clients"][0]["id"] == "team-a"
         assert body["clients"][0]["key_configured"] is True
         assert "team-a-key" not in listed.text
+        simulated = test_client.post(
+            "/admin/simulate",
+            json={"model": "m", "prompt": "hello", "api_key_id": "team-a"},
+            headers={"authorization": "Bearer admin-token"},
+        )
+        assert simulated.status_code == 200
+        zen = [item for item in simulated.json()["decisions"] if item["provider_id"] == "zen"][0]
+        assert zen["eligible"] is False
+        assert "not allowed by client key" in zen["reasons"]
 
 
 def test_proxy_key_required_when_configured(tmp_path: Path, upstreams: Upstreams) -> None:

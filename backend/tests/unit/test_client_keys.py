@@ -145,13 +145,24 @@ def test_legacy_key_collision_is_rejected() -> None:
 
 
 def test_unprovisioned_client_keys_fail_closed_at_startup() -> None:
-    with pytest.raises(ConfigError, match="no api_key_env is set"):
+    with pytest.raises(ConfigError, match="api_key_env value"):
         build_app_config(
             {
                 "provider": [_provider("a")],
                 "client_key": [{"id": "one", "api_key_env": "MISSING", "allowed_providers": ["a"]}],
             },
             {},
+        )
+
+
+def test_unprovisioned_client_keys_fail_even_with_legacy_key() -> None:
+    with pytest.raises(ConfigError, match="api_key_env value"):
+        build_app_config(
+            {
+                "provider": [_provider("a")],
+                "client_key": [{"id": "one", "api_key_env": "MISSING", "allowed_providers": ["a"]}],
+            },
+            {"PROXY_API_KEY": "legacy"},
         )
 
 
