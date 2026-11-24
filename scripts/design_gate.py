@@ -336,20 +336,18 @@ def main(argv: list[str]) -> int:
         from claude_agent_sdk import AgentDefinition, ClaudeAgentOptions
 
         read_tools = ["Read", "Grep", "Glob", "Agent"]
-        bash_tools = read_tools + [
-            "Bash(git status:*)",
-            "Bash(git diff:*)",
-            "Bash(git log:*)",
-            "Bash(git show:*)",
-            "Bash(rg:*)",
-            "Bash(ls:*)",
-            "Bash(cat:*)",
-            "Bash(head:*)",
-            "Bash(tail:*)",
-            "Bash(pytest:*)",
-            "Bash(uv run pytest:*)",
+        bash_allowed = [
+            "Bash(git *)",
+            "Bash(rg *)",
+            "Bash(ls *)",
+            "Bash(cat *)",
+            "Bash(head *)",
+            "Bash(tail *)",
+            "Bash(pytest *)",
+            "Bash(uv run pytest *)",
         ]
-        tools = bash_tools if options.allow_bash else read_tools
+        tools = read_tools + (["Bash"] if options.allow_bash else [])
+        allowed_tools = read_tools + (bash_allowed if options.allow_bash else [])
         disallowed = ["Edit", "Write", "WebFetch", "WebSearch", "NotebookEdit"]
         if not options.allow_bash:
             disallowed.append("Bash")
@@ -361,7 +359,7 @@ def main(argv: list[str]) -> int:
             system_prompt=SYSTEM,
             output_format=SCHEMA,
             tools=tools,
-            allowed_tools=tools,
+            allowed_tools=allowed_tools,
             disallowed_tools=disallowed,
             agents={
                 "verifier": AgentDefinition(
