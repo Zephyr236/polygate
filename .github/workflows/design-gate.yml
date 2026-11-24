@@ -56,7 +56,6 @@ jobs:
             --brief /tmp/design-brief.md \
             --pr ${{ github.event.pull_request.number }} \
             --repo-slug "$GITHUB_REPOSITORY" \
-            --max-turns 40 \
             --budget-usd 4.0 \
             --out reports/design-gate.json
       - name: Upload the gate report
