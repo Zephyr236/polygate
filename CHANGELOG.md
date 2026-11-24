@@ -9,6 +9,8 @@ All notable changes are documented here. The format follows Keep a Changelog and
 - Advisory design-review prototype (`scripts/design_review.py`), a multi-role panel
   (`scripts/design_panel.py`), a design-brief template, and ADR 0009. A label-gated Claude Code CI
   workflow runs the base-branch panel against the PR head as data and uploads one report per role.
+  A single-agent Claude Agent SDK variant (`scripts/design_agent_sdk.py`) is available under the
+  `design-review-sdk` label.
 - CodeQL analysis for Python and JavaScript/TypeScript, with high/critical findings blocking the
   aggregated `gate` job.
 - ADRs 0001–0008, including ADR 0008 (CI-only merge gates) and ADR 0007

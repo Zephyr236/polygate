@@ -22,6 +22,10 @@ questions, but its output is heuristic and can rationalize a weak design.
 - `.github/workflows/design-review.yml` runs the panel with the Claude Code CLI in CI when a PR has
   the `design-review` label. It uses `pull_request_target`, runs the base-branch script, and fetches
   the PR head only as git data; it is advisory and is not a required check.
+- `scripts/design_agent_sdk.py` is a single-agent variant built on the Claude Agent SDK. It may use
+  `Read`, `Grep` and `Glob`, is bounded by `--max-turns` and `--budget-usd`, and writes one report.
+  `.github/workflows/design-review-sdk.yml` runs it from the base branch against a PR-head worktree
+  when the `design-review-sdk` label is present.
 - It is not part of `ci.yml`, `gate` or branch protection. It cannot approve, reject or merge.
 - The model credential is supplied through the environment; the script redacts obvious secret
   assignments but treats repository text as untrusted.

@@ -48,6 +48,30 @@ other roles still review the diff. Start from
 Each role is a separate model call. They share the same model and context, so their blind spots can
 still be correlated; use different models or providers if you need genuinely independent opinions.
 
+## Single agent via Claude Agent SDK
+
+`scripts/design_agent_sdk.py` is the one-agent variant. It uses the Claude Agent SDK with a richer
+system prompt that covers problem framing, alternatives, architecture, failure modes, security and
+evidence. The agent may use `Read`, `Grep` and `Glob` to inspect the repository, but cannot run
+commands or edit files. It writes one report.
+
+```sh
+uv run --with 'claude-agent-sdk==0.2.188' python scripts/design_agent_sdk.py \
+  --brief docs/design-briefs/my-change.md \
+  --base origin/main --head HEAD \
+  --out reports/design-review.md
+```
+
+The SDK bundles the Claude Code CLI, so no separate install is needed. `--max-turns` and
+`--budget-usd` bound each review.
+
+### CI with the SDK
+
+`.github/workflows/design-review-sdk.yml` runs this agent when a PR has the `design-review-sdk`
+label. It uses `pull_request_target`, runs the base-branch script, and creates a worktree at the PR
+head for the agent to read. The PR body is the brief. It uploads and comments one report; it is
+advisory and is not a required check.
+
 ## CI with Claude Code
 
 `.github/workflows/design-review.yml` runs the panel in CI when a pull request has the
