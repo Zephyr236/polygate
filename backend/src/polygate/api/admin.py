@@ -15,7 +15,10 @@ from polygate.api.auth import require_admin
 from polygate.api.bodies import read_json
 from polygate.api.deps import gateway_of
 from polygate.config import ClientKeyConfig, ClientPolicy, ConfigError, ProviderConfig
-from polygate.config_loader import validate_client_keys_against_providers
+from polygate.config_loader import (
+    validate_client_keys_against_providers,
+    validate_provider_credentials_against_client_keys,
+)
 from polygate.gateway import Gateway, replace_providers
 from polygate.metrics import summarize
 from polygate.routing.scorer import rank_candidates
@@ -78,6 +81,9 @@ async def upsert_providers(request: Request) -> dict[str, Any]:
     try:
         configs = [ProviderConfig.model_validate(item) for item in raw]
         validate_client_keys_against_providers(gateway.config.client_keys, configs)
+        validate_provider_credentials_against_client_keys(
+            gateway.config.client_keys, configs, gateway.keys
+        )
     except ValidationError as error:
         raise HTTPException(status_code=400, detail=json.loads(error.json())) from error
     except ConfigError as error:

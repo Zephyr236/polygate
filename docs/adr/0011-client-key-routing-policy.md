@@ -28,8 +28,9 @@ that without separate deployments.
   a client value equal to the legacy key, and a client-key set with no provisioned env value are
   startup errors.
 - `GET /admin/clients` lists key metadata and `key_configured`, never the secret value.
-- `PUT /admin/providers` rejects a pool that would strand a client allowlist. `POST /admin/simulate`
-  accepts `api_key_id` and applies that policy; without it, simulation shows the legacy/global pool.
+- `PUT /admin/providers` rejects a pool that would strand a client allowlist, and rejects a runtime
+  provider credential that aliases a client key. `POST /admin/simulate` accepts `api_key_id` and
+  applies that policy; without it, simulation shows the legacy/global pool.
 
 ## Consequences
 

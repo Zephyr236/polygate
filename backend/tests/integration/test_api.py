@@ -365,6 +365,22 @@ cache = 0.1
         )
         assert denied.status_code == 400
         assert "amr" in denied.json()["error"]["message"]
+        collision = test_client.put(
+            "/admin/providers",
+            json={
+                "providers": [
+                    {
+                        "id": "amr",
+                        "base_url": "https://amr.example",
+                        "model": "m",
+                        "api_key_env": "TEAM_A_KEY",
+                    }
+                ]
+            },
+            headers={"authorization": "Bearer admin-token"},
+        )
+        assert collision.status_code == 400
+        assert "aliases a client key" in collision.json()["error"]["message"]
         listed = test_client.get("/admin/clients", headers={"authorization": "Bearer admin-token"})
         assert listed.status_code == 200
         body = listed.json()

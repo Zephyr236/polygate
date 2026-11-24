@@ -67,6 +67,18 @@ def parse_client_keys(document: Mapping[str, Any], providers: list[ProviderConfi
     return keys
 
 
+def validate_provider_credentials_against_client_keys(
+    keys: list[ClientKeyConfig], providers: list[ProviderConfig], env: Mapping[str, str]
+) -> None:
+    """Reject runtime provider credentials that alias a caller key."""
+    client_values = {env.get(key.api_key_env, "") for key in keys}
+    client_values.discard("")
+    for provider in providers:
+        value = provider.api_key(env)
+        if value and value in client_values:
+            raise ConfigError(f"provider {provider.id!r} credential aliases a client key")
+
+
 def validate_client_key_provisioning(
     keys: list[ClientKeyConfig],
     env: Mapping[str, str],
