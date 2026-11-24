@@ -23,7 +23,7 @@ Claude Agent SDK agent, not by a panel and not by five models.
 - The PR can merge only when the status is `success` and no blocking issues remain.
 
 There is no waiver label. Emergency recovery is temporarily disabling branch protection, which is
-an explicit, logged action.
+an explicit, logged action. The blocking path is tested by opening a PR without a design brief.
 
 ## Limits
 
