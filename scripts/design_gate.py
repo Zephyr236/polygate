@@ -308,12 +308,13 @@ def main(argv: list[str]) -> int:
     parser.add_argument("--max-turns", type=int, default=None)
     parser.add_argument("--budget-usd", type=float, default=4.0)
     parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument("--no-publish", action="store_true")
     options = parser.parse_args(argv[1:])
     repo = options.repo.resolve()
     sha = options.sha or design_review._git(repo, "rev-parse", options.head).strip()
     report: dict[str, Any] = {"verdict": "needs-changes", "summary": "", "findings": [], "questions": []}
     try:
-        if not options.dry_run and options.repo_slug:
+        if not options.dry_run and not options.no_publish and options.repo_slug:
             set_status(options.repo_slug, sha, "pending", "Design review running")
         diff = (
             design_review._cap(options.diff_file.read_text(encoding="utf-8", errors="replace"), 50_000)
@@ -389,7 +390,7 @@ def main(argv: list[str]) -> int:
         if options.dry_run:
             print(json.dumps(report, indent=2, ensure_ascii=False))
             return 0
-        if options.repo_slug:
+        if options.repo_slug and not options.no_publish:
             reconcile_issues(options.repo_slug, options.pr, sha, report["findings"])
             state = "success" if report["verdict"] == "pass" and not report["findings"] else "failure"
             set_status(
@@ -403,7 +404,7 @@ def main(argv: list[str]) -> int:
         return 0 if report["verdict"] == "pass" and not report["findings"] else 1
     except (OSError, GateError) as error:
         print(f"design gate failed to publish: {error}", file=sys.stderr)
-        if options.repo_slug:
+        if options.repo_slug and not options.no_publish:
             with contextlib.suppress(GateError):
                 set_status(options.repo_slug, sha, "failure", "Design gate publication failed")
         return 1

@@ -7,9 +7,7 @@ on:
 
 permissions:
   contents: read
-  issues: write
-  pull-requests: write
-  statuses: write
+  pull-requests: read
 
 concurrency:
   group: design-gate-${{ github.event.workflow_run.head_sha }}
@@ -75,8 +73,24 @@ jobs:
             echo "skip=false" >> "$GITHUB_OUTPUT"
           fi
 
-  design_gate:
+  prepare:
     needs: resolve
+    if: needs.resolve.outputs.skip != 'true'
+    runs-on: ubuntu-24.04
+    permissions:
+      statuses: write
+    steps:
+      - name: Mark the design review pending
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh api -X POST "repos/$GITHUB_REPOSITORY/statuses/${{ needs.resolve.outputs.head }}" \
+            -f state=pending \
+            -f context=design-review \
+            -f description="Design review running"
+
+  design_gate:
+    needs: [resolve, prepare]
     if: needs.resolve.outputs.skip != 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 30
@@ -105,7 +119,6 @@ jobs:
         run: gh pr view ${{ needs.resolve.outputs.number }} --json body --jq .body > /tmp/design-brief.md
       - name: Run the design gate
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           DESIGN_REVIEW_API_KEY: ${{ secrets.ZEN_API_KEY }}
           ANTHROPIC_BASE_URL: https://opencode.ai/zen/go
           ANTHROPIC_MODEL: deepseek-v4.1-flash
@@ -117,7 +130,7 @@ jobs:
             --sha "$HEAD_SHA" \
             --brief /tmp/design-brief.md \
             --pr ${{ needs.resolve.outputs.number }} \
-            --repo-slug "$GITHUB_REPOSITORY" \
+            --no-publish \
             --budget-usd 4.0 \
             --out reports/design-gate.json
       - name: Upload the gate report
@@ -127,12 +140,33 @@ jobs:
           name: design-gate-report
           path: reports/design-gate.json
           if-no-files-found: warn
-      - name: Fail closed on workflow errors
-        if: failure()
+  publish:
+    needs: [resolve, design_gate]
+    if: always() && needs.resolve.outputs.skip != 'true'
+    runs-on: ubuntu-24.04
+    permissions:
+      actions: read
+      contents: read
+      issues: write
+      pull-requests: write
+      statuses: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.resolve.outputs.base }}
+      - name: Download the gate report
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          name: design-gate-report
+          path: reports
+      - name: Publish the verdict and blocking issues
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh api -X POST "repos/${{ github.repository }}/statuses/${{ needs.resolve.outputs.head }}" \
-            -f state=failure \
-            -f context=design-review \
-            -f description="Design gate workflow failed"
+          python3 scripts/design_publish.py \
+            --repo-slug "$GITHUB_REPOSITORY" \
+            --pr ${{ needs.resolve.outputs.number }} \
+            --sha ${{ needs.resolve.outputs.head }} \
+            --report reports/design-gate.json

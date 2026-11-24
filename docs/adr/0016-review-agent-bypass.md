@@ -15,6 +15,9 @@ already removes GitHub and provider credentials before the agent starts, and the
 
 - Run the gate agent with `permission_mode = "bypassPermissions"` and the full Claude Code toolset,
   including Bash, web tools and the `Agent` subagent tool. No tool or command allowlist is applied.
+- The agent job has only `contents: read` and `pull-requests: read`; it does not hold a
+  write-scoped token. Pending/final status and blocking issues are published by a separate
+  `publish` job that never executes pull-request code.
 - Keep `GITHUB_TOKEN`, `GH_TOKEN`, `ADMIN_TOKEN`, `PROXY_API_KEY`, `DESIGN_REVIEW_API_KEY`,
   `ZEN_API_KEY`, `AMR_API_KEY` and `OK8888_API_KEY` out of the agent's inherited environment.
 - Keep the Anthropic model credential in the Claude Code process because the CLI needs it.
@@ -27,8 +30,9 @@ already removes GitHub and provider credentials before the agent starts, and the
   which improves the evidence it can collect.
 - PR code can execute with the model key in the environment. Bash, web tools and subagents make
   exfiltration technically possible; this is explicitly **not a security sandbox**.
-- Fork PRs receive the same full tool access. A maintainer who does not accept that risk should
-  disable the gate for untrusted contributors or restore the restricted mode.
+- Fork PRs receive the same full tool access, but the agent job's token is read-only; PR code
+  cannot forge `design-review`. A maintainer who does not accept the model-key risk should disable
+  the gate for untrusted contributors or restore the restricted mode.
 - The gate remains fail-closed on agent errors, budget exhaustion, missing status or any finding.
 
 ## References
