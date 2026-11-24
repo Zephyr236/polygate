@@ -99,6 +99,7 @@ by `scripts/gen_config_reference.py`. Run the script after changing the models.
 | `api_key_env` | environment variable holding the API key |
 | `allowed_providers` | provider ids this caller key may use; at least one is required |
 | `weights` | relative weights of the routing score components |
+| `respect_priority` | see the model definition |
 
 ## AppConfig (dataclass)
 

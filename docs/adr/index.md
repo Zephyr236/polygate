@@ -16,6 +16,7 @@ considered and what was rejected.
 | [0009](0009-design-review-agent.md) | Design review agent is a local, advisory prototype | Provisional |
 | [0010](0010-required-design-gate.md) | One agent is a required design gate with blocking issues | Accepted |
 | [0011](0011-client-key-routing-policy.md) | Caller keys select provider allowlists and routing weights | Accepted |
+| [0012](0012-design-gate-bounds.md) | Design gate turn/budget bounds and emergency repair | Accepted |
 
 ## Writing a new ADR
 

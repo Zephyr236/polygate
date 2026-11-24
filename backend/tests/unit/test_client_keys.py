@@ -40,7 +40,7 @@ def test_client_key_selects_providers_and_weights() -> None:
                 }
             ],
         },
-        {},
+        {"TEAM_A_KEY": "team-a-secret"},
     )
     key = config.client_keys[0]
     assert key.id == "team-a"
@@ -65,6 +65,73 @@ def test_unknown_provider_in_client_key_is_rejected() -> None:
             {
                 "provider": [_provider("a")],
                 "client_key": [{"id": "team-a", "api_key_env": "TEAM_A_KEY", "allowed_providers": ["missing"]}],
+            },
+            {},
+        )
+
+
+def test_duplicate_key_env_is_rejected() -> None:
+    with pytest.raises(ConfigError, match="distinct api_key_env"):
+        build_app_config(
+            {
+                "provider": [_provider("a")],
+                "client_key": [
+                    {"id": "one", "api_key_env": "SAME", "allowed_providers": ["a"]},
+                    {"id": "two", "api_key_env": "SAME", "allowed_providers": ["a"]},
+                ],
+            },
+            {"SAME": "secret"},
+        )
+
+
+def test_legacy_env_name_is_rejected_for_client_key() -> None:
+    with pytest.raises(ConfigError, match="PROXY_API_KEY"):
+        build_app_config(
+            {
+                "provider": [_provider("a")],
+                "client_key": [
+                    {"id": "one", "api_key_env": "PROXY_API_KEY", "allowed_providers": ["a"]}
+                ],
+            },
+            {"PROXY_API_KEY": "legacy"},
+        )
+
+
+def test_duplicate_key_values_are_rejected() -> None:
+    with pytest.raises(ConfigError, match="env values must be distinct"):
+        build_app_config(
+            {
+                "provider": [_provider("a")],
+                "client_key": [
+                    {"id": "one", "api_key_env": "ONE", "allowed_providers": ["a"]},
+                    {"id": "two", "api_key_env": "TWO", "allowed_providers": ["a"]},
+                ],
+            },
+            {"ONE": "same", "TWO": "same"},
+        )
+
+
+def test_legacy_key_collision_is_rejected() -> None:
+    with pytest.raises(ConfigError, match="legacy PROXY_API_KEY"):
+        build_app_config(
+            {
+                "provider": [_provider("a")],
+                "client_key": [
+                    {"id": "one", "api_key_env": "ONE", "allowed_providers": ["a"]}
+                ],
+            },
+            {"ONE": "same", "PROXY_API_KEY": "same"},
+        )
+
+
+def test_unprovisioned_client_keys_fail_closed_at_startup() -> None:
+    with pytest.raises(ConfigError, match="no api_key_env is set"):
+        build_app_config(
+            {
+                "provider": [_provider("a")],
+                "client_key": [
+                    {"id": "one", "api_key_env": "MISSING", "allowed_providers": ["a"]}
+                ],
             },
             {},
         )
@@ -106,3 +173,22 @@ def test_rank_candidates_applies_per_key_weights() -> None:
     reliable = rank_candidates(configs, health.states(), reliable_routing, 12, 1)
     assert cheap[0].provider_id == "cheap"
     assert reliable[0].provider_id == "reliable"
+    priority_configs = [
+        ProviderConfig.model_validate(_provider("first", 10.0) | {"priority": 0}),
+        ProviderConfig.model_validate(_provider("cheap", 1.0) | {"priority": 1}),
+    ]
+    priority_health = HealthRegistry(
+        priority_configs,
+        failure_threshold=3,
+        cooldown_base_ms=1000,
+        cooldown_max_ms=10_000,
+        half_open_probes=1,
+        success_alpha=0.5,
+        latency_alpha=0.5,
+    )
+    default_rank = rank_candidates(priority_configs, priority_health.states(), cheap_routing, 12, 1)
+    flattened = rank_candidates(
+        priority_configs, priority_health.states(), cheap_routing, 12, 1, respect_priority=False
+    )
+    assert default_rank[0].provider_id == "first"
+    assert flattened[0].provider_id == "cheap"

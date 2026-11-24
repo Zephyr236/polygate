@@ -168,11 +168,15 @@ is broken, and `semgrep` / `ast-grep` rules cover ownership facts that are not m
 | `GET /admin/metrics/stream` | SSE snapshot every two seconds |
 | `GET /admin/events` | recent switch, config and breaker events |
 | `GET` / `PUT /admin/providers` | read and replace the provider pool |
+| `GET /admin/clients` | caller keys, allowlists and key-presence flags |
 | `POST /admin/simulate` | score breakdown without calling upstreams |
 | `GET /metrics` | Prometheus text |
 
-All `/admin/*` routes require `Authorization: Bearer $ADMIN_TOKEN`. `/v1/*` requires `PROXY_API_KEY` when set;
-leave it unset for loopback-only use.
+All `/admin/*` routes require `Authorization: Bearer $ADMIN_TOKEN`. `/v1/*` accepts the legacy
+`PROXY_API_KEY`, or a `[[client_key]]` credential resolved from its `api_key_env`. Once client keys
+are configured, a valid client credential is required even if `PROXY_API_KEY` is unset; a key set
+with no provisioned env value fails at startup instead of serving 503s. Leave both unset for
+loopback-only development.
 
 ## Quality gates
 

@@ -20,8 +20,13 @@ that without separate deployments.
   proxy stays open for local development; a configured key set with no active env value fails
   closed.
 - The scheduler filters the provider pool by `allowed_providers` before scoring and uses the key's
-  weights for that request. Provider health, circuits, retries, time windows and concurrency remain
-  shared provider state; a key can select within them but cannot disable them.
+  weights for that request. `respect_priority = false` lets the key rank by score across global
+  priority tiers; the default keeps the global tier order. Provider health, circuits, retries, time
+  windows and concurrency remain shared provider state; a key can select within them but cannot
+  disable them.
+- Duplicate `api_key_env` names, duplicate resolved key values, a client key using `PROXY_API_KEY`,
+  a client value equal to the legacy key, and a client-key set with no provisioned env value are
+  startup errors.
 - `GET /admin/clients` lists key metadata and `key_configured`, never the secret value.
 
 ## Consequences

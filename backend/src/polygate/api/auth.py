@@ -42,7 +42,7 @@ def require_proxy_key(request: Request) -> ClientPolicy:
     for key, value in active:
         if _credential_matches(provided, value):
             allowed = frozenset(key.allowed_providers) if key.allowed_providers else None
-            return ClientPolicy(key.id, allowed, key.weights)
+            return ClientPolicy(key.id, allowed, key.weights, key.respect_priority)
     raise HTTPException(status_code=401, detail="invalid proxy api key")
 
 

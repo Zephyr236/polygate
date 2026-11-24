@@ -142,7 +142,15 @@ class Scheduler:
         routing = self.routing
         if policy is not None and policy.weights is not None:
             routing = self.routing.model_copy(update={"weights": policy.weights})
-        ranked = rank_candidates(allowed, self.health.states(), routing, hour, weekday, excluded)
+        ranked = rank_candidates(
+            allowed,
+            self.health.states(),
+            routing,
+            hour,
+            weekday,
+            excluded,
+            policy.respect_priority if policy is not None else True,
+        )
         configs = {config.id: config for config in allowed}
         pairs: list[tuple[ProviderConfig, ProviderState]] = []
         for score in ranked:

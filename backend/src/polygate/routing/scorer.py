@@ -92,12 +92,15 @@ def rank_candidates(
     hour: int,
     weekday: int,
     exclude: set[str] | None = None,
+    respect_priority: bool = True,
 ) -> list[ScoreBreakdown]:
-    """Rank eligible providers by score, keeping priority tiers contiguous."""
+    """Rank eligible providers by priority then score, or score only."""
     excluded = exclude or set()
     scored = [
         score_provider(config, states[config.id], routing, config.multiplier_at(hour, weekday))
         for config in configs
         if config.id not in excluded and _eligible(config, states, hour, weekday)
     ]
+    if not respect_priority:
+        return sorted(normalize_cost_scores(scored), key=lambda item: -item.total)
     return sorted(normalize_cost_scores(scored), key=lambda item: (item.priority, -item.total))

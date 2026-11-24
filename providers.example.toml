@@ -104,6 +104,7 @@ id = "team-a"
 name = "Team A"
 api_key_env = "TEAM_A_KEY"
 allowed_providers = ["amr", "zen"]
+respect_priority = false
 
 [client_key.weights]
 success = 0.6

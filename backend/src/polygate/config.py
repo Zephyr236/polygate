@@ -205,6 +205,7 @@ class ClientKeyConfig(BaseModel):
     api_key_env: str = Field(min_length=1)
     allowed_providers: list[str] = Field(min_length=1)
     weights: RoutingWeights | None = None
+    respect_priority: bool = True
 
 
 @dataclass(frozen=True)
@@ -214,6 +215,7 @@ class ClientPolicy:
     key_id: str
     allowed_providers: frozenset[str] | None = None
     weights: RoutingWeights | None = None
+    respect_priority: bool = True
 
     def allows(self, provider_id: str) -> bool:
         """Report whether the caller may use a provider."""
@@ -267,7 +269,26 @@ def parse_client_keys(document: Mapping[str, Any], providers: list[ProviderConfi
         unknown = set(key.allowed_providers) - known
         if unknown:
             raise ConfigError(f"client key {key.id!r} references unknown providers: {sorted(unknown)}")
+    env_names = [key.api_key_env for key in keys]
+    if len(env_names) != len(set(env_names)):
+        raise ConfigError("client keys must use distinct api_key_env values")
+    if "PROXY_API_KEY" in env_names:
+        raise ConfigError("a client key cannot use PROXY_API_KEY as its secret env")
     return keys
+
+
+def validate_client_key_provisioning(
+    keys: list[ClientKeyConfig], env: Mapping[str, str], proxy_api_key: str | None
+) -> None:
+    """Reject ambiguous credentials and a fully unprovisioned client-key set."""
+    values = [env.get(key.api_key_env, "") for key in keys]
+    active = [value for value in values if value]
+    if len(active) != len(set(active)):
+        raise ConfigError("client key env values must be distinct")
+    if proxy_api_key and any(value == proxy_api_key for value in active):
+        raise ConfigError("a client key resolves to the legacy PROXY_API_KEY value")
+    if keys and not proxy_api_key and not active:
+        raise ConfigError("client keys are configured but no api_key_env is set")
 
 
 def build_app_config(document: Mapping[str, Any], env: Mapping[str, str]) -> AppConfig:
@@ -275,6 +296,8 @@ def build_app_config(document: Mapping[str, Any], env: Mapping[str, str]) -> App
     providers_file = env.get("POLYGATE_PROVIDERS_FILE")
     providers = parse_providers_document(document)
     client_keys = parse_client_keys(document, providers)
+    proxy_api_key = env.get("PROXY_API_KEY") or None
+    validate_client_key_provisioning(client_keys, env, proxy_api_key)
     routing_raw = document.get("routing", {})
     routing = RoutingConfig.model_validate(routing_raw) if routing_raw else RoutingConfig()
     return AppConfig(
@@ -283,7 +306,7 @@ def build_app_config(document: Mapping[str, Any], env: Mapping[str, str]) -> App
         routing=routing,
         database_path=Path(env.get("POLYGATE_DATABASE", "data/polygate.db")),
         admin_token=env.get("ADMIN_TOKEN") or None,
-        proxy_api_key=env.get("PROXY_API_KEY") or None,
+        proxy_api_key=proxy_api_key,
         providers_file=Path(providers_file) if providers_file else None,
     )
 
