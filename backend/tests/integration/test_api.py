@@ -305,9 +305,7 @@ def test_admin_without_token_config(tmp_path: Path) -> None:
     assert response.status_code == 503
 
 
-def test_client_key_selects_provider_and_admin_lists_it(
-    tmp_path: Path, upstreams: Upstreams
-) -> None:
+def test_client_key_selects_provider_and_admin_lists_it(tmp_path: Path, upstreams: Upstreams) -> None:
     config = tmp_path / "providers.toml"
     config.write_text(
         """
@@ -343,11 +341,30 @@ cache = 0.1
             headers={"authorization": "Bearer team-a-key"},
         )
         assert ok.status_code == 200
-        assert test_client.post(
-            "/v1/chat/completions",
-            json={"model": "m", "messages": []},
-            headers={"authorization": "Bearer wrong"},
-        ).status_code == 401
+        assert (
+            test_client.post(
+                "/v1/chat/completions",
+                json={"model": "m", "messages": []},
+                headers={"authorization": "Bearer wrong"},
+            ).status_code
+            == 401
+        )
+        denied = test_client.put(
+            "/admin/providers",
+            json={
+                "providers": [
+                    {
+                        "id": "zen",
+                        "base_url": "https://zen.example",
+                        "model": "m",
+                        "api_key_env": "ZEN_API_KEY",
+                    }
+                ]
+            },
+            headers={"authorization": "Bearer admin-token"},
+        )
+        assert denied.status_code == 400
+        assert "amr" in denied.json()["error"]["message"]
         listed = test_client.get("/admin/clients", headers={"authorization": "Bearer admin-token"})
         assert listed.status_code == 200
         body = listed.json()

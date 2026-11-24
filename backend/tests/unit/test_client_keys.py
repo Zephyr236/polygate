@@ -64,7 +64,9 @@ def test_unknown_provider_in_client_key_is_rejected() -> None:
         build_app_config(
             {
                 "provider": [_provider("a")],
-                "client_key": [{"id": "team-a", "api_key_env": "TEAM_A_KEY", "allowed_providers": ["missing"]}],
+                "client_key": [
+                    {"id": "team-a", "api_key_env": "TEAM_A_KEY", "allowed_providers": ["missing"]}
+                ],
             },
             {},
         )
@@ -89,9 +91,7 @@ def test_legacy_env_name_is_rejected_for_client_key() -> None:
         build_app_config(
             {
                 "provider": [_provider("a")],
-                "client_key": [
-                    {"id": "one", "api_key_env": "PROXY_API_KEY", "allowed_providers": ["a"]}
-                ],
+                "client_key": [{"id": "one", "api_key_env": "PROXY_API_KEY", "allowed_providers": ["a"]}],
             },
             {"PROXY_API_KEY": "legacy"},
         )
@@ -111,14 +111,34 @@ def test_duplicate_key_values_are_rejected() -> None:
         )
 
 
+def test_admin_token_collision_is_rejected() -> None:
+    with pytest.raises(ConfigError, match="ADMIN_TOKEN"):
+        build_app_config(
+            {
+                "provider": [_provider("a")],
+                "client_key": [{"id": "one", "api_key_env": "ONE", "allowed_providers": ["a"]}],
+            },
+            {"ONE": "same", "ADMIN_TOKEN": "same"},
+        )
+
+
+def test_provider_credential_collision_is_rejected() -> None:
+    with pytest.raises(ConfigError, match="upstream provider"):
+        build_app_config(
+            {
+                "provider": [_provider("a")],
+                "client_key": [{"id": "one", "api_key_env": "ONE", "allowed_providers": ["a"]}],
+            },
+            {"ONE": "same", "K": "same"},
+        )
+
+
 def test_legacy_key_collision_is_rejected() -> None:
     with pytest.raises(ConfigError, match="legacy PROXY_API_KEY"):
         build_app_config(
             {
                 "provider": [_provider("a")],
-                "client_key": [
-                    {"id": "one", "api_key_env": "ONE", "allowed_providers": ["a"]}
-                ],
+                "client_key": [{"id": "one", "api_key_env": "ONE", "allowed_providers": ["a"]}],
             },
             {"ONE": "same", "PROXY_API_KEY": "same"},
         )
@@ -129,9 +149,7 @@ def test_unprovisioned_client_keys_fail_closed_at_startup() -> None:
         build_app_config(
             {
                 "provider": [_provider("a")],
-                "client_key": [
-                    {"id": "one", "api_key_env": "MISSING", "allowed_providers": ["a"]}
-                ],
+                "client_key": [{"id": "one", "api_key_env": "MISSING", "allowed_providers": ["a"]}],
             },
             {},
         )
