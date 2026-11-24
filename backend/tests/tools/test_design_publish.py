@@ -55,7 +55,7 @@ def test_publish_missing_report_fails_closed(monkeypatch, tmp_path: Path) -> Non
 def test_pending_marks_the_review(monkeypatch, tmp_path: Path) -> None:
     calls: list[tuple[str, str, str]] = []
     monkeypatch.setattr(publish.design_gate, "set_status", lambda *args: calls.append(args))
-    args = _args(tmp_path / "missing.json") + ["--pending"]
+    args = [*_args(tmp_path / "missing.json"), "--pending"]
     assert publish.main(args) == 0
     assert calls[-1][2] == "pending"
 
