@@ -38,12 +38,13 @@ failure status.
   alternatives, criteria, assumptions, falsifiers and reversibility.
 - One model means one perspective. It is cheaper than a panel but does not provide independent
   opinions.
-- The agent runs with `bypassPermissions` and the full toolset, including Bash, web tools and the
-  `Agent` subagent. Its job has only `contents: read` and `pull-requests: read`; a separate
-  `publish` job holds the write token, never executes PR code, and refuses a pass report unless the
-  agent job ended successfully. The agent may modify its local worktree but cannot push. The gate removes GitHub/provider credentials from the agent
-  environment, but PR code can run with the model key present; this is not a security sandbox.
-  Fork PRs get the same access; see ADR 0016 for the risk.
+- Trusted PRs (`OWNER`/`MEMBER`/`COLLABORATOR`) run with `bypassPermissions` and the full toolset,
+  including Bash, web tools and the `Agent` subagent. Fork PRs get only `Read`, `Grep`, `Glob` and a
+  read-only `Agent` subagent. Every agent job has only `contents: read` and `pull-requests: read`; a
+  separate `publish` job holds the write token, never executes PR code, and refuses a pass report
+  unless the agent job ended successfully. The agent may modify its local worktree but cannot push.
+  The gate removes GitHub/provider credentials from the agent environment, but trusted PR code can
+  run with the model key present; this is not a security sandbox. See ADR 0016.
 - The agent is bounded by a USD 4 budget and no turn limit.
 - If the workflow, model or status publication fails, the status is missing or failed and the PR
   stays blocked (fail closed).
@@ -51,5 +52,5 @@ failure status.
 The gate uses the PR head recorded in the CI event; fork runs resolve through the commit-to-pulls
 API and use the merge commit's second parent. It re-checks the head after the gate wait and again
 before fetching the worktree, so a push cannot make it review the wrong tree. The gate is keyed by
-the triggering CI head SHA; stale triggers skip. See [ADR 0014](adr/0014-ci-first-design-gate.md)
-for the trigger rules.
+the triggering CI head SHA; stale triggers skip, and publish ignores a superseded run when a newer
+final status already exists. See [ADR 0014](adr/0014-ci-first-design-gate.md) for the trigger rules.

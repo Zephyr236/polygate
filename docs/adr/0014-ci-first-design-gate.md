@@ -37,7 +37,8 @@ CI run was pending.
   posts a failure status. It re-reads the PR head after the gate wait and the review job checks the
   fetched SHA again, so a push during the wait cannot review the wrong tree. Concurrency is keyed by
   the triggering CI head SHA; stale triggers skip, so an old completion cannot review the current
-  head or cancel its run.
+  head or cancel its run. Publish skips a run when a newer final `design-review` status already
+  exists for the same head, so a superseded completion cannot overwrite a newer verdict.
 - The design gate is one step behind CI, so its feedback arrives later. This is the intended cost
   trade-off.
 - The bridge uses `workflow_run`; workflows created by `GITHUB_TOKEN` cannot trigger further

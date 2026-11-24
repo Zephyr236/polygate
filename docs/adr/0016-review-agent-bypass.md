@@ -13,8 +13,10 @@ already removes GitHub and provider credentials before the agent starts, and the
 
 ## Decision
 
-- Run the gate agent with `permission_mode = "bypassPermissions"` and the full Claude Code toolset,
-  including Bash, web tools and the `Agent` subagent tool. No tool or command allowlist is applied.
+- Run the gate agent with `permission_mode = "bypassPermissions"`. For pull requests authored by
+  `OWNER`, `MEMBER` or `COLLABORATOR`, give it the full Claude Code toolset, including Bash, web tools
+  and the `Agent` subagent, with no command allowlist. Fork or otherwise untrusted PRs get only
+  `Read`, `Grep`, `Glob` and a read-only `Agent` subagent; Bash, Edit, Write and web tools are denied.
 - The agent job has only `contents: read` and `pull-requests: read`; it does not hold a
   write-scoped token. Pending/final status and blocking issues are published by a separate
   `publish` job that never executes pull-request code. Publish refuses a pass report when the
@@ -29,11 +31,11 @@ already removes GitHub and provider credentials before the agent starts, and the
 
 - The reviewer can execute tests, inspect history and use subagents without permission prompts,
   which improves the evidence it can collect.
-- PR code can execute with the model key in the environment. Bash, web tools and subagents make
-  exfiltration technically possible; this is explicitly **not a security sandbox**.
-- Fork PRs receive the same full tool access, but the agent job's token is read-only; PR code
-  cannot forge `design-review`. A maintainer who does not accept the model-key risk should disable
-  the gate for untrusted contributors or restore the restricted mode.
+- Trusted PR code can execute with the model key in the environment. Bash, web tools and subagents
+  make exfiltration technically possible; this is explicitly **not a security sandbox**.
+- Fork PRs cannot execute commands or write the report artifact. Their agent job token is also
+  read-only, so they cannot forge `design-review`. The model still reads untrusted repository text;
+  prompt injection can affect findings, not execute commands.
 - The gate remains fail-closed on agent errors, budget exhaustion, missing status or any finding.
 
 ## References

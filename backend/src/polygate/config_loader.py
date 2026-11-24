@@ -107,10 +107,13 @@ def _check_credential_collisions(
 
 
 def _require_usable_credential(
-    keys: list[ClientKeyConfig], proxy_api_key: str | None, active: list[str]
+    keys: list[ClientKeyConfig],
+    proxy_api_key: str | None,
+    admin_token: str | None,
+    active: list[str],
 ) -> None:
-    if keys and not proxy_api_key and not active:
-        raise ConfigError("no usable proxy credential is configured")
+    if keys and not proxy_api_key and not active and not admin_token:
+        raise ConfigError("no usable proxy credential or admin token is configured")
 
 
 def validate_client_key_provisioning(
@@ -124,7 +127,15 @@ def validate_client_key_provisioning(
     values = [env.get(key.api_key_env, "") for key in keys]
     active = [value for value in values if value]
     _check_credential_collisions(active, proxy_api_key, admin_token, providers, env)
-    _require_usable_credential(keys, proxy_api_key, active)
+    _require_usable_credential(keys, proxy_api_key, admin_token, active)
+
+
+def _proxy_auth_configured(
+    proxy_api_key: str | None, client_keys: list[ClientKeyConfig], env: Mapping[str, str]
+) -> bool:
+    if proxy_api_key or not client_keys:
+        return True
+    return any(bool(env.get(key.api_key_env)) for key in client_keys)
 
 
 def build_app_config(document: Mapping[str, Any], env: Mapping[str, str]) -> AppConfig:
@@ -145,6 +156,7 @@ def build_app_config(document: Mapping[str, Any], env: Mapping[str, str]) -> App
         admin_token=admin_token,
         proxy_api_key=proxy_api_key,
         providers_file=Path(providers_file) if providers_file else None,
+        proxy_auth_configured=_proxy_auth_configured(proxy_api_key, client_keys, env),
     )
 
 

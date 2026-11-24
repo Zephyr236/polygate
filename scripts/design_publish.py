@@ -35,6 +35,21 @@ def _failure_report(message: str) -> dict[str, Any]:
     }
 
 
+def _superseded(repo: str, sha: str, started_at: str) -> bool:
+    """Skip a run when a newer final design-review status already exists."""
+    if not started_at:
+        return False
+    statuses = design_gate._gh("GET", f"/repos/{repo}/commits/{sha}/statuses?per_page=100")
+    for status in statuses if isinstance(statuses, list) else []:
+        if (
+            status.get("context") == design_gate.CONTEXT
+            and status.get("state") in {"success", "failure"}
+            and str(status.get("created_at", "")) > started_at
+        ):
+            return True
+    return False
+
+
 def _load_report(path: Path) -> dict[str, Any]:
     try:
         report = json.loads(path.read_text(encoding="utf-8"))
@@ -58,11 +73,15 @@ def main(argv: list[str]) -> int:
     parser.add_argument("--sha", required=True)
     parser.add_argument("--report", type=Path)
     parser.add_argument("--gate-result", default="success")
+    parser.add_argument("--started-at", default="")
     parser.add_argument("--pending", action="store_true")
     options = parser.parse_args(argv[1:])
     try:
         if options.pending:
             design_gate.set_status(options.repo_slug, options.sha, "pending", "Design review running")
+            return 0
+        if _superseded(options.repo_slug, options.sha, options.started_at):
+            print("a newer design-review status already exists; skipping", file=sys.stderr)
             return 0
         if options.gate_result != "success":
             report = _failure_report(f"Design gate job ended {options.gate_result}")

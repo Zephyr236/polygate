@@ -3,11 +3,29 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, Request
-from fastapi.responses import PlainTextResponse
+from fastapi.responses import JSONResponse, PlainTextResponse
 
 from polygate.api.deps import gateway_of
+from polygate.gateway import Gateway
 
 router = APIRouter(tags=["health"])
+
+
+def _usable_providers(gateway: Gateway) -> list[str]:
+    return [
+        config.id for config in gateway.providers if config.enabled and gateway.keys.get(config.api_key_env)
+    ]
+
+
+def _readiness_payload(usable: list[str], proxy_auth: bool) -> dict[str, object]:
+    payload: dict[str, object] = {
+        "status": "ready" if usable and proxy_auth else "degraded",
+        "usable_providers": usable,
+        "proxy_auth_ready": proxy_auth,
+    }
+    if not proxy_auth:
+        payload["reason"] = "no proxy credential"
+    return payload
 
 
 @router.get("/healthz")
@@ -17,13 +35,13 @@ async def healthz() -> dict[str, str]:
 
 
 @router.get("/readyz")
-async def readyz(request: Request) -> dict[str, object]:
-    """Report whether at least one provider is usable."""
+async def readyz(request: Request) -> JSONResponse:
+    """Report whether providers and proxy authentication are usable."""
     gateway = gateway_of(request)
-    usable = [
-        config.id for config in gateway.providers if config.enabled and gateway.keys.get(config.api_key_env)
-    ]
-    return {"status": "ready" if usable else "degraded", "usable_providers": usable}
+    usable = _usable_providers(gateway)
+    proxy_auth = gateway.config.proxy_auth_configured
+    ready = bool(usable) and proxy_auth
+    return JSONResponse(_readiness_payload(usable, proxy_auth), status_code=200 if ready else 503)
 
 
 @router.get("/metrics", response_class=PlainTextResponse, include_in_schema=False)

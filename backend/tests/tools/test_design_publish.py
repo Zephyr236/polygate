@@ -68,3 +68,24 @@ def test_failed_gate_overrides_a_forged_pass_report(monkeypatch, tmp_path: Path)
     args = [*_args(report), "--gate-result", "failure"]
     assert publish.main(args) == 1
     assert calls[-1][2] == "failure"
+
+
+def test_superseded_run_does_not_overwrite_newer_status(monkeypatch, tmp_path: Path) -> None:
+    calls: list[tuple[str, str, str]] = []
+    monkeypatch.setattr(publish.design_gate, "set_status", lambda *args: calls.append(args))
+    monkeypatch.setattr(publish.design_gate, "reconcile_issues", lambda *args: None)
+    monkeypatch.setattr(
+        publish.design_gate,
+        "_gh",
+        lambda *args: [
+            {
+                "context": "design-review",
+                "state": "success",
+                "created_at": "2026-11-25T10:01:00Z",
+            }
+        ],
+    )
+    report = _report(tmp_path, {"verdict": "pass", "summary": "ok", "findings": [], "questions": []})
+    args = [*_args(report), "--started-at", "2026-11-25T10:00:00Z"]
+    assert publish.main(args) == 0
+    assert calls == []

@@ -26,8 +26,8 @@ that without separate deployments.
   disable them.
 - Duplicate `api_key_env` names, duplicate resolved key values, a client key using `PROXY_API_KEY`,
   and a client value equal to the legacy key are startup errors. An unprovisioned optional key is
-  inactive (`401` for that key) and does not take down legacy/admin traffic; startup fails only
-  when no usable proxy credential exists.
+  inactive (`401` for that key) and does not take down legacy/admin traffic. Admin-only startup is
+  allowed but not ready; startup fails when no proxy credential or admin token exists.
 - Client key ids and `api_key_env` names must be unique; duplicate ids would make
   `api_key_id` resolve to the wrong policy.
 - `GET /admin/clients` lists key metadata and `key_configured`, never the secret value.

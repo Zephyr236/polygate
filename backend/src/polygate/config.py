@@ -226,6 +226,7 @@ class AppConfig:
     admin_token: str | None = None
     proxy_api_key: str | None = None
     providers_file: Path | None = None
+    proxy_auth_configured: bool = True
 
 
 class ConfigError(ValueError):
