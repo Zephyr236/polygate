@@ -44,4 +44,4 @@ the head SHA gets a failure status.
   stays blocked (fail closed).
 
 The gate is keyed by the CI head SHA; fork PRs resolve through the commit-to-pulls API.
-See [ADR 0014](adr/missing.md) for the trigger rules.
+See [ADR 0014](adr/0014-ci-first-design-gate.md) for the trigger rules.
