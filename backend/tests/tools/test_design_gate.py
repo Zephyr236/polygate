@@ -35,9 +35,7 @@ def _pass() -> dict[str, Any]:
     return {"verdict": "pass", "summary": "ok", "findings": [], "questions": []}
 
 
-def _install_fake_sdk(
-    monkeypatch: pytest.MonkeyPatch, *, structured: dict[str, Any] | None = None
-) -> None:
+def _install_fake_sdk(monkeypatch: pytest.MonkeyPatch, *, structured: dict[str, Any] | None = None) -> None:
     class ResultMessage:
         def __init__(self) -> None:
             self.is_error = False
