@@ -71,6 +71,8 @@ def _run(tmp_path: Path, report: dict[str, Any], monkeypatch: pytest.MonkeyPatch
             str(diff),
             "--pr",
             "1",
+            "--repo-slug",
+            "",
             "--out",
             str(tmp_path / "report.json"),
         ]
