@@ -12,7 +12,7 @@ permissions:
   statuses: write
 
 concurrency:
-  group: design-gate-${{ github.event.workflow_run.pull_requests[0].number || github.event.workflow_run.head_sha }}
+  group: design-gate-${{ github.event.workflow_run.head_sha }}
   cancel-in-progress: true
 
 jobs:
