@@ -11,6 +11,7 @@ sys.path.insert(0, str(ROOT / "backend" / "src"))
 
 from polygate.config import (  # noqa: E402
     AppConfig,
+    ClientKeyConfig,
     ErrorRule,
     ProviderConfig,
     RetryPolicy,
@@ -76,6 +77,9 @@ DESCRIPTIONS: dict[str, str] = {
     "cost": "weight of the inverse cost component",
     "cache": "weight of the cache hit component",
     "providers": "channel configurations loaded from the seed file",
+    "allowed_providers": "provider ids this caller key may use (empty means all)",
+    "name": "human-readable caller key name",
+    "client_keys": "caller keys with provider allowlists and routing weights",
     "database_path": "SQLite file for metrics, events and provider overrides",
     "admin_token": "bearer token protecting the admin API and UI",
     "proxy_api_key": "optional bearer token protecting /v1/*",
@@ -90,6 +94,7 @@ MODELS = [
     ErrorRule,
     RoutingConfig,
     RoutingWeights,
+    ClientKeyConfig,
 ]
 
 

@@ -24,12 +24,20 @@ Both endpoints return `502` with a `providers_unavailable` envelope when every c
 }
 ```
 
+### Caller keys
+
+`/v1/*` accepts a bearer token or `x-api-key`. The legacy `PROXY_API_KEY` grants access to every
+provider with the global routing weights. A configured `[[client_key]]` instead grants only its
+`allowed_providers` and applies its optional per-key `weights`. An unknown or missing key is `401`;
+a key configuration with no active env value fails closed with `503`.
+
 ## Admin
 
 All admin routes require `Authorization: Bearer $ADMIN_TOKEN`.
 
 | Route | Method | Purpose |
 | --- | --- | --- |
+| `/admin/clients` | GET | List caller keys, allowlists and key-presence flags. |
 | `/admin/providers` | GET | List providers plus health snapshots. |
 | `/admin/providers` | PUT | Replace the provider pool. |
 | `/admin/metrics` | GET | Aggregates for a range. |

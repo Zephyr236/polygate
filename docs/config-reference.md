@@ -90,11 +90,22 @@ by `scripts/gen_config_reference.py`. Run the script after changing the models.
 | `cost` | weight of the inverse cost component |
 | `cache` | weight of the cache hit component |
 
+## ClientKeyConfig
+
+| Field | Description |
+| --- | --- |
+| `id` | stable channel identifier, lowercase with dashes |
+| `name` | human-readable caller key name |
+| `api_key_env` | environment variable holding the API key |
+| `allowed_providers` | provider ids this caller key may use (empty means all) |
+| `weights` | relative weights of the routing score components |
+
 ## AppConfig (dataclass)
 
 | Field | Description |
 | --- | --- |
 | `providers` | channel configurations loaded from the seed file |
+| `client_keys` | caller keys with provider allowlists and routing weights |
 | `routing` | see the dataclass definition |
 | `database_path` | SQLite file for metrics, events and provider overrides |
 | `admin_token` | bearer token protecting the admin API and UI |

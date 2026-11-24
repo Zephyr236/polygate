@@ -14,7 +14,7 @@ from pydantic import ValidationError
 from polygate.api.auth import require_admin
 from polygate.api.bodies import read_json
 from polygate.api.deps import gateway_of
-from polygate.config import ProviderConfig
+from polygate.config import ClientKeyConfig, ProviderConfig
 from polygate.gateway import Gateway, replace_providers
 from polygate.metrics import summarize
 from polygate.routing.scorer import rank_candidates
@@ -37,6 +37,23 @@ def _provider_body(config: ProviderConfig, keys: dict[str, str]) -> dict[str, An
     body = config.model_dump(mode="json")
     body["api_key_configured"] = bool(keys.get(config.api_key_env))
     return body
+
+
+def _client_body(key: ClientKeyConfig, keys: dict[str, str]) -> dict[str, Any]:
+    """Serialize a caller key without its secret value."""
+    body = key.model_dump(mode="json")
+    body["key_configured"] = bool(keys.get(key.api_key_env))
+    return body
+
+
+@router.get("/clients")
+async def list_clients(request: Request) -> dict[str, Any]:
+    """List caller keys, provider allowlists and per-key routing weights."""
+    gateway = gateway_of(request)
+    return {
+        "clients": [_client_body(key, gateway.keys) for key in gateway.config.client_keys],
+        "legacy_key_configured": bool(gateway.config.proxy_api_key),
+    }
 
 
 @router.get("/providers")

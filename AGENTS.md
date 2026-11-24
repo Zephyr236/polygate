@@ -18,6 +18,10 @@ scripts/          gate.py plus per-tool threshold readers
 
 ## Invariants
 
+- Secrets are referenced by environment-variable name (`api_key_env`), never stored in config.
+- A caller key may route only to its `allowed_providers`; no fallback may cross that allowlist.
+- Legacy `PROXY_API_KEY` is an all-provider policy with global weights; client keys may override weights only for their own requests.
+
 - Secrets live only in environment variables. Configuration references them by name through `api_key_env`; never inline a key.
 - A provider that fails before emitting its first delta may be swapped; a failure after delivery must surface to the client instead of silently switching.
 - Every upstream difference must be expressible as a quirk field in `ProviderConfig`. New quirks belong in `config.py` and the provider reference doc, not in adapter if-statements.
@@ -49,6 +53,7 @@ Mutation runs are slow. Backend uses `mutmut` on the routing/provider/protocol l
 | Task | Files |
 | --- | --- |
 | Scoring or weights | `backend/src/polygate/routing/scorer.py`, `docs/routing.md` |
+| Caller keys and per-key routing | `backend/src/polygate/api/auth.py`, `backend/src/polygate/config.py`, `docs/api.md`, `docs/routing.md` |
 | Circuit breaker or cooldowns | `backend/src/polygate/routing/state.py` |
 | Retry and failover order | `backend/src/polygate/routing/scheduler.py` |
 | Upstream headers, sessions, errors | `backend/src/polygate/providers/base.py` |

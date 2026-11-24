@@ -1,0 +1,41 @@
+# ADR 0011: Caller keys carry provider allowlists and routing weights
+
+- Status: Accepted
+- Date: 2026-11-24
+- Deciders: polygate maintainers
+
+## Context
+
+The gateway had one optional `PROXY_API_KEY` and one global routing policy. Different callers need
+different provider pools: a cost-sensitive caller should not be routed to an expensive provider, and
+a latency-sensitive caller may weight speed differently. Reusing one global policy cannot express
+that without separate deployments.
+
+## Decision
+
+- `[[client_key]]` entries in the TOML seed define `id`, `name`, `api_key_env`,
+  `allowed_providers` and optional `[client_key.weights]`.
+- Authentication resolves a presented bearer/`x-api-key` credential to a `ClientPolicy`. The legacy
+  `PROXY_API_KEY` remains an all-provider policy with global weights. With no configured keys the
+  proxy stays open for local development; a configured key set with no active env value fails
+  closed.
+- The scheduler filters the provider pool by `allowed_providers` before scoring and uses the key's
+  weights for that request. Provider health, circuits, retries, time windows and concurrency remain
+  shared provider state; a key can select within them but cannot disable them.
+- `GET /admin/clients` lists key metadata and `key_configured`, never the secret value.
+
+## Consequences
+
+- One gateway process can serve multiple caller policies without duplicating providers.
+- A missing provider in `allowed_providers` is a startup error; an empty list means all providers.
+- Per-key policies are read at process start from TOML/env. Runtime key CRUD is not added; adding it
+  later needs hashed key storage and a migration.
+- Metrics remain provider-level, not caller-level. Per-key cost attribution needs a separate
+  schema change.
+- Key rotation is an environment change plus restart, consistent with provider secrets.
+
+## References
+
+- `backend/src/polygate/config.py`, `backend/src/polygate/api/auth.py`,
+  `backend/src/polygate/routing/scheduler.py`
+- `docs/api.md`, `docs/routing.md`, `providers.example.toml`

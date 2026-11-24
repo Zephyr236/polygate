@@ -66,6 +66,9 @@ def create_app(
     lifespan = _lifespan_factory(app_config, store, dict(env), client, gateway_holder)
     app = FastAPI(title="polygate", version="0.1.0", lifespan=lifespan)
     app.state.config = app_config
+    app.state.client_keys = [
+        (key, env.get(key.api_key_env, "")) for key in app_config.client_keys
+    ]
     app.state.store = store
     app.state.owned_client = client
     app.state.gateway_holder = gateway_holder

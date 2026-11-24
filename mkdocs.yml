@@ -26,3 +26,4 @@ nav:
   - ADR 0008 - CI-only gates: adr/0008-ci-only-gates.md
   - ADR 0009 - Design review agent: adr/0009-design-review-agent.md
   - ADR 0010 - Required design gate: adr/0010-required-design-gate.md
+  - ADR 0011 - Client key routing policy: adr/0011-client-key-routing-policy.md

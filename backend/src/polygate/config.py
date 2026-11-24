@@ -195,11 +195,37 @@ class RoutingConfig(BaseModel):
     speed_target_ms: float = Field(default=2_500.0, gt=0)
 
 
+class ClientKeyConfig(BaseModel):
+    """One caller key with a provider allowlist and optional routing weights."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid", str_strip_whitespace=True)
+
+    id: str = Field(min_length=1, max_length=64, pattern=r"^[a-z0-9][a-z0-9-]*$")
+    name: str = Field(default="", max_length=120)
+    api_key_env: str = Field(min_length=1)
+    allowed_providers: list[str] = Field(default_factory=list)
+    weights: RoutingWeights | None = None
+
+
+@dataclass(frozen=True)
+class ClientPolicy:
+    """Resolved caller policy used by authentication and routing."""
+
+    key_id: str
+    allowed_providers: frozenset[str] | None = None
+    weights: RoutingWeights | None = None
+
+    def allows(self, provider_id: str) -> bool:
+        """Report whether the caller may use a provider."""
+        return self.allowed_providers is None or provider_id in self.allowed_providers
+
+
 @dataclass(frozen=True)
 class AppConfig:
     """Runtime application settings aggregated from files and environment."""
 
     providers: list[ProviderConfig] = field(default_factory=list)
+    client_keys: list[ClientKeyConfig] = field(default_factory=list)
     routing: RoutingConfig = field(default_factory=RoutingConfig)
     database_path: Path = Path("data/polygate.db")
     admin_token: str | None = None
@@ -230,14 +256,30 @@ def parse_providers_document(document: Mapping[str, Any]) -> list[ProviderConfig
     return [ProviderConfig.model_validate(item) for item in providers_raw]
 
 
+def parse_client_keys(document: Mapping[str, Any], providers: list[ProviderConfig]) -> list[ClientKeyConfig]:
+    """Validate caller keys and reject unknown provider allowlist entries."""
+    raw = document.get("client_key", [])
+    if not isinstance(raw, list):
+        raise ConfigError("client_key entries must be a list of tables")
+    known = {provider.id for provider in providers}
+    keys = [ClientKeyConfig.model_validate(item) for item in raw]
+    for key in keys:
+        unknown = set(key.allowed_providers) - known
+        if unknown:
+            raise ConfigError(f"client key {key.id!r} references unknown providers: {sorted(unknown)}")
+    return keys
+
+
 def build_app_config(document: Mapping[str, Any], env: Mapping[str, str]) -> AppConfig:
     """Build the application config from a document and environment overrides."""
     providers_file = env.get("POLYGATE_PROVIDERS_FILE")
     providers = parse_providers_document(document)
+    client_keys = parse_client_keys(document, providers)
     routing_raw = document.get("routing", {})
     routing = RoutingConfig.model_validate(routing_raw) if routing_raw else RoutingConfig()
     return AppConfig(
         providers=providers,
+        client_keys=client_keys,
         routing=routing,
         database_path=Path(env.get("POLYGATE_DATABASE", "data/polygate.db")),
         admin_token=env.get("ADMIN_TOKEN") or None,

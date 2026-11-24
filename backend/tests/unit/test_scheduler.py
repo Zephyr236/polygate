@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 
 import pytest
 
-from polygate.config import ProviderConfig, RoutingConfig
+from polygate.config import ClientPolicy, ProviderConfig, RoutingConfig
 from polygate.protocols.base import (
     AllProvidersFailedError,
     InternalRequest,
@@ -103,6 +103,17 @@ async def test_complete_routes_to_first_candidate() -> None:
     assert result.result.response.text == "PONG"
     assert result.result.response.provider_id == "a"
     assert result.attempts == []
+
+
+@pytest.mark.asyncio
+async def test_complete_respects_client_provider_allowlist() -> None:
+    configs = [_config("a", priority=0), _config("b", priority=1)]
+    scheduler = _scheduler(
+        configs,
+        {"a": ScriptedProvider(configs[0]), "b": ScriptedProvider(configs[1])},
+    )
+    result = await scheduler.complete(_request(), {}, ClientPolicy("team", frozenset({"b"})))
+    assert result.result.response.provider_id == "b"
 
 
 @pytest.mark.asyncio
