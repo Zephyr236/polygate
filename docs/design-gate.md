@@ -42,3 +42,6 @@ the head SHA gets a failure status.
 - The agent is bounded by a USD 4 budget and no turn limit.
 - If the workflow, model or status publication fails, the status is missing or failed and the PR
   stays blocked (fail closed).
+
+The gate is keyed by the CI head SHA; fork PRs resolve through the commit-to-pulls API.
+See [ADR 0014](adr/missing.md) for the trigger rules.
