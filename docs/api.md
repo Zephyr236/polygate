@@ -28,8 +28,9 @@ Both endpoints return `502` with a `providers_unavailable` envelope when every c
 
 `/v1/*` accepts a bearer token or `x-api-key`. The legacy `PROXY_API_KEY` grants access to every
 provider with the global routing weights. A configured `[[client_key]]` instead grants only its
-`allowed_providers` and applies its optional per-key `weights`. An unknown or missing key is `401`;
-a key configuration with no active env value fails closed with `503`.
+`allowed_providers` and applies its optional per-key `weights`. An unknown or missing key is `401`.
+A client-key set with no provisioned `api_key_env` value fails at startup with `ConfigError`; it is
+not a request-time `503`.
 
 ## Admin
 
