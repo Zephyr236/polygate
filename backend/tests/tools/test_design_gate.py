@@ -52,10 +52,19 @@ def _install_fake_sdk(monkeypatch: pytest.MonkeyPatch, *, structured: dict[str, 
         def __init__(self, **kwargs: object) -> None:
             self.kwargs = kwargs
 
+    class AgentDefinition:
+        def __init__(self, **kwargs: object) -> None:
+            self.kwargs = kwargs
+
     monkeypatch.setitem(
         sys.modules,
         "claude_agent_sdk",
-        types.SimpleNamespace(ResultMessage=ResultMessage, query=query, ClaudeAgentOptions=Options),
+        types.SimpleNamespace(
+            ResultMessage=ResultMessage,
+            query=query,
+            ClaudeAgentOptions=Options,
+            AgentDefinition=AgentDefinition,
+        ),
     )
 
 

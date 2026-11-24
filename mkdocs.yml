@@ -30,3 +30,4 @@ nav:
   - ADR 0012 - Design gate bounds: adr/0012-design-gate-bounds.md
   - ADR 0013 - Design gate no turn limit: adr/0013-design-gate-no-turn-limit.md
   - ADR 0014 - CI-first design gate: adr/0014-ci-first-design-gate.md
+  - ADR 0015 - Review agent tools: adr/0015-review-agent-tools.md

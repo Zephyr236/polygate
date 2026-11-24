@@ -35,6 +35,10 @@ the head SHA gets a failure status.
   alternatives, criteria, assumptions, falsifiers and reversibility.
 - One model means one perspective. It is cheaper than a panel but does not provide independent
   opinions.
-- The agent is read-only (`Read`/`Grep`/`Glob`) and bounded by a USD 4 budget and no turn limit.
+- Trusted PRs give the agent an allowlisted read-only Bash (`git`, `rg`, `ls`, `cat`, `pytest`) and a
+  `verifier` subagent; fork PRs stay read-only with `Read`/`Grep`/`Glob`. Edit/Write/WebFetch/WebSearch
+  and NotebookEdit remain disallowed. The gate removes GitHub/provider credentials from the agent
+  environment, but Bash can run PR code with the model key present; this is not a security sandbox.
+- The agent is bounded by a USD 4 budget and no turn limit.
 - If the workflow, model or status publication fails, the status is missing or failed and the PR
   stays blocked (fail closed).
