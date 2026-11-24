@@ -31,7 +31,8 @@ CI run was pending.
 - A PR whose CI is fixed by a rerun of the same commit may need that CI run to complete again to
   trigger the gate; a new push always does.
 - Fork PRs have an empty `workflow_run.pull_requests` array. The resolve job falls back to the
-  commit-to-pulls API; if no PR is found it posts a failure status on the head SHA.
+  commit-to-pulls API; if no PR is found it posts a failure status on the head SHA. Concurrency is
+  keyed by the CI head SHA, so a fork head cannot be reviewed by two runs at once.
 - The design gate is one step behind CI, so its feedback arrives later. This is the intended cost
   trade-off.
 - The bridge uses `workflow_run`; workflows created by `GITHUB_TOKEN` cannot trigger further
