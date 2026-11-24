@@ -48,6 +48,8 @@ failure status.
 - If the workflow, model or status publication fails, the status is missing or failed and the PR
   stays blocked (fail closed).
 
-The gate is keyed by the triggering CI head SHA; a stale trigger whose PR head differs from the
-current head is skipped. Fork PRs resolve through the commit-to-pulls API. See
-[ADR 0014](adr/0014-ci-first-design-gate.md) for the trigger rules.
+The gate uses the PR head recorded in the CI event; fork runs resolve through the commit-to-pulls
+API and use the merge commit's second parent. It re-checks the head after the gate wait and again
+before fetching the worktree, so a push cannot make it review the wrong tree. The gate is keyed by
+the triggering CI head SHA; stale triggers skip. See [ADR 0014](adr/0014-ci-first-design-gate.md)
+for the trigger rules.
