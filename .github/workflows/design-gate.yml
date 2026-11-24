@@ -56,6 +56,8 @@ jobs:
             --brief /tmp/design-brief.md \
             --pr ${{ github.event.pull_request.number }} \
             --repo-slug "$GITHUB_REPOSITORY" \
+            --max-turns 20 \
+            --budget-usd 2.0 \
             --out reports/design-gate.json
       - name: Upload the gate report
         if: always()
