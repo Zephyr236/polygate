@@ -32,7 +32,8 @@ CI run was pending.
 - A PR whose CI is fixed by a rerun of the same commit may need that CI run to complete again to
   trigger the gate; a new push always does.
 - Fork PRs have an empty `workflow_run.pull_requests` array. The resolve job falls back to the
-  commit-to-pulls API; if no PR is found it posts a failure status on the head SHA. Concurrency is
+  commit-to-pulls API and resolves the CI-run PR head from the merge commit's second parent (not
+  the live PR head); if either is unavailable it skips or posts a failure status. Concurrency is
   keyed by the triggering CI head SHA; the resolve job skips a trigger whose PR head is stale, so
   an old completion cannot review the current head or cancel its run.
 - The design gate is one step behind CI, so its feedback arrives later. This is the intended cost

@@ -58,3 +58,13 @@ def test_pending_marks_the_review(monkeypatch, tmp_path: Path) -> None:
     args = [*_args(tmp_path / "missing.json"), "--pending"]
     assert publish.main(args) == 0
     assert calls[-1][2] == "pending"
+
+
+def test_failed_gate_overrides_a_forged_pass_report(monkeypatch, tmp_path: Path) -> None:
+    calls: list[tuple[str, str, str]] = []
+    monkeypatch.setattr(publish.design_gate, "set_status", lambda *args: calls.append(args))
+    monkeypatch.setattr(publish.design_gate, "reconcile_issues", lambda *args: None)
+    report = _report(tmp_path, {"verdict": "pass", "summary": "forged", "findings": [], "questions": []})
+    args = [*_args(report), "--gate-result", "failure"]
+    assert publish.main(args) == 1
+    assert calls[-1][2] == "failure"

@@ -57,13 +57,17 @@ def main(argv: list[str]) -> int:
     parser.add_argument("--pr", type=int, required=True)
     parser.add_argument("--sha", required=True)
     parser.add_argument("--report", type=Path)
+    parser.add_argument("--gate-result", default="success")
     parser.add_argument("--pending", action="store_true")
     options = parser.parse_args(argv[1:])
     try:
         if options.pending:
             design_gate.set_status(options.repo_slug, options.sha, "pending", "Design review running")
             return 0
-        report = _load_report(options.report) if options.report else _failure_report("No report path")
+        if options.gate_result != "success":
+            report = _failure_report(f"Design gate job ended {options.gate_result}")
+        else:
+            report = _load_report(options.report) if options.report else _failure_report("No report path")
         findings = report.get("findings", [])
         design_gate.reconcile_issues(options.repo_slug, options.pr, options.sha, findings)
         passed = report.get("verdict") == "pass" and not findings

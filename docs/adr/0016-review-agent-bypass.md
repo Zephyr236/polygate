@@ -17,7 +17,8 @@ already removes GitHub and provider credentials before the agent starts, and the
   including Bash, web tools and the `Agent` subagent tool. No tool or command allowlist is applied.
 - The agent job has only `contents: read` and `pull-requests: read`; it does not hold a
   write-scoped token. Pending/final status and blocking issues are published by a separate
-  `publish` job that never executes pull-request code.
+  `publish` job that never executes pull-request code. Publish refuses a pass report when the
+  agent job did not end successfully, so a forged report cannot turn a killed gate into success.
 - Keep `GITHUB_TOKEN`, `GH_TOKEN`, `ADMIN_TOKEN`, `PROXY_API_KEY`, `DESIGN_REVIEW_API_KEY`,
   `ZEN_API_KEY`, `AMR_API_KEY` and `OK8888_API_KEY` out of the agent's inherited environment.
 - Keep the Anthropic model credential in the Claude Code process because the CLI needs it.

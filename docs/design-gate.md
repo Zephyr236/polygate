@@ -40,8 +40,8 @@ failure status.
   opinions.
 - The agent runs with `bypassPermissions` and the full toolset, including Bash, web tools and the
   `Agent` subagent. Its job has only `contents: read` and `pull-requests: read`; a separate
-  `publish` job holds the write token and never executes PR code. The agent may modify its local
-  worktree but cannot push. The gate removes GitHub/provider credentials from the agent
+  `publish` job holds the write token, never executes PR code, and refuses a pass report unless the
+  agent job ended successfully. The agent may modify its local worktree but cannot push. The gate removes GitHub/provider credentials from the agent
   environment, but PR code can run with the model key present; this is not a security sandbox.
   Fork PRs get the same access; see ADR 0016 for the risk.
 - The agent is bounded by a USD 4 budget and no turn limit.
