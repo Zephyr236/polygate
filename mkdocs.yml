@@ -28,3 +28,4 @@ nav:
   - ADR 0010 - Required design gate: adr/0010-required-design-gate.md
   - ADR 0011 - Client key routing policy: adr/0011-client-key-routing-policy.md
   - ADR 0012 - Design gate bounds: adr/0012-design-gate-bounds.md
+  - ADR 0013 - Design gate 40 turns: adr/0013-design-gate-40-turns.md
