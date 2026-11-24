@@ -58,5 +58,3 @@ def test_pending_marks_the_review(monkeypatch, tmp_path: Path) -> None:
     args = [*_args(tmp_path / "missing.json"), "--pending"]
     assert publish.main(args) == 0
     assert calls[-1][2] == "pending"
-
-
