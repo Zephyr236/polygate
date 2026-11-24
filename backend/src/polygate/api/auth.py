@@ -31,9 +31,7 @@ def _active_clients(clients: list[tuple[ClientKeyConfig, str]]) -> list[tuple[Cl
     return [(key, value) for key, value in clients if value]
 
 
-def _matched_client(
-    provided: str, active: list[tuple[ClientKeyConfig, str]]
-) -> ClientKeyConfig | None:
+def _matched_client(provided: str, active: list[tuple[ClientKeyConfig, str]]) -> ClientKeyConfig | None:
     for key, value in active:
         if _credential_matches(provided, value):
             return key

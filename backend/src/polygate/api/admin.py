@@ -80,9 +80,7 @@ def _parse_provider_pool(raw: list[Any]) -> list[ProviderConfig]:
 def _validate_provider_pool(gateway: Gateway, configs: list[ProviderConfig]) -> None:
     try:
         validate_client_keys_against_providers(gateway.config.client_keys, configs)
-        validate_provider_credentials_against_client_keys(
-            gateway.config.client_keys, configs, gateway.keys
-        )
+        validate_provider_credentials_against_client_keys(gateway.config.client_keys, configs, gateway.keys)
     except ConfigError as error:
         raise HTTPException(status_code=400, detail=str(error)) from error
 
@@ -216,9 +214,7 @@ def simulate_body(
     """Explain the routing decision for a candidate request without calling upstreams."""
     policy = _policy_for(gateway, client_key_id)
     configs = _simulation_configs(gateway, policy)
-    rankings = _simulation_rankings(
-        gateway, configs, _simulation_routing(gateway, policy), policy
-    )
+    rankings = _simulation_rankings(gateway, configs, _simulation_routing(gateway, policy), policy)
     eligible = {item.provider_id for item in rankings}
     return {
         "model": model,
