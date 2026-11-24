@@ -86,6 +86,20 @@ def test_duplicate_key_env_is_rejected() -> None:
         )
 
 
+def test_duplicate_key_ids_are_rejected() -> None:
+    with pytest.raises(ConfigError, match="ids must be distinct"):
+        build_app_config(
+            {
+                "provider": [_provider("a")],
+                "client_key": [
+                    {"id": "same", "api_key_env": "ONE", "allowed_providers": ["a"]},
+                    {"id": "same", "api_key_env": "TWO", "allowed_providers": ["a"]},
+                ],
+            },
+            {"ONE": "one", "TWO": "two"},
+        )
+
+
 def test_legacy_env_name_is_rejected_for_client_key() -> None:
     with pytest.raises(ConfigError, match="PROXY_API_KEY"):
         build_app_config(

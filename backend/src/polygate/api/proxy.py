@@ -69,9 +69,7 @@ async def chat_completions(request: Request, policy: Policy) -> Response:
     gateway = gateway_of(request)
     internal = openai.parse_request(body)
     if internal.stream:
-        return StreamingResponse(
-            _openai_stream(gateway, internal, policy), media_type="text/event-stream"
-        )
+        return StreamingResponse(_openai_stream(gateway, internal, policy), media_type="text/event-stream")
     try:
         route = await gateway.scheduler.complete(internal, gateway.keys, policy)
     except AllProvidersFailedError as error:
@@ -105,9 +103,7 @@ async def messages(request: Request, policy: Policy) -> Response:
     gateway = gateway_of(request)
     internal = anthropic.parse_request(body)
     if internal.stream:
-        return StreamingResponse(
-            _anthropic_stream(gateway, internal, policy), media_type="text/event-stream"
-        )
+        return StreamingResponse(_anthropic_stream(gateway, internal, policy), media_type="text/event-stream")
     try:
         route = await gateway.scheduler.complete(internal, gateway.keys, policy)
     except AllProvidersFailedError as error:

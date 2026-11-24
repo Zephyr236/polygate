@@ -136,9 +136,7 @@ class Scheduler:
     ) -> list[tuple[ProviderConfig, ProviderState]]:
         """Filter, score and order eligible providers outside the exclusion set."""
         hour, weekday = utc_hour_weekday()
-        allowed = [
-            config for config in self.providers if policy is None or policy.allows(config.id)
-        ]
+        allowed = [config for config in self.providers if policy is None or policy.allows(config.id)]
         routing = self.routing
         if policy is not None and policy.weights is not None:
             routing = self.routing.model_copy(update={"weights": policy.weights})

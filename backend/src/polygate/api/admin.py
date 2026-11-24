@@ -81,9 +81,7 @@ async def upsert_providers(request: Request) -> dict[str, Any]:
     try:
         configs = [ProviderConfig.model_validate(item) for item in raw]
         validate_client_keys_against_providers(gateway.config.client_keys, configs)
-        validate_provider_credentials_against_client_keys(
-            gateway.config.client_keys, configs, gateway.keys
-        )
+        validate_provider_credentials_against_client_keys(gateway.config.client_keys, configs, gateway.keys)
     except ValidationError as error:
         raise HTTPException(status_code=400, detail=json.loads(error.json())) from error
     except ConfigError as error:
@@ -181,9 +179,7 @@ def simulate_body(
     """Explain the routing decision for a candidate request without calling upstreams."""
     now = datetime.now(timezone.utc)
     policy = _policy_for(gateway, client_key_id)
-    configs = [
-        config for config in gateway.providers if policy is None or policy.allows(config.id)
-    ]
+    configs = [config for config in gateway.providers if policy is None or policy.allows(config.id)]
     routing = gateway.config.routing
     if policy is not None and policy.weights is not None:
         routing = routing.model_copy(update={"weights": policy.weights})

@@ -27,6 +27,8 @@ that without separate deployments.
 - Duplicate `api_key_env` names, duplicate resolved key values, a client key using `PROXY_API_KEY`,
   a client value equal to the legacy key, and a client-key set with no provisioned env value are
   startup errors.
+- Client key ids and `api_key_env` names must be unique; duplicate ids would make
+  `api_key_id` resolve to the wrong policy.
 - `GET /admin/clients` lists key metadata and `key_configured`, never the secret value.
 - `PUT /admin/providers` rejects a pool that would strand a client allowlist, and rejects a runtime
   provider credential that aliases a client key. `POST /admin/simulate` accepts `api_key_id` and

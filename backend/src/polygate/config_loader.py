@@ -59,6 +59,9 @@ def parse_client_keys(document: Mapping[str, Any], providers: list[ProviderConfi
         raise ConfigError("client_key entries must be a list of tables")
     keys = [ClientKeyConfig.model_validate(item) for item in raw]
     validate_client_keys_against_providers(keys, providers)
+    ids = [key.id for key in keys]
+    if len(ids) != len(set(ids)):
+        raise ConfigError("client key ids must be distinct")
     env_names = [key.api_key_env for key in keys]
     if len(env_names) != len(set(env_names)):
         raise ConfigError("client keys must use distinct api_key_env values")
