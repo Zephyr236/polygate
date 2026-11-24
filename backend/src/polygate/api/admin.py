@@ -70,6 +70,23 @@ async def list_providers(request: Request) -> dict[str, Any]:
     }
 
 
+def _parse_provider_pool(raw: list[Any]) -> list[ProviderConfig]:
+    try:
+        return [ProviderConfig.model_validate(item) for item in raw]
+    except ValidationError as error:
+        raise HTTPException(status_code=400, detail=json.loads(error.json())) from error
+
+
+def _validate_provider_pool(gateway: Gateway, configs: list[ProviderConfig]) -> None:
+    try:
+        validate_client_keys_against_providers(gateway.config.client_keys, configs)
+        validate_provider_credentials_against_client_keys(
+            gateway.config.client_keys, configs, gateway.keys
+        )
+    except ConfigError as error:
+        raise HTTPException(status_code=400, detail=str(error)) from error
+
+
 @router.put("/providers")
 async def upsert_providers(request: Request) -> dict[str, Any]:
     """Create or replace provider configs and persist the new pool."""
@@ -78,14 +95,8 @@ async def upsert_providers(request: Request) -> dict[str, Any]:
     if not isinstance(raw, list):
         raise HTTPException(status_code=400, detail="providers must be a list")
     gateway = gateway_of(request)
-    try:
-        configs = [ProviderConfig.model_validate(item) for item in raw]
-        validate_client_keys_against_providers(gateway.config.client_keys, configs)
-        validate_provider_credentials_against_client_keys(gateway.config.client_keys, configs, gateway.keys)
-    except ValidationError as error:
-        raise HTTPException(status_code=400, detail=json.loads(error.json())) from error
-    except ConfigError as error:
-        raise HTTPException(status_code=400, detail=str(error)) from error
+    configs = _parse_provider_pool(raw)
+    _validate_provider_pool(gateway, configs)
     replace_providers(gateway, configs)
     for config in configs:
         await gateway.store.save_provider(config.id, config.model_dump_json())
@@ -173,23 +184,40 @@ def _policy_for(gateway: Gateway, client_key_id: str | None) -> ClientPolicy | N
     raise KeyError(client_key_id)
 
 
-def simulate_body(
-    gateway: Gateway, model: str, prompt: str, client_key_id: str | None = None
-) -> dict[str, Any]:
-    """Explain the routing decision for a candidate request without calling upstreams."""
+def _simulation_configs(gateway: Gateway, policy: ClientPolicy | None) -> list[ProviderConfig]:
+    if policy is None:
+        return gateway.providers
+    return [config for config in gateway.providers if policy.allows(config.id)]
+
+
+def _simulation_routing(gateway: Gateway, policy: ClientPolicy | None) -> Any:
+    if policy is None or policy.weights is None:
+        return gateway.config.routing
+    return gateway.config.routing.model_copy(update={"weights": policy.weights})
+
+
+def _simulation_rankings(
+    gateway: Gateway, configs: list[ProviderConfig], routing: Any, policy: ClientPolicy | None
+) -> list[Any]:
     now = datetime.now(timezone.utc)
-    policy = _policy_for(gateway, client_key_id)
-    configs = [config for config in gateway.providers if policy is None or policy.allows(config.id)]
-    routing = gateway.config.routing
-    if policy is not None and policy.weights is not None:
-        routing = routing.model_copy(update={"weights": policy.weights})
-    rankings = rank_candidates(
+    return rank_candidates(
         configs,
         gateway.health.states(),
         routing,
         now.hour,
         now.isoweekday(),
-        respect_priority=policy.respect_priority if policy is not None else True,
+        respect_priority=True if policy is None else policy.respect_priority,
+    )
+
+
+def simulate_body(
+    gateway: Gateway, model: str, prompt: str, client_key_id: str | None = None
+) -> dict[str, Any]:
+    """Explain the routing decision for a candidate request without calling upstreams."""
+    policy = _policy_for(gateway, client_key_id)
+    configs = _simulation_configs(gateway, policy)
+    rankings = _simulation_rankings(
+        gateway, configs, _simulation_routing(gateway, policy), policy
     )
     eligible = {item.provider_id for item in rankings}
     return {

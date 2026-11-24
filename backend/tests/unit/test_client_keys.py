@@ -126,7 +126,7 @@ def test_duplicate_key_values_are_rejected() -> None:
 
 
 def test_admin_token_collision_is_rejected() -> None:
-    with pytest.raises(ConfigError, match="ADMIN_TOKEN"):
+    with pytest.raises(ConfigError, match="reserved gateway"):
         build_app_config(
             {
                 "provider": [_provider("a")],
@@ -148,7 +148,7 @@ def test_provider_credential_collision_is_rejected() -> None:
 
 
 def test_legacy_key_collision_is_rejected() -> None:
-    with pytest.raises(ConfigError, match="legacy PROXY_API_KEY"):
+    with pytest.raises(ConfigError, match="reserved gateway"):
         build_app_config(
             {
                 "provider": [_provider("a")],

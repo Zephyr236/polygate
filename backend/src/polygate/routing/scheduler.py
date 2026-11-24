@@ -131,23 +131,30 @@ class Scheduler:
             self._adapters[config.id] = adapter
         return adapter
 
+    def _allowed(self, policy: ClientPolicy | None) -> list[ProviderConfig]:
+        if policy is None:
+            return self.providers
+        return [config for config in self.providers if policy.allows(config.id)]
+
+    def _routing_for(self, policy: ClientPolicy | None) -> RoutingConfig:
+        if policy is None or policy.weights is None:
+            return self.routing
+        return self.routing.model_copy(update={"weights": policy.weights})
+
     def _candidates(
         self, excluded: set[str], policy: ClientPolicy | None
     ) -> list[tuple[ProviderConfig, ProviderState]]:
         """Filter, score and order eligible providers outside the exclusion set."""
         hour, weekday = utc_hour_weekday()
-        allowed = [config for config in self.providers if policy is None or policy.allows(config.id)]
-        routing = self.routing
-        if policy is not None and policy.weights is not None:
-            routing = self.routing.model_copy(update={"weights": policy.weights})
+        allowed = self._allowed(policy)
         ranked = rank_candidates(
             allowed,
             self.health.states(),
-            routing,
+            self._routing_for(policy),
             hour,
             weekday,
             excluded,
-            policy.respect_priority if policy is not None else True,
+            True if policy is None else policy.respect_priority,
         )
         configs = {config.id: config for config in allowed}
         pairs: list[tuple[ProviderConfig, ProviderState]] = []

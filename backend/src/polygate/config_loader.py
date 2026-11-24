@@ -59,6 +59,11 @@ def parse_client_keys(document: Mapping[str, Any], providers: list[ProviderConfi
         raise ConfigError("client_key entries must be a list of tables")
     keys = [ClientKeyConfig.model_validate(item) for item in raw]
     validate_client_keys_against_providers(keys, providers)
+    _validate_unique_client_fields(keys)
+    return keys
+
+
+def _validate_unique_client_fields(keys: list[ClientKeyConfig]) -> None:
     ids = [key.id for key in keys]
     if len(ids) != len(set(ids)):
         raise ConfigError("client key ids must be distinct")
@@ -67,7 +72,6 @@ def parse_client_keys(document: Mapping[str, Any], providers: list[ProviderConfi
         raise ConfigError("client keys must use distinct api_key_env values")
     if "PROXY_API_KEY" in env_names:
         raise ConfigError("a client key cannot use PROXY_API_KEY as its secret env")
-    return keys
 
 
 def validate_provider_credentials_against_client_keys(
@@ -82,6 +86,32 @@ def validate_provider_credentials_against_client_keys(
             raise ConfigError(f"provider {provider.id!r} credential aliases a client key")
 
 
+def _reject_collision(active: list[str], values: set[str], message: str) -> None:
+    if set(active) & values:
+        raise ConfigError(message)
+
+
+def _check_credential_collisions(
+    active: list[str],
+    proxy_api_key: str | None,
+    admin_token: str | None,
+    providers: list[ProviderConfig],
+    env: Mapping[str, str],
+) -> None:
+    if len(active) != len(set(active)):
+        raise ConfigError("client key env values must be distinct")
+    reserved = {value for value in (proxy_api_key, admin_token) if value}
+    _reject_collision(active, reserved, "a client key resolves to a reserved gateway credential")
+    upstream = {value for provider in providers if (value := provider.api_key(env))}
+    _reject_collision(active, upstream, "a client key resolves to an upstream provider credential")
+
+
+def _reject_unprovisioned(keys: list[ClientKeyConfig], values: list[str]) -> None:
+    unprovisioned = [key.id for key, value in zip(keys, values, strict=True) if not value]
+    if unprovisioned:
+        raise ConfigError(f"client keys have no api_key_env value: {sorted(unprovisioned)}")
+
+
 def validate_client_key_provisioning(
     keys: list[ClientKeyConfig],
     env: Mapping[str, str],
@@ -92,18 +122,8 @@ def validate_client_key_provisioning(
     """Reject ambiguous credentials and a fully unprovisioned client-key set."""
     values = [env.get(key.api_key_env, "") for key in keys]
     active = [value for value in values if value]
-    if len(active) != len(set(active)):
-        raise ConfigError("client key env values must be distinct")
-    if proxy_api_key and any(value == proxy_api_key for value in active):
-        raise ConfigError("a client key resolves to the legacy PROXY_API_KEY value")
-    if admin_token and any(value == admin_token for value in active):
-        raise ConfigError("a client key resolves to ADMIN_TOKEN")
-    upstream = {provider.api_key(env) for provider in providers}
-    if any(value in upstream for value in active):
-        raise ConfigError("a client key resolves to an upstream provider credential")
-    unprovisioned = [key.id for key, value in zip(keys, values, strict=True) if not value]
-    if unprovisioned:
-        raise ConfigError(f"client keys have no api_key_env value: {sorted(unprovisioned)}")
+    _check_credential_collisions(active, proxy_api_key, admin_token, providers, env)
+    _reject_unprovisioned(keys, values)
 
 
 def build_app_config(document: Mapping[str, Any], env: Mapping[str, str]) -> AppConfig:
