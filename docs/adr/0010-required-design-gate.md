@@ -40,8 +40,9 @@ it can be wrong, can be prompt-injected, and is not a formal proof.
   emergency protection override. The brief and evidence requirements are the main mitigation.
 - An agent outage leaves the status missing or failed, so merges stop rather than bypass the gate.
 - The required status and issues are visible on the PR; `gate` still covers all deterministic CI.
-- Fork PRs run the base script against a read-only worktree; no PR code is executed, but the agent
-  still reads untrusted text. Prompt injection can affect findings, not execute commands.
+- Fork PRs run the base script against a worktree; since [0016](0016-review-agent-bypass.md) the
+  agent has full tool access and may execute PR code. The runner has `contents: read`, but this is
+  not a security sandbox.
 - Design quality still depends on human judgment; the agent is a reviewer, not a proof.
 
 ## References

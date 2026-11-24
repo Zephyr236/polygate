@@ -19,7 +19,8 @@ considered and what was rejected.
 | [0012](0012-design-gate-bounds.md) | Design gate turn/budget bounds and emergency repair | Accepted |
 | [0013](0013-design-gate-no-turn-limit.md) | Remove the design gate turn limit after repeated max-turns failures | Accepted |
 | [0014](0014-ci-first-design-gate.md) | Run the design gate only after CI succeeds | Accepted |
-| [0015](0015-review-agent-tools.md) | Read-only Bash and a verifier subagent for trusted PRs | Accepted |
+| [0015](0015-review-agent-tools.md) | Read-only Bash and a verifier subagent for trusted PRs | Superseded by 0016 |
+| [0016](0016-review-agent-bypass.md) | The design reviewer runs with full tool access and bypass permissions | Accepted |
 
 ## Writing a new ADR
 

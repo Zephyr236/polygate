@@ -106,12 +106,6 @@ def _check_credential_collisions(
     _reject_collision(active, upstream, "a client key resolves to an upstream provider credential")
 
 
-def _reject_unprovisioned(keys: list[ClientKeyConfig], values: list[str]) -> None:
-    unprovisioned = [key.id for key, value in zip(keys, values, strict=True) if not value]
-    if unprovisioned:
-        raise ConfigError(f"client keys have no api_key_env value: {sorted(unprovisioned)}")
-
-
 def validate_client_key_provisioning(
     keys: list[ClientKeyConfig],
     env: Mapping[str, str],
@@ -123,7 +117,8 @@ def validate_client_key_provisioning(
     values = [env.get(key.api_key_env, "") for key in keys]
     active = [value for value in values if value]
     _check_credential_collisions(active, proxy_api_key, admin_token, providers, env)
-    _reject_unprovisioned(keys, values)
+    if keys and not proxy_api_key and not active:
+        raise ConfigError("no usable proxy credential is configured")
 
 
 def build_app_config(document: Mapping[str, Any], env: Mapping[str, str]) -> AppConfig:

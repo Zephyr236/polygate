@@ -159,7 +159,7 @@ def test_legacy_key_collision_is_rejected() -> None:
 
 
 def test_unprovisioned_client_keys_fail_closed_at_startup() -> None:
-    with pytest.raises(ConfigError, match="api_key_env value"):
+    with pytest.raises(ConfigError, match="no usable proxy credential"):
         build_app_config(
             {
                 "provider": [_provider("a")],
@@ -169,15 +169,15 @@ def test_unprovisioned_client_keys_fail_closed_at_startup() -> None:
         )
 
 
-def test_unprovisioned_client_keys_fail_even_with_legacy_key() -> None:
-    with pytest.raises(ConfigError, match="api_key_env value"):
-        build_app_config(
-            {
-                "provider": [_provider("a")],
-                "client_key": [{"id": "one", "api_key_env": "MISSING", "allowed_providers": ["a"]}],
-            },
-            {"PROXY_API_KEY": "legacy"},
-        )
+def test_unprovisioned_optional_key_does_not_take_down_legacy_access() -> None:
+    config = build_app_config(
+        {
+            "provider": [_provider("a")],
+            "client_key": [{"id": "one", "api_key_env": "MISSING", "allowed_providers": ["a"]}],
+        },
+        {"PROXY_API_KEY": "legacy"},
+    )
+    assert config.client_keys[0].id == "one"
 
 
 def test_policy_without_allowlist_allows_all() -> None:

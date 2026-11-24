@@ -99,7 +99,8 @@ total_seconds = 180
 # Optional caller keys. Each key sees only its allowed providers and may
 # override the global routing weights. The secret is read from the env var,
 # never stored in this file. Uncomment the block and set TEAM_A_KEY to opt in;
-# an uncommented key with no provisioned env value fails startup by design.
+# an uncommented key with no provisioned env value is inactive; it does not
+# take down legacy or admin traffic.
 # [[client_key]]
 # id = "team-a"
 # name = "Team A"

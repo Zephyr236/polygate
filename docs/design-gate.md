@@ -8,7 +8,8 @@ Claude Agent SDK agent, not by a panel and not by five models.
 1. After the `ci` workflow succeeds for the current PR head, `.github/workflows/design-gate.yml`
    checks out the base commit and runs the trusted base script. A failing CI run does not call the
    model; its `gate` check already blocks the PR.
-2. The PR head is fetched into a worktree for the agent to read; PR code is never executed.
+2. The PR head is fetched into a worktree. With the full toolset the agent may execute PR code;
+   the runner has `contents: read` but is not a security sandbox (ADR 0016).
 3. The PR body is used as the design brief.
 4. The agent returns `pass`, `needs-changes` or `insufficient-context` with structured findings.
 5. Every finding becomes a `design-review-blocking` issue; resolved findings are closed on the next
@@ -25,9 +26,11 @@ Claude Agent SDK agent, not by a panel and not by five models.
 - The PR can merge only when the status is `success` and no blocking issues remain.
 
 There is no waiver label. Emergency recovery is temporarily disabling branch protection, which is
-an explicit, logged action. The resolve job waits for the current PR head's `gate` status: success runs the gate, failure
-skips without a model call, and a timeout leaves the status missing (fail closed). Fork CI runs resolve the PR from the commit-to-pulls API; if no PR is found,
-the head SHA gets a failure status.
+an explicit, logged action. The resolve job compares the initiating CI run's PR head with the current
+PR head, then waits for that head's `gate` status: success runs the gate, failure skips without a
+model call, and a timeout leaves the status missing (fail closed). A stale CI completion is skipped.
+Fork CI runs resolve the PR from the commit-to-pulls API; if no PR is found, the head SHA gets a
+failure status.
 
 ## Limits
 
@@ -35,10 +38,11 @@ the head SHA gets a failure status.
   alternatives, criteria, assumptions, falsifiers and reversibility.
 - One model means one perspective. It is cheaper than a panel but does not provide independent
   opinions.
-- Trusted PRs give the agent an allowlisted read-only Bash (`git`, `rg`, `ls`, `cat`, `pytest`) and a
-  `verifier` subagent; fork PRs stay read-only with `Read`/`Grep`/`Glob`. Edit/Write/WebFetch/WebSearch
-  and NotebookEdit remain disallowed. The gate removes GitHub/provider credentials from the agent
-  environment, but Bash can run PR code with the model key present; this is not a security sandbox.
+- The agent runs with `bypassPermissions` and the full toolset, including Bash, web tools and the
+  `Agent` subagent. It may modify its local worktree but has no write-capable GitHub credential and
+  the workflow does not push. The gate removes GitHub/provider credentials from the agent
+  environment, but PR code can run with the model key present; this is not a security sandbox.
+  Fork PRs get the same access; see ADR 0016 for the risk.
 - The agent is bounded by a USD 4 budget and no turn limit.
 - If the workflow, model or status publication fails, the status is missing or failed and the PR
   stays blocked (fail closed).
