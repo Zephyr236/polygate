@@ -5,7 +5,9 @@ Claude Agent SDK agent, not by a panel and not by five models.
 
 ## What happens on a PR
 
-1. `.github/workflows/design-gate.yml` checks out the base commit and runs the trusted base script.
+1. After the `ci` workflow succeeds for the current PR head, `.github/workflows/design-gate.yml`
+   checks out the base commit and runs the trusted base script. A failing CI run does not call the
+   model; its `gate` check already blocks the PR.
 2. The PR head is fetched into a worktree for the agent to read; PR code is never executed.
 3. The PR body is used as the design brief.
 4. The agent returns `pass`, `needs-changes` or `insufficient-context` with structured findings.
@@ -23,7 +25,8 @@ Claude Agent SDK agent, not by a panel and not by five models.
 - The PR can merge only when the status is `success` and no blocking issues remain.
 
 There is no waiver label. Emergency recovery is temporarily disabling branch protection, which is
-an explicit, logged action.
+an explicit, logged action. A stale CI run for an older head is skipped; the CI run for the current
+head triggers the gate.
 
 ## Limits
 

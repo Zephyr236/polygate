@@ -29,3 +29,4 @@ nav:
   - ADR 0011 - Client key routing policy: adr/0011-client-key-routing-policy.md
   - ADR 0012 - Design gate bounds: adr/0012-design-gate-bounds.md
   - ADR 0013 - Design gate no turn limit: adr/0013-design-gate-no-turn-limit.md
+  - ADR 0014 - CI-first design gate: adr/0014-ci-first-design-gate.md

@@ -1,8 +1,9 @@
 name: Design gate
 
 on:
-  pull_request_target:
-    types: [opened, synchronize, reopened, ready_for_review]
+  workflow_run:
+    workflows: ["ci"]
+    types: [completed]
 
 permissions:
   contents: read
@@ -11,17 +12,49 @@ permissions:
   statuses: write
 
 concurrency:
-  group: design-gate-${{ github.event.pull_request.number }}
+  group: design-gate-${{ github.event.workflow_run.pull_requests[0].number || github.run_id }}
   cancel-in-progress: true
 
 jobs:
+  resolve:
+    if: >-
+      ${{ github.event.workflow_run.conclusion == 'success' &&
+          github.event.workflow_run.event == 'pull_request' &&
+          github.event.workflow_run.pull_requests[0] != null }}
+    runs-on: ubuntu-24.04
+    outputs:
+      number: ${{ steps.pr.outputs.number }}
+      head: ${{ steps.pr.outputs.head }}
+      base: ${{ steps.pr.outputs.base }}
+      skip: ${{ steps.pr.outputs.skip }}
+    steps:
+      - name: Resolve the pull request and check for a stale CI run
+        id: pr
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PR="${{ github.event.workflow_run.pull_requests[0].number }}"
+          HEAD=$(gh pr view "$PR" --repo "$GITHUB_REPOSITORY" --json headRefOid --jq .headRefOid)
+          BASE=$(gh pr view "$PR" --repo "$GITHUB_REPOSITORY" --json baseRefOid --jq .baseRefOid)
+          echo "number=$PR" >> "$GITHUB_OUTPUT"
+          echo "head=$HEAD" >> "$GITHUB_OUTPUT"
+          echo "base=$BASE" >> "$GITHUB_OUTPUT"
+          if [ "$HEAD" != "${{ github.event.workflow_run.head_sha }}" ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "CI succeeded for an older head; waiting for the current run."
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
   design_gate:
+    needs: resolve
+    if: needs.resolve.outputs.skip != 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.pull_request.base.sha }}
+          ref: ${{ needs.resolve.outputs.base }}
           fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
@@ -33,14 +66,14 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           git fetch --no-tags origin \
-            "pull/${{ github.event.pull_request.number }}/head:refs/remotes/origin/pr-head"
+            "pull/${{ needs.resolve.outputs.number }}/head:refs/remotes/origin/pr-head"
           HEAD_SHA=$(git rev-parse refs/remotes/origin/pr-head)
           echo "HEAD_SHA=$HEAD_SHA" >> "$GITHUB_ENV"
           git worktree add --detach /tmp/pr-head "$HEAD_SHA"
       - name: Write PR body as the design brief
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh pr view ${{ github.event.pull_request.number }} --json body --jq .body > /tmp/design-brief.md
+        run: gh pr view ${{ needs.resolve.outputs.number }} --json body --jq .body > /tmp/design-brief.md
       - name: Run the design gate
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -50,11 +83,11 @@ jobs:
         run: |
           python3 scripts/design_gate.py \
             --repo /tmp/pr-head \
-            --base ${{ github.event.pull_request.base.sha }} \
+            --base ${{ needs.resolve.outputs.base }} \
             --head "$HEAD_SHA" \
             --sha "$HEAD_SHA" \
             --brief /tmp/design-brief.md \
-            --pr ${{ github.event.pull_request.number }} \
+            --pr ${{ needs.resolve.outputs.number }} \
             --repo-slug "$GITHUB_REPOSITORY" \
             --budget-usd 4.0 \
             --out reports/design-gate.json
@@ -70,7 +103,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh api -X POST "repos/${{ github.repository }}/statuses/${{ github.event.pull_request.head.sha }}" \
+          gh api -X POST "repos/${{ github.repository }}/statuses/${{ needs.resolve.outputs.head }}" \
             -f state=failure \
             -f context=design-review \
             -f description="Design gate workflow failed"

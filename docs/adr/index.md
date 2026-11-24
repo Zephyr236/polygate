@@ -18,6 +18,7 @@ considered and what was rejected.
 | [0011](0011-client-key-routing-policy.md) | Caller keys select provider allowlists and routing weights | Accepted |
 | [0012](0012-design-gate-bounds.md) | Design gate turn/budget bounds and emergency repair | Accepted |
 | [0013](0013-design-gate-no-turn-limit.md) | Remove the design gate turn limit after repeated max-turns failures | Accepted |
+| [0014](0014-ci-first-design-gate.md) | Run the design gate only after CI succeeds | Accepted |
 
 ## Writing a new ADR
 
