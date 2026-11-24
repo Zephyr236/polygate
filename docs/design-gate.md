@@ -26,7 +26,8 @@ Claude Agent SDK agent, not by a panel and not by five models.
 
 There is no waiver label. Emergency recovery is temporarily disabling branch protection, which is
 an explicit, logged action. A stale CI run for an older head is skipped; the CI run for the current
-head triggers the gate.
+head triggers the gate. Fork CI runs resolve the PR from the commit-to-pulls API; if no PR is found,
+the head SHA gets a failure status.
 
 ## Limits
 
