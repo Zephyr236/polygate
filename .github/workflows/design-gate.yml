@@ -44,12 +44,14 @@ jobs:
           fi
           HEAD=$(gh pr view "$PR" --repo "$GITHUB_REPOSITORY" --json headRefOid --jq .headRefOid)
           BASE=$(gh pr view "$PR" --repo "$GITHUB_REPOSITORY" --json baseRefOid --jq .baseRefOid)
+          GATE=$(gh pr view "$PR" --repo "$GITHUB_REPOSITORY" --json statusCheckRollup \
+            --jq '[.statusCheckRollup[] | select(.name == "gate") | .conclusion] | last // ""')
           echo "number=$PR" >> "$GITHUB_OUTPUT"
           echo "head=$HEAD" >> "$GITHUB_OUTPUT"
           echo "base=$BASE" >> "$GITHUB_OUTPUT"
-          if [ "$HEAD" != "${{ github.event.workflow_run.head_sha }}" ]; then
+          if [ "$GATE" != "SUCCESS" ]; then
             echo "skip=true" >> "$GITHUB_OUTPUT"
-            echo "CI succeeded for an older head; waiting for the current run."
+            echo "Current head gate is $GATE; waiting for a successful CI run."
           else
             echo "skip=false" >> "$GITHUB_OUTPUT"
           fi

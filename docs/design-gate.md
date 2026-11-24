@@ -25,8 +25,8 @@ Claude Agent SDK agent, not by a panel and not by five models.
 - The PR can merge only when the status is `success` and no blocking issues remain.
 
 There is no waiver label. Emergency recovery is temporarily disabling branch protection, which is
-an explicit, logged action. A stale CI run for an older head is skipped; the CI run for the current
-head triggers the gate. Fork CI runs resolve the PR from the commit-to-pulls API; if no PR is found,
+an explicit, logged action. A CI run for an older head is skipped unless the current PR head's `gate` status is
+success; the CI run for the current head triggers the gate. Fork CI runs resolve the PR from the commit-to-pulls API; if no PR is found,
 the head SHA gets a failure status.
 
 ## Limits

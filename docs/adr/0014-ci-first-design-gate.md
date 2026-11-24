@@ -18,8 +18,9 @@ CI run was pending.
 - It runs only when the CI conclusion is `success`, the event was a pull request, and a PR number is
   present. A failing CI run produces no `design-review` status and no model call; the required
   `gate` check already blocks the PR.
-- The resolve job compares the CI run's head SHA with the current PR head. A stale run is skipped;
-  the CI run for the current head will trigger the gate.
+- The resolve job checks the current PR head's `gate` status instead of comparing SHAs. A CI run for
+  an older head is skipped when the current head is not green; the CI run for the current head
+  triggers the gate.
 - The gate status remains required. If CI succeeds but the gate workflow fails or the status is
   missing, the PR stays blocked (fail closed).
 
