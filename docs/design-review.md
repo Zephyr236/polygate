@@ -63,8 +63,9 @@ uv run --with 'claude-agent-sdk==0.2.188' python scripts/design_agent_sdk.py \
 ```
 
 The SDK bundles the Claude Code CLI, so no separate install is needed. `--max-turns` and
-`--budget-usd` bound each review. This is one reviewer with one report; unlike the panel, it does
-not produce independent role opinions.
+`--budget-usd` bound each review. This is one reviewer with one report; unlike the panel, it does not produce
+separate role reports. Neither mode provides independent opinions: all roles share the same model
+and context.
 
 ### CI with the SDK
 
