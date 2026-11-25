@@ -30,8 +30,8 @@ Keys are referenced by environment variable name. The gateway never stores secre
 - `[[client_key]]` entries protect `/v1/*` with per-caller provider allowlists and weights. Once any
   client key is configured, a valid client credential is required even when `PROXY_API_KEY` is unset.
   An unprovisioned client key is inactive (`401` for that key) and does not take down legacy or
-  admin traffic. Admin-only startup is allowed for remediation, but `/readyz` returns 503 until a
-  proxy credential exists; startup fails without either credential.
+  admin traffic; startup fails when no usable proxy credential exists. Admin-only startup is not
+  supported because admin routes cannot repair credentials.
 
 ## Health checks
 

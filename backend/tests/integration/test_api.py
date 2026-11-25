@@ -5,7 +5,6 @@ from __future__ import annotations
 import asyncio
 import contextlib
 from collections.abc import Callable, Iterator
-from dataclasses import replace
 from pathlib import Path
 
 import httpx
@@ -109,14 +108,6 @@ def client(tmp_path: Path, upstreams: Upstreams) -> Iterator[TestClient]:
 def test_healthz_and_readyz(client: TestClient) -> None:
     assert client.get("/healthz").json() == {"status": "ok"}
     assert client.get("/readyz").json()["status"] == "ready"
-
-
-def test_readyz_fails_without_proxy_auth(client: TestClient) -> None:
-    gateway = client.app.state.gateway_holder["gateway"]
-    gateway.config = replace(gateway.config, proxy_auth_configured=False)
-    response = client.get("/readyz")
-    assert response.status_code == 503
-    assert response.json()["proxy_auth_ready"] is False
 
 
 def test_admin_requires_token(client: TestClient) -> None:

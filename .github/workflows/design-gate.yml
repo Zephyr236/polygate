@@ -57,8 +57,12 @@ jobs:
             *) echo "trusted=false" >> "$GITHUB_OUTPUT" ;;
           esac
           if [ -z "$RUN_HEAD" ]; then
+            gh api -X POST "repos/$GITHUB_REPOSITORY/statuses/$HEAD" \
+              -f state=failure \
+              -f context=design-review \
+              -f description="Could not determine the CI-run PR head"
             echo "skip=true" >> "$GITHUB_OUTPUT"
-            echo "Could not determine the CI run's PR head; skipping."
+            echo "Could not determine the CI run's PR head; posted a failure status."
             exit 0
           fi
           if [ "$RUN_HEAD" != "$HEAD" ]; then
