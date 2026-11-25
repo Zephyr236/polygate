@@ -6,6 +6,7 @@ on:
     types: [completed]
 
 permissions:
+  checks: read
   contents: read
   pull-requests: read
 
@@ -36,13 +37,11 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           PR="${{ github.event.workflow_run.pull_requests[0].number }}"
-          RUN_HEAD="${{ github.event.workflow_run.pull_requests[0].head.sha }}"
           if [ -z "$PR" ]; then
             PR=$(gh api "repos/$GITHUB_REPOSITORY/commits/${{ github.event.workflow_run.head_sha }}/pulls" --jq '.[0].number // empty')
           fi
-          if [ -z "$RUN_HEAD" ]; then
-            RUN_HEAD=$(gh api "repos/$GITHUB_REPOSITORY/commits/${{ github.event.workflow_run.head_sha }}" --jq '.parents[1].sha // empty')
-          fi
+          MARKER=$(gh api "repos/$GITHUB_REPOSITORY/commits/${{ github.event.workflow_run.head_sha }}/check-runs?check_name=ci-head" --jq '.check_runs[0].output.summary // empty')
+          RUN_HEAD=$(printf '%s\n' "$MARKER" | sed -n 's/.*tested_head=\([0-9a-f]\{7,\}\).*/\1/p' | head -1)
           if [ -z "$PR" ]; then
             gh api -X POST "repos/$GITHUB_REPOSITORY/statuses/${{ github.event.workflow_run.head_sha }}" \
               -f state=failure -f context=design-review -f description="No pull request found for CI run" || true

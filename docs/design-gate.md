@@ -49,8 +49,9 @@ failure status.
 - If the workflow, model or status publication fails, the status is missing or failed and the PR
   stays blocked (fail closed).
 
-The gate uses the PR head recorded in the CI event; fork runs resolve through the commit-to-pulls
-API and use the merge commit's second parent. It re-checks the head after the gate wait and again
-before fetching the worktree, so a push cannot make it review the wrong tree. The gate is keyed by
-the triggering CI head SHA; stale triggers skip, and publish ignores a superseded run when a newer
-final status already exists. See [ADR 0014](adr/0014-ci-first-design-gate.md) for the trigger rules.
+The gate reads the `ci-head` check-run marker written by the CI gate job (`tested_head=<sha>`),
+resolves fork PRs through the commit-to-pulls API, and fails closed if the marker is missing. It
+re-checks the head after the gate wait and again before fetching the worktree, so a push cannot make
+it review the wrong tree. The gate is keyed by the triggering CI head SHA; stale triggers skip, and
+publish ignores a superseded run when a newer final status already exists. See
+[ADR 0014](adr/0014-ci-first-design-gate.md) for the trigger rules.

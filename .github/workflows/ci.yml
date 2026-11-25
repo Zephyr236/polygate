@@ -262,7 +262,22 @@ jobs:
     needs:
       [backend, design-rules, backend-e2e, backend-mutation, frontend, frontend-mutation, frontend-e2e, docs, secrets, docker, codeql]
     runs-on: ubuntu-24.04
+    permissions:
+      checks: write
+      contents: read
     steps:
+      - name: Record the tested pull-request head
+        if: github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh api -X POST "repos/$GITHUB_REPOSITORY/check-runs" \
+            -f name=ci-head \
+            -f head_sha="${{ github.sha }}" \
+            -f status=completed \
+            -f conclusion=success \
+            -f 'output[title]=Tested PR head' \
+            -f "output[summary]=tested_head=${{ github.event.pull_request.head.sha }}"
       - name: Require every gate to pass
         run: |
           python3 - <<'PYTHON'

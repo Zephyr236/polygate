@@ -31,14 +31,15 @@ CI run was pending.
   gate passes.
 - A PR whose CI is fixed by a rerun of the same commit may need that CI run to complete again to
   trigger the gate; a new push always does.
-- The resolve job uses the authoritative `workflow_run.pull_requests[0].head.sha` when present.
-  Fork PRs have an empty `pull_requests` array; the job resolves the PR through commit-to-pulls and
-  derives the run head from the merge commit's second parent. If neither is available it skips or
-  posts a failure status. It re-reads the PR head after the gate wait and the review job checks the
-  fetched SHA again, so a push during the wait cannot review the wrong tree. Concurrency is keyed by
-  the triggering CI head SHA; stale triggers skip, so an old completion cannot review the current
-  head or cancel its run. Publish skips a run when a newer final `design-review` status already
-  exists for the same head, so a superseded completion cannot overwrite a newer verdict.
+- The `ci` gate job creates a `ci-head` check run on the CI commit whose output records
+  `tested_head=<pull-request head>`. The resolve job reads that marker rather than inferring the
+  head from `workflow_run` fields, which can refer to the current PR head. For fork PRs the PR is
+  resolved through commit-to-pulls; a missing marker posts a failure status. It re-reads the PR head
+  after the gate wait and the review job checks the fetched SHA again, so a push during the wait
+  cannot review the wrong tree. Concurrency is keyed by the triggering CI head SHA; stale triggers
+  skip, so an old completion cannot review the current head or cancel its run. Publish skips a run
+  when a newer final `design-review` status already exists for the same head, so a superseded
+  completion cannot overwrite a newer verdict.
 - The design gate is one step behind CI, so its feedback arrives later. This is the intended cost
   trade-off.
 - The bridge uses `workflow_run`; workflows created by `GITHUB_TOKEN` cannot trigger further
