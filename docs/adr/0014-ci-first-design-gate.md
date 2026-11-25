@@ -31,9 +31,9 @@ CI run was pending.
   gate passes.
 - A PR whose CI is fixed by a rerun of the same commit may need that CI run to complete again to
   trigger the gate; a new push always does.
-- The `ci` gate job creates a `ci-head` check run on the CI commit whose output records
-  `tested_head=<pull-request head>`. The resolve job reads that marker rather than inferring the
-  head from `workflow_run` fields, which can refer to the current PR head. For fork PRs the PR is
+- The `ci` gate job creates `ci-head` check runs on **both the pull-request head and the CI
+  commit**, with output `tested_head=<pull-request head>`. The resolve job reads the marker from the
+  `workflow_run` head rather than inferring semantics from that field. For fork PRs the PR is
   resolved through commit-to-pulls; a missing marker posts a failure status. It re-reads the PR head
   after the gate wait and the review job checks the fetched SHA again, so a push during the wait
   cannot review the wrong tree. Concurrency is keyed by the triggering CI head SHA; stale triggers
