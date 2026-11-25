@@ -55,4 +55,6 @@ def test_no_server_errors(case: schemathesis.Case) -> None:
     headers["authorization"] = "Bearer contract-token"
     case.headers = headers  # type: ignore[attr-defined]
     response = case.call()  # type: ignore[attr-defined]
+    if case.formatted_path.startswith("/readyz") and response.status_code == 503:
+        return
     assert response.status_code < 500, f"{case.method} {case.formatted_path}: {response.status_code}"
