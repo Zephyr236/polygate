@@ -18,7 +18,7 @@ from polygate.storage import MetricRecord, MetricsStore
 
 @dataclass
 class Gateway:
-    """Runtime gateway state shared by API handlers."""
+    """Runtime gateway state shared by API handlers; routing policy lives in Scheduler."""
 
     config: AppConfig
     store: MetricsStore
