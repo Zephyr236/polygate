@@ -6,6 +6,7 @@ on:
     types: [completed]
 
 permissions:
+  checks: read
   contents: read
   pull-requests: read
 
@@ -40,6 +41,13 @@ jobs:
           fi
           HEAD=$(gh pr view "$PR" --repo "$GITHUB_REPOSITORY" --json headRefOid --jq .headRefOid)
           BASE=$(gh pr view "$PR" --repo "$GITHUB_REPOSITORY" --json baseRefOid --jq .baseRefOid)
+          MARKER=$(gh api "repos/$GITHUB_REPOSITORY/commits/${{ github.event.workflow_run.head_sha }}/check-runs?check_name=ci-head" --jq '.check_runs[0].output.summary // empty')
+          RUN_HEAD=$(printf '%s\n' "$MARKER" | sed -n 's/.*tested_head=\([0-9a-f]\{7,\}\).*/\1/p' | head -1)
+          if [ -z "$RUN_HEAD" ] || [ "$RUN_HEAD" != "$HEAD" ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "No matching CI-tested head; waiting for the next CI run."
+            exit 0
+          fi
           CHANGED=$(gh api "repos/$GITHUB_REPOSITORY/pulls/$PR/files?per_page=100" --jq '.[].filename')
           if ! printf '%s\n' "$CHANGED" | grep -Eq '^(backend/src/|frontend/src/|\.github/workflows/|backend/pyproject.toml|frontend/package.json)'; then
             echo "skip=true" >> "$GITHUB_OUTPUT"

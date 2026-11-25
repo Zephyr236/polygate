@@ -57,7 +57,8 @@ def _junit_results(path: Path) -> dict[str, str]:
     for case in root.iter("testcase"):
         name = str(case.get("name", ""))
         failed = any(child.tag in {"failure", "error"} for child in case)
-        results[name.lower()] = "failed" if failed else "passed"
+        skipped = any(child.tag == "skipped" for child in case)
+        results[name.lower()] = "failed" if failed else "skipped" if skipped else "passed"
     return results
 
 
@@ -110,8 +111,10 @@ def main(argv: list[str]) -> int:
     by_requirement, scenario_names = _feature_scenarios(options.features)
     for rid in scope.get("requirements") or []:
         item = requirements.get(rid) or {}
-        if item.get("severity") == "P0" and not by_requirement.get(rid):
-            problems.append(f"{rid}: P0 requirement has no @req scenario")
+        if item.get("severity") == "P0" and not any(
+            scenario["p0"] for scenario in by_requirement.get(rid, [])
+        ):
+            problems.append(f"{rid}: P0 requirement has no @p0 scenario")
     results = _junit_results(options.junit) if options.junit and options.junit.exists() else {}
     scope_p0 = [
         rid

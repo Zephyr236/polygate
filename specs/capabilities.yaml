@@ -7,4 +7,13 @@ workflows:
     agent_forbidden: ["statuses: write", "issues: write", "pull-requests: write", "actions: write"]
     publish_required: ["statuses: write", "issues: write"]
     agent_command: scripts/design_gate.py
+    agent_no_publish: true
     publish_command: scripts/design_publish.py
+  architecture-review.yml:
+    agent_job: architecture
+    publish_job: publish
+    top_level_forbidden: ["statuses: write", "issues: write", "pull-requests: write", "actions: write"]
+    agent_forbidden: ["statuses: write", "issues: write", "pull-requests: write", "actions: write"]
+    publish_required: ["statuses: write"]
+    agent_command: scripts/architecture_review.py
+    publish_command: gh api

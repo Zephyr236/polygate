@@ -13,16 +13,11 @@ SPEC.loader.exec_module(capability)
 
 
 def test_checked_in_workflow_passes() -> None:
-    assert (
-        capability.check(
-            REPO / ".github" / "workflows" / "design-gate.yml", REPO / "specs" / "capabilities.yaml"
-        )
-        == []
-    )
+    assert capability.check(REPO / ".github" / "workflows", REPO / "specs" / "capabilities.yaml") == []
 
 
 def test_write_capable_agent_is_rejected(tmp_path: Path) -> None:
-    workflow = tmp_path / "workflow.yml"
+    workflow = tmp_path / "design-gate.yml"
     workflow.write_text(
         """
 permissions:
@@ -41,5 +36,5 @@ jobs:
       - run: python3 scripts/design_publish.py
 """
     )
-    problems = capability.check(workflow, REPO / "specs" / "capabilities.yaml")
+    problems = capability.check(tmp_path, REPO / "specs" / "capabilities.yaml")
     assert any("agent job has forbidden permission" in problem for problem in problems)

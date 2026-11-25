@@ -50,6 +50,8 @@ def decision_for_report(
     """Apply the P0-only blocking policy to one review report."""
     if gate_result != "success":
         return {"status": BLOCK, "reason": "gate job did not succeed", "decisions": []}
+    if report.get("verdict") == "insufficient-context":
+        return {"status": BLOCK, "reason": "insufficient context", "decisions": []}
     findings = report.get("findings")
     if not isinstance(findings, list):
         return {"status": BLOCK, "reason": "report has no findings list", "decisions": []}

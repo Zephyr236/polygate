@@ -68,7 +68,7 @@ def skipped(state: dict[str, Any]) -> None:
 
 @given("the checked-in design-gate workflow")
 def workflow(state: dict[str, Any]) -> None:
-    state["workflow"] = ROOT / ".github" / "workflows" / "design-gate.yml"
+    state["workflow"] = ROOT / ".github" / "workflows"
     state["capabilities"] = ROOT / "specs" / "capabilities.yaml"
 
 

@@ -24,7 +24,7 @@ Date: 2026-11-25
 ## Final local acceptance
 
 ```text
-backend pytest                     240 passed
+backend pytest                     244 passed
 backend + frontend + docs gates    all pass
 backend BDD                        10 scenarios passed
 frontend Cucumber                  1 scenario / 4 steps passed

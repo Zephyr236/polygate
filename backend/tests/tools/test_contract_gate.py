@@ -75,3 +75,33 @@ def test_missing_junit_fails_closed_for_p0(tmp_path: Path, monkeypatch: pytest.M
     (tmp_path / "specs" / "scope.yaml").write_text("requirements: [AUTH-001]\n")
     monkeypatch.chdir(tmp_path)
     assert contract.main(["contract_gate.py"]) == 1
+
+
+def _p0_tree(tmp_path: Path, scenario_tag: str = "@p0") -> None:
+    (tmp_path / "specs" / "features").mkdir(parents=True)
+    (tmp_path / "specs" / "features" / "auth.feature").write_text(
+        f"@req:AUTH-001 {scenario_tag}\nFeature: auth\n  Scenario: A key stays\n    Given x\n    Then y\n"
+    )
+    (tmp_path / "specs" / "requirements.yaml").write_text(
+        "requirements:\n  AUTH-001:\n    title: Auth\n    statement: x\n    severity: P0\n"
+        "    owner: security\n    verify: [specs/features]\n"
+    )
+    (tmp_path / "specs" / "scope.yaml").write_text("requirements: [AUTH-001]\n")
+
+
+def test_skipped_scenario_does_not_count_as_passed(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    _p0_tree(tmp_path)
+    (tmp_path / "bdd.xml").write_text(
+        '<testsuites><testcase name="test_a_key_stays"><skipped/></testcase></testsuites>'
+    )
+    monkeypatch.chdir(tmp_path)
+    assert contract.main(["contract_gate.py", "--junit", "bdd.xml"]) == 1
+
+
+def test_p1_scenario_does_not_satisfy_a_p0_requirement(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _p0_tree(tmp_path, "@p1")
+    (tmp_path / "bdd.xml").write_text('<testsuites><testcase name="test_a_key_stays"/></testsuites>')
+    monkeypatch.chdir(tmp_path)
+    assert contract.main(["contract_gate.py", "--junit", "bdd.xml"]) == 1

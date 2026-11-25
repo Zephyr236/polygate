@@ -48,3 +48,8 @@ def test_p0_blocks_p1_follows_up_p2_is_advisory() -> None:
 def test_failed_gate_blocks_a_forged_pass() -> None:
     decision = gate.decision_for_report({"verdict": "pass", "findings": []}, {}, gate_result="failure")
     assert decision["status"] == "block"
+
+
+def test_insufficient_context_blocks() -> None:
+    decision = gate.decision_for_report({"verdict": "insufficient-context", "findings": []}, {})
+    assert decision["status"] == "block"

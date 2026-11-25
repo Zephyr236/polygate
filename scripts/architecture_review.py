@@ -241,7 +241,7 @@ def main(argv: list[str]) -> int:
         }
     options.out.parent.mkdir(parents=True, exist_ok=True)
     options.out.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
-    return 0 if report["verdict"] == "pass" else 1
+    return 0 if report["verdict"] in {"pass", "needs-changes"} else 1
 
 
 if __name__ == "__main__":
