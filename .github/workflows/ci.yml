@@ -4,7 +4,7 @@ on:
   push:
     branches: [main]
   pull_request:
-    branches: [main]
+    branches: [main, "fix/gate-59-60"]
 
 concurrency:
   group: ci-${{ github.ref }}
