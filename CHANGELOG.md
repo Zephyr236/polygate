@@ -6,6 +6,8 @@ All notable changes are documented here. The format follows Keep a Changelog and
 
 ### Added
 
+- Acceptance contract: `specs/requirements.yaml`, Gherkin scenarios, pytest-bdd/Cucumber
+  execution, contract/capability/ADR/TLA+ gates, OpenSpec validation, ADR 0017 and CI wiring.
 - Advisory design-review prototype (`scripts/design_review.py`), a multi-role panel
   (`scripts/design_panel.py`), a design-brief template, and ADR 0009. A label-gated Claude Code CI
   workflow runs the base-branch panel against the PR head as data and uploads one report per role.

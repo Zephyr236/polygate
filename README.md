@@ -179,6 +179,12 @@ unprovisioned optional key is inactive (`401` for that key) and does not take do
 traffic; startup fails when no usable proxy credential exists. Leave both unset for
 loopback-only development.
 
+## Acceptance contract
+
+Requirements, Gherkin scenarios and review findings share stable IDs in `specs/`. P0 requirements
+need a passing scenario; P0 findings block, P1 findings follow up, P2 findings are advisory. See
+[docs/acceptance-contract.md](docs/acceptance-contract.md).
+
 ## Quality gates
 
 Merge to `main` requires the aggregated `gate` check and the agent `design-review` status. Every job in

@@ -11,6 +11,8 @@ nav:
   - Gates: gates.md
   - Design review: design-review.md
   - Required design gate: design-gate.md
+  - Acceptance contract: acceptance-contract.md
+  - Acceptance results: acceptance-results.md
   - Design brief template: templates/design-brief.md
   - Frontend: frontend.md
   - API: api.md
@@ -32,3 +34,4 @@ nav:
   - ADR 0014 - CI-first design gate: adr/0014-ci-first-design-gate.md
   - ADR 0015 - Review agent tools: adr/0015-review-agent-tools.md
   - ADR 0016 - Review agent bypass: adr/0016-review-agent-bypass.md
+  - ADR 0017 - Acceptance contract: adr/0017-acceptance-contract.md

@@ -1,0 +1,10 @@
+version: 1
+workflows:
+  design-gate.yml:
+    agent_job: design_gate
+    publish_job: publish
+    top_level_forbidden: ["statuses: write", "issues: write", "pull-requests: write", "actions: write"]
+    agent_forbidden: ["statuses: write", "issues: write", "pull-requests: write", "actions: write"]
+    publish_required: ["statuses: write", "issues: write"]
+    agent_command: scripts/design_gate.py
+    publish_command: scripts/design_publish.py

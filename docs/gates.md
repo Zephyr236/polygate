@@ -87,3 +87,12 @@ CRAP combines complexity with coverage, so a complex but well-tested function ca
 
 A pull request merges only when the aggregated `gate` check passes. See
 [ADR 0008](adr/0008-ci-only-gates.md) for the CI-only policy.
+
+
+## Acceptance contract
+
+`specs/requirements.yaml` maps requirement IDs to severity, owner and verification targets. Gherkin
+features carry `@req:<ID>` tags and run through pytest-bdd or Cucumber.js. `scripts/contract_gate.py`
+checks P0 scenario coverage and JUnit results; `scripts/gate_contract.py` applies the finding policy;
+`scripts/capability_gate.py` checks the workflow capability split; `specs/tla/gate.tla` model-checks
+the review state machine. See [acceptance-contract.md](acceptance-contract.md).

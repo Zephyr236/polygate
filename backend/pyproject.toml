@@ -74,6 +74,22 @@ markers = [
   "real: hits live upstream providers (requires API keys and network)",
   "e2e: spins up the gateway and fake upstreams on loopback",
   "contract: fuzzes the OpenAPI surface with schemathesis",
+  "acceptance",
+  "auth",
+  "gate",
+  "frontend",
+  "p0",
+  "p1",
+  "req:AUTH-001",
+  "req:AUTH-002",
+  "req:ROUTE-001",
+  "req:CFG-001",
+  "req:GATE-002",
+  "req:GATE-003",
+  "req:GATE-004",
+  "req:GATE-005",
+  "req:GATE-006",
+  "req:TEST-001",
 ]
 filterwarnings = [
   "error",
@@ -148,6 +164,8 @@ exclude_dirs = ["tests", ".venv", "node_modules", ".mypy_cache"]
 dev = [
     "deptry>=0.25.1",
     "import-linter>=2.15",
+    "pytest-bdd>=9.0.1",
+    "pyyaml>=6.0.4",
     "semgrep>=1.172.0",
 ]
 

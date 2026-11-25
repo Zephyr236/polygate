@@ -132,6 +132,9 @@ jobs:
           cache: pnpm
           cache-dependency-path: frontend/pnpm-lock.yaml
       - run: pnpm install --frozen-lockfile
+      - run: pnpm run gherkin:lint
+      - run: pnpm run bdd
+      - run: pnpm run openspec:validate
       - run: pnpm run lint
       - run: pnpm run format:check
       - run: pnpm run typecheck
@@ -257,10 +260,39 @@ jobs:
       - name: Fail on high or critical CodeQL findings
         run: python3 scripts/codeql_gate.py codeql-results
 
+  contract:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.12"
+          enable-cache: true
+      - run: cd backend && uv sync --extra dev --frozen
+      - name: BDD scenarios
+        run: cd backend && uv run pytest tests/bdd --junitxml=bdd.xml
+      - name: Requirements and finding policy
+        run: backend/.venv/bin/python scripts/contract_gate.py --junit backend/bdd.xml --out contract.json
+      - name: ADR contract
+        run: backend/.venv/bin/python scripts/adr_gate.py
+      - name: Workflow capability contract
+        run: backend/.venv/bin/python scripts/capability_gate.py
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - name: Gate state-machine model
+        run: backend/.venv/bin/python scripts/tla_gate.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: contract-report
+          path: contract.json
+
   gate:
     if: always()
     needs:
-      [backend, design-rules, backend-e2e, backend-mutation, frontend, frontend-mutation, frontend-e2e, docs, secrets, docker, codeql]
+      [backend, design-rules, backend-e2e, backend-mutation, frontend, frontend-mutation, frontend-e2e, docs, secrets, docker, codeql, contract]
     runs-on: ubuntu-24.04
     permissions:
       checks: write

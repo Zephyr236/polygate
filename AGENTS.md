@@ -26,6 +26,16 @@ scripts/          gate.py plus per-tool threshold readers
 - Cost is always `cost_coefficient * window_multiplier * price(tokens)`; the dashboard and the `cost` column must agree.
 - A caller key may route only to its non-empty `allowed_providers`; no fallback may cross that allowlist. Only legacy `PROXY_API_KEY` spans every provider.
 
+## Acceptance contract
+
+- `specs/requirements.yaml` is the canonical requirement catalog; `specs/scope.yaml` lists the
+  requirements changed by a change.
+- Gherkin features in `specs/features/` must tag scenarios with `@req:<ID>` and `@p0`/`@p1`.
+  Python scenarios run with pytest-bdd; frontend scenarios run with Cucumber.js.
+- `scripts/contract_gate.py` checks requirement coverage and JUnit results; review findings must
+  carry `requirement_id` and `severity`. P0 blocks, P1 follows up, P2 is advisory.
+- Run `backend/.venv/bin/python scripts/acceptance_gate.py` for the full local acceptance chain.
+
 ## How to run gates
 
 ```sh
@@ -63,6 +73,7 @@ Mutation runs are slow. Backend uses `mutmut` on the routing/provider/protocol l
 | Cohesion and duplication | `scripts/cohesion_gate.py`, `.jscpd.json` |
 | Property and contract tests | `backend/tests/unit/test_state_machines.py`, `backend/tests/e2e/test_contracts.py` |
 | Architectural decisions | `docs/adr/` plus `docs/adr/index.md` |
+| Requirements and scenarios | `specs/requirements.yaml`, `specs/features/`, `scripts/contract_gate.py` |
 
 ## Merge policy
 

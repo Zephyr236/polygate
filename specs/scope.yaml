@@ -1,0 +1,4 @@
+change: acceptance-contract
+title: Shared acceptance contract for design review
+requirements:
+  [AUTH-001, AUTH-002, ROUTE-001, CFG-001, GATE-002, GATE-003, GATE-004, GATE-005, GATE-006, DOC-001]
