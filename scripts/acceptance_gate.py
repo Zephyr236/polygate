@@ -29,6 +29,7 @@ def main() -> int:
         ),
         ([str(BACKEND / ".venv" / "bin" / "python"), "scripts/adr_gate.py"], ROOT),
         ([str(BACKEND / ".venv" / "bin" / "python"), "scripts/capability_gate.py"], ROOT),
+        ([str(BACKEND / ".venv" / "bin" / "python"), "scripts/architecture_gate.py"], ROOT),
         ([str(BACKEND / ".venv" / "bin" / "python"), "scripts/tla_gate.py"], ROOT),
         (["pnpm", "run", "gherkin:lint"], FRONTEND),
         (["pnpm", "run", "bdd"], FRONTEND),

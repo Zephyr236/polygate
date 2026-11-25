@@ -36,6 +36,16 @@ scripts/          gate.py plus per-tool threshold readers
   carry `requirement_id` and `severity`. P0 blocks, P1 follows up, P2 is advisory.
 - Run `backend/.venv/bin/python scripts/acceptance_gate.py` for the full local acceptance chain.
 
+## Architecture review
+
+- `docs/architecture.md`, `specs/architecture.yaml` and `specs/architecture-baseline.json` define the
+  structural principles and ratchet.
+- `scripts/architecture_metrics.py` computes module size, import edges and cycles;
+  `scripts/architecture_gate.py` fails on new cycles or a larger largest module.
+- `scripts/architecture_review.py` is a separate advisory agent; it must cite a principle and
+  document, reports at most five findings, and is not a required merge status initially. It runs only
+  after CI succeeds and only for architecture-sensitive changed paths.
+
 ## How to run gates
 
 ```sh
@@ -74,6 +84,7 @@ Mutation runs are slow. Backend uses `mutmut` on the routing/provider/protocol l
 | Property and contract tests | `backend/tests/unit/test_state_machines.py`, `backend/tests/e2e/test_contracts.py` |
 | Architectural decisions | `docs/adr/` plus `docs/adr/index.md` |
 | Requirements and scenarios | `specs/requirements.yaml`, `specs/features/`, `scripts/contract_gate.py` |
+| Architecture review | `docs/architecture.md`, `specs/architecture.yaml`, `scripts/architecture_*.py` |
 
 ## Merge policy
 

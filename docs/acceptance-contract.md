@@ -77,3 +77,6 @@ capability and contract checks.
 3. Add a `@req:` scenario; make it pass.
 4. Update the ADR if a decision changed.
 5. Run the gates above.
+
+The publish job has a per-PR concurrency group (`cancel-in-progress: false`), so publication is
+serialized; `design_publish.py` additionally skips a run when a newer final status exists.

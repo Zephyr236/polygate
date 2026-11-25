@@ -15,3 +15,5 @@
 Acceptance contract: [acceptance-contract.md](acceptance-contract.md).
 
 Acceptance results: [acceptance-results.md](acceptance-results.md).
+
+Architecture review: [architecture-review.md](architecture-review.md).

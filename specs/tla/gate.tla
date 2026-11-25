@@ -1,4 +1,6 @@
 ---- MODULE gate ----
+\* Publication is serialized by the publish job's per-PR concurrency group;
+\* the model assumes one publisher at a time and checks the ownership properties.
 EXTENDS Naturals, TLC
 
 CONSTANTS Heads, Runs

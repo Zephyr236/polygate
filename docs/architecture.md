@@ -34,3 +34,7 @@ These directions are enforced by `import-linter` contracts in `backend/pyproject
 ## Streaming
 
 Streaming replies are emitted with the exact frame shapes of each protocol. The gateway buffers a lane's output until the attempt completes, so a provider that fails before its first token can be replaced without corrupting the client stream. Once a delivery has started, a failure is raised instead of silently switching channels.
+
+
+See [architecture-review.md](architecture-review.md) for the advisory review rubric and the
+metrics ratchet.

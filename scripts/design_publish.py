@@ -15,6 +15,7 @@ from typing import Any
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import design_gate
+import gate_contract
 
 
 def _failure_report(message: str) -> dict[str, Any]:
@@ -29,6 +30,9 @@ def _failure_report(message: str) -> dict[str, Any]:
                 "why": message,
                 "evidence": "The gate failed before it could decide.",
                 "fix": "Fix the gate failure and push again.",
+                "requirement_id": "GATE-006",
+                "severity": "P0",
+                "doc_ref": "docs/acceptance-contract.md#finding-policy",
             }
         ],
         "questions": [],
@@ -40,14 +44,7 @@ def _superseded(repo: str, sha: str, started_at: str) -> bool:
     if not started_at:
         return False
     statuses = design_gate._gh("GET", f"/repos/{repo}/commits/{sha}/statuses?per_page=100")
-    for status in statuses if isinstance(statuses, list) else []:
-        if (
-            status.get("context") == design_gate.CONTEXT
-            and status.get("state") in {"success", "failure"}
-            and str(status.get("created_at", "")) > started_at
-        ):
-            return True
-    return False
+    return gate_contract.is_superseded(started_at, statuses if isinstance(statuses, list) else [])
 
 
 def _load_report(path: Path) -> dict[str, Any]:
@@ -74,6 +71,7 @@ def main(argv: list[str]) -> int:
     parser.add_argument("--report", type=Path)
     parser.add_argument("--gate-result", default="success")
     parser.add_argument("--started-at", default="")
+    parser.add_argument("--requirements", type=Path, default=Path("specs/requirements.yaml"))
     parser.add_argument("--pending", action="store_true")
     options = parser.parse_args(argv[1:])
     try:
@@ -83,18 +81,29 @@ def main(argv: list[str]) -> int:
         if _superseded(options.repo_slug, options.sha, options.started_at):
             print("a newer design-review status already exists; skipping", file=sys.stderr)
             return 0
+        requirements = design_gate.load_requirements(options.requirements)
         if options.gate_result != "success":
             report = _failure_report(f"Design gate job ended {options.gate_result}")
         else:
             report = _load_report(options.report) if options.report else _failure_report("No report path")
+        decision = gate_contract.decision_for_report(report, requirements, options.gate_result)
         findings = report.get("findings", [])
-        design_gate.reconcile_issues(options.repo_slug, options.pr, options.sha, findings)
-        passed = report.get("verdict") == "pass" and not findings
+        decisions = decision.get("decisions", [])
+        blocking = [
+            finding
+            for finding, item in zip(findings, decisions, strict=False)
+            if item.get("decision") == gate_contract.BLOCK
+        ]
+        if decision["status"] == gate_contract.BLOCK and not blocking:
+            report = _failure_report("Design gate could not produce an actionable decision")
+            blocking = report["findings"]
+        design_gate.reconcile_issues(options.repo_slug, options.pr, options.sha, blocking)
+        passed = decision["status"] != gate_contract.BLOCK
         design_gate.set_status(
             options.repo_slug,
             options.sha,
             "success" if passed else "failure",
-            "Design gate passed" if passed else f"{len(findings)} blocking finding(s)",
+            "Design gate passed" if passed else f"{len(blocking)} blocking finding(s)",
         )
         return 0 if passed else 1
     except (design_gate.GateError, KeyError, TypeError) as error:

@@ -22,6 +22,7 @@ considered and what was rejected.
 | [0015](0015-review-agent-tools.md) | Read-only Bash and a verifier subagent for trusted PRs | Superseded by 0016 |
 | [0016](0016-review-agent-bypass.md) | The design reviewer runs with full tool access and bypass permissions | Accepted |
 | [0017](0017-acceptance-contract.md) | Requirements, scenarios and review findings share IDs and severity policy | Accepted |
+| [0018](0018-architecture-review.md) | A separate advisory architecture review with a metrics ratchet | Accepted |
 
 ## Writing a new ADR
 

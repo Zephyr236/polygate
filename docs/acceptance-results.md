@@ -15,13 +15,16 @@ Date: 2026-11-25
 - `scripts/gate_contract.py`: pure stale-head, supersession and severity model.
 - `scripts/capability_gate.py`: agent/publish workflow capability check.
 - `scripts/tla_gate.py` + `specs/tla/gate.tla`: TLC model of the review state machine.
+- `scripts/architecture_metrics.py` + `scripts/architecture_gate.py`: architecture ratchet.
+- `scripts/architecture_review.py`: separate advisory architecture agent; `architecture-review.yml`.
+- `specs/architecture.yaml`, `specs/architecture-baseline.json`, ADR 0018.
 - `.github/workflows/ci.yml`: `contract` job added to the aggregate gate; frontend job runs Gherkin,
   Cucumber and OpenSpec validation.
 
 ## Final local acceptance
 
 ```text
-backend pytest                     235 passed
+backend pytest                     240 passed
 backend + frontend + docs gates    all pass
 backend BDD                        10 scenarios passed
 frontend Cucumber                  1 scenario / 4 steps passed
@@ -32,6 +35,8 @@ capability contract                passed
 TLA+ TLC                           1,782 states generated / 471 distinct / 0 errors
 contract gate                      13 requirements / 10 scope / 0 problems
 design finding policy              pass
+architecture ratchet               Python 25 files / 2,786 lines / max 307; frontend 13 / 1,457; 0 cycles
+architecture review                advisory workflow; 2 USD budget; changed-path only
 ```
 
 ## Historical replay (56 design-review findings, #24–#84)

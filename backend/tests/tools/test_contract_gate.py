@@ -61,3 +61,17 @@ def test_p0_design_finding_blocks(tmp_path: Path, monkeypatch: pytest.MonkeyPatc
     )
     monkeypatch.chdir(tmp_path)
     assert contract.main(["contract_gate.py", "--design-report", "report.json"]) == 1
+
+
+def test_missing_junit_fails_closed_for_p0(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    (tmp_path / "specs" / "features").mkdir(parents=True)
+    (tmp_path / "specs" / "features" / "auth.feature").write_text(
+        "@req:AUTH-001 @p0\nFeature: auth\n  Scenario: A key stays inside\n    Given x\n    Then y\n"
+    )
+    (tmp_path / "specs" / "requirements.yaml").write_text(
+        "requirements:\n  AUTH-001:\n    title: Auth\n    statement: x\n    severity: P0\n"
+        "    owner: security\n    verify: [specs/features]\n"
+    )
+    (tmp_path / "specs" / "scope.yaml").write_text("requirements: [AUTH-001]\n")
+    monkeypatch.chdir(tmp_path)
+    assert contract.main(["contract_gate.py"]) == 1

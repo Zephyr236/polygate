@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import argparse
+import sys
 from typing import Any
 
 BLOCK = "block"
@@ -78,3 +80,21 @@ def decision_for_report(
     statuses = {item["decision"] for item in decisions}
     status = BLOCK if BLOCK in statuses else FOLLOW_UP if FOLLOW_UP in statuses else ADVISORY
     return {"status": status, "decisions": decisions}
+
+
+def main() -> int:
+    """CLI used by the workflow to verify the tested head."""
+    parser = argparse.ArgumentParser(description="Gate head policy")
+    parser.add_argument("--tested", required=True)
+    parser.add_argument("--current", required=True)
+    options = parser.parse_args()
+    target = resolve_review_target(options.tested, options.current)
+    if target is None:
+        print(f"stale head: tested={options.tested} current={options.current}", file=sys.stderr)
+        return 1
+    print(target)
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

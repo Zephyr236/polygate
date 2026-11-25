@@ -130,7 +130,7 @@ jobs:
         with:
           python-version: '3.12'
       - name: Install the Claude Agent SDK
-        run: python3 -m pip install 'claude-agent-sdk==0.2.188'
+        run: python3 -m pip install 'claude-agent-sdk==0.2.188' pyyaml
       - name: Fetch the pull request head as data
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -138,10 +138,7 @@ jobs:
           git fetch --no-tags origin \
             "pull/${{ needs.resolve.outputs.number }}/head:refs/remotes/origin/pr-head"
           HEAD_SHA=$(git rev-parse refs/remotes/origin/pr-head)
-          if [ "$HEAD_SHA" != "${{ needs.resolve.outputs.head }}" ]; then
-            echo "PR head moved to $HEAD_SHA before review; waiting for the new CI run."
-            exit 1
-          fi
+          python3 scripts/gate_contract.py             --tested "${{ needs.resolve.outputs.head }}"             --current "$HEAD_SHA"
           echo "HEAD_SHA=$HEAD_SHA" >> "$GITHUB_ENV"
           git worktree add --detach /tmp/pr-head "$HEAD_SHA"
       - name: Write PR body as the design brief
@@ -161,6 +158,7 @@ jobs:
             --sha "$HEAD_SHA" \
             --brief /tmp/design-brief.md \
             --pr ${{ needs.resolve.outputs.number }} \
+            --requirements specs/requirements.yaml \
             --no-publish \
             ${{ needs.resolve.outputs.trusted == 'true' && '--allow-bash' || '' }} \
             --budget-usd 4.0 \
@@ -176,6 +174,9 @@ jobs:
     needs: [resolve, design_gate]
     if: always() && needs.resolve.result == 'success' && needs.resolve.outputs.skip != 'true'
     runs-on: ubuntu-24.04
+    concurrency:
+      group: design-gate-publish-${{ github.event.workflow_run.pull_requests[0].number || github.event.workflow_run.head_sha }}
+      cancel-in-progress: false
     permissions:
       actions: read
       contents: read
@@ -201,6 +202,7 @@ jobs:
             --repo-slug "$GITHUB_REPOSITORY" \
             --pr ${{ needs.resolve.outputs.number }} \
             --sha ${{ needs.resolve.outputs.head }} \
+            --requirements specs/requirements.yaml \
             --gate-result "${{ needs.design_gate.result }}" \
             --started-at "${{ github.run_started_at }}" \
             --report reports/design-gate.json

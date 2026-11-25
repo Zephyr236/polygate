@@ -289,10 +289,29 @@ jobs:
           name: contract-report
           path: contract.json
 
+  architecture:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.12"
+          enable-cache: true
+      - run: cd backend && uv sync --extra dev --frozen
+      - name: Architecture metrics ratchet
+        run: backend/.venv/bin/python scripts/architecture_gate.py
+      - name: Architecture metrics report
+        run: backend/.venv/bin/python scripts/architecture_metrics.py --out architecture-metrics.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: architecture-metrics
+          path: architecture-metrics.json
+
   gate:
     if: always()
     needs:
-      [backend, design-rules, backend-e2e, backend-mutation, frontend, frontend-mutation, frontend-e2e, docs, secrets, docker, codeql, contract]
+      [backend, design-rules, backend-e2e, backend-mutation, frontend, frontend-mutation, frontend-e2e, docs, secrets, docker, codeql, contract, architecture]
     runs-on: ubuntu-24.04
     permissions:
       checks: write

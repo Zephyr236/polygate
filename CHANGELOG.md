@@ -6,6 +6,8 @@ All notable changes are documented here. The format follows Keep a Changelog and
 
 ### Added
 
+- Architecture review: metrics/ratchet (`scripts/architecture_metrics.py`, `architecture_gate.py`),
+  architecture principles, an advisory agent, and ADR 0018.
 - Acceptance contract: `specs/requirements.yaml`, Gherkin scenarios, pytest-bdd/Cucumber
   execution, contract/capability/ADR/TLA+ gates, OpenSpec validation, ADR 0017 and CI wiring.
 - Advisory design-review prototype (`scripts/design_review.py`), a multi-role panel

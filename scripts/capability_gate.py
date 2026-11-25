@@ -34,6 +34,9 @@ def check(workflow_path: Path, spec_path: Path) -> list[str]:
             scope, _, value = str(permission).partition(": ")
             if str(top.get(scope, "")) == value:
                 violations.append(f"top-level permission {scope}: {value} is forbidden")
+        for scope, value in agent_permissions.items():
+            if value == "write":
+                violations.append(f"agent job has forbidden write permission {scope}")
         for permission in workflow_spec.get("agent_forbidden", []):
             scope, _, value = str(permission).partition(": ")
             if agent_permissions.get(scope) == value:

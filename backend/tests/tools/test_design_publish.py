@@ -32,6 +32,8 @@ def _args(report: Path) -> list[str]:
         "abc",
         "--report",
         str(report),
+        "--requirements",
+        str(REPO / "specs" / "requirements.yaml"),
     ]
 
 
@@ -89,3 +91,61 @@ def test_superseded_run_does_not_overwrite_newer_status(monkeypatch, tmp_path: P
     args = [*_args(report), "--started-at", "2026-11-25T10:00:00Z"]
     assert publish.main(args) == 0
     assert calls == []
+
+
+def test_p1_finding_does_not_block(monkeypatch, tmp_path: Path) -> None:
+    calls: list[tuple[str, str, str]] = []
+    monkeypatch.setattr(publish.design_gate, "set_status", lambda *args: calls.append(args))
+    monkeypatch.setattr(publish.design_gate, "reconcile_issues", lambda *args: None)
+    report = _report(
+        tmp_path,
+        {
+            "verdict": "needs-changes",
+            "summary": "follow-up",
+            "findings": [
+                {
+                    "title": "p1",
+                    "path": "x",
+                    "line": 1,
+                    "why": "w",
+                    "evidence": "e",
+                    "fix": "f",
+                    "requirement_id": "GATE-003",
+                    "severity": "P1",
+                    "doc_ref": "docs/acceptance-contract.md",
+                }
+            ],
+            "questions": [],
+        },
+    )
+    assert publish.main(_args(report)) == 0
+    assert calls[-1][2] == "success"
+
+
+def test_p0_finding_blocks(monkeypatch, tmp_path: Path) -> None:
+    calls: list[tuple[str, str, str]] = []
+    monkeypatch.setattr(publish.design_gate, "set_status", lambda *args: calls.append(args))
+    monkeypatch.setattr(publish.design_gate, "reconcile_issues", lambda *args: None)
+    report = _report(
+        tmp_path,
+        {
+            "verdict": "needs-changes",
+            "summary": "block",
+            "findings": [
+                {
+                    "title": "p0",
+                    "path": "x",
+                    "line": 1,
+                    "why": "w",
+                    "evidence": "e",
+                    "fix": "f",
+                    "requirement_id": "GATE-002",
+                    "severity": "P0",
+                    "doc_ref": "docs/acceptance-contract.md",
+                }
+            ],
+            "questions": [],
+        },
+    )
+    assert publish.main(_args(report)) == 1
+    assert calls[-1][2] == "failure"

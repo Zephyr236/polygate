@@ -98,6 +98,7 @@ def main(argv: list[str]) -> int:
     parser.add_argument("--scope", type=Path, default=Path("specs/scope.yaml"))
     parser.add_argument("--features", type=Path, default=Path("specs/features"))
     parser.add_argument("--junit", type=Path)
+    parser.add_argument("--allow-missing-results", action="store_true")
     parser.add_argument("--design-report", type=Path)
     parser.add_argument("--out", type=Path)
     options = parser.parse_args(argv[1:])
@@ -112,12 +113,19 @@ def main(argv: list[str]) -> int:
         if item.get("severity") == "P0" and not by_requirement.get(rid):
             problems.append(f"{rid}: P0 requirement has no @req scenario")
     results = _junit_results(options.junit) if options.junit and options.junit.exists() else {}
+    scope_p0 = [
+        rid
+        for rid in scope.get("requirements") or []
+        if (requirements.get(rid) or {}).get("severity") == "P0"
+    ]
+    if scope_p0 and not results and not options.allow_missing_results:
+        problems.append("JUnit results are required for a P0 scope")
     for rid, scenarios in by_requirement.items():
         for scenario in scenarios:
             if not scenario["p0"]:
                 continue
-            state = _scenario_result(scenario["name"], results) if results else "passed"
-            if state != "passed":
+            state = _scenario_result(scenario["name"], results) if results else None
+            if state != "passed" and (results or not options.allow_missing_results):
                 problems.append(f"{rid}: P0 scenario did not pass: {scenario['name']}")
     decision = {"status": "pass", "decisions": []}
     if options.design_report and options.design_report.exists():
