@@ -29,7 +29,9 @@ Keys are referenced by environment variable name. The gateway never stores secre
 - `PROXY_API_KEY` is the legacy all-provider credential for `/v1/*`.
 - `[[client_key]]` entries protect `/v1/*` with per-caller provider allowlists and weights. Once any
   client key is configured, a valid client credential is required even when `PROXY_API_KEY` is unset.
-  A client-key set with no active `api_key_env` fails at startup.
+  An unprovisioned client key is inactive (`401` for that key) and does not take down legacy or
+  admin traffic; startup fails when no usable proxy credential exists. Admin-only startup is not
+  supported because admin routes cannot repair credentials.
 
 ## Health checks
 

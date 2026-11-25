@@ -22,3 +22,7 @@ backend/.runtime-reqs.txt
 reports/
 site/
 site/
+
+.cache/
+
+backend/bdd.xml

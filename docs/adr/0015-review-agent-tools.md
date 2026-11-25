@@ -1,6 +1,6 @@
 # ADR 0015: Give the design agent read-only Bash and a verifier subagent
 
-- Status: Accepted
+- Status: Superseded by [0016](0016-review-agent-bypass.md)
 - Date: 2026-11-24
 - Deciders: polygate maintainers
 

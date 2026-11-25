@@ -6,10 +6,9 @@ on:
     types: [completed]
 
 permissions:
+  checks: read
   contents: read
-  issues: write
-  pull-requests: write
-  statuses: write
+  pull-requests: read
 
 concurrency:
   group: design-gate-${{ github.event.workflow_run.head_sha }}
@@ -21,6 +20,11 @@ jobs:
       ${{ github.event.workflow_run.conclusion == 'success' &&
           github.event.workflow_run.event == 'pull_request' }}
     runs-on: ubuntu-24.04
+    permissions:
+      checks: read
+      contents: read
+      pull-requests: read
+      statuses: write
     outputs:
       number: ${{ steps.pr.outputs.number }}
       head: ${{ steps.pr.outputs.head }}
@@ -37,6 +41,8 @@ jobs:
           if [ -z "$PR" ]; then
             PR=$(gh api "repos/$GITHUB_REPOSITORY/commits/${{ github.event.workflow_run.head_sha }}/pulls" --jq '.[0].number // empty')
           fi
+          MARKER=$(gh api "repos/$GITHUB_REPOSITORY/commits/${{ github.event.workflow_run.head_sha }}/check-runs?check_name=ci-head" --jq '.check_runs[0].output.summary // empty')
+          RUN_HEAD=$(printf '%s\n' "$MARKER" | sed -n 's/.*tested_head=\([0-9a-f]\{7,\}\).*/\1/p' | head -1)
           if [ -z "$PR" ]; then
             gh api -X POST "repos/$GITHUB_REPOSITORY/statuses/${{ github.event.workflow_run.head_sha }}" \
               -f state=failure -f context=design-review -f description="No pull request found for CI run" || true
@@ -50,6 +56,20 @@ jobs:
             OWNER|MEMBER|COLLABORATOR) echo "trusted=true" >> "$GITHUB_OUTPUT" ;;
             *) echo "trusted=false" >> "$GITHUB_OUTPUT" ;;
           esac
+          if [ -z "$RUN_HEAD" ]; then
+            gh api -X POST "repos/$GITHUB_REPOSITORY/statuses/$HEAD" \
+              -f state=failure \
+              -f context=design-review \
+              -f description="Could not determine the CI-run PR head"
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "Could not determine the CI run's PR head; posted a failure status."
+            exit 0
+          fi
+          if [ "$RUN_HEAD" != "$HEAD" ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "CI run reviewed $RUN_HEAD, current head is $HEAD; skipping."
+            exit 0
+          fi
           GATE=""
           for _ in $(seq 1 45); do
             GATE=$(gh pr view "$PR" --repo "$GITHUB_REPOSITORY" --json statusCheckRollup \
@@ -64,6 +84,12 @@ jobs:
             esac
             sleep 20
           done
+          HEAD_AFTER=$(gh pr view "$PR" --repo "$GITHUB_REPOSITORY" --json headRefOid --jq .headRefOid)
+          if [ "$HEAD_AFTER" != "$HEAD" ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "PR head moved from $HEAD to $HEAD_AFTER while waiting; the new CI run will review it."
+            exit 0
+          fi
           echo "number=$PR" >> "$GITHUB_OUTPUT"
           echo "head=$HEAD" >> "$GITHUB_OUTPUT"
           echo "base=$BASE" >> "$GITHUB_OUTPUT"
@@ -74,8 +100,24 @@ jobs:
             echo "skip=false" >> "$GITHUB_OUTPUT"
           fi
 
-  design_gate:
+  prepare:
     needs: resolve
+    if: needs.resolve.outputs.skip != 'true'
+    runs-on: ubuntu-24.04
+    permissions:
+      statuses: write
+    steps:
+      - name: Mark the design review pending
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh api -X POST "repos/$GITHUB_REPOSITORY/statuses/${{ needs.resolve.outputs.head }}" \
+            -f state=pending \
+            -f context=design-review \
+            -f description="Design review running"
+
+  design_gate:
+    needs: [resolve, prepare]
     if: needs.resolve.outputs.skip != 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 30
@@ -88,7 +130,7 @@ jobs:
         with:
           python-version: '3.12'
       - name: Install the Claude Agent SDK
-        run: python3 -m pip install 'claude-agent-sdk==0.2.188'
+        run: python3 -m pip install 'claude-agent-sdk==0.2.188' pyyaml
       - name: Fetch the pull request head as data
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -96,6 +138,7 @@ jobs:
           git fetch --no-tags origin \
             "pull/${{ needs.resolve.outputs.number }}/head:refs/remotes/origin/pr-head"
           HEAD_SHA=$(git rev-parse refs/remotes/origin/pr-head)
+          python3 scripts/gate_contract.py             --tested "${{ needs.resolve.outputs.head }}"             --current "$HEAD_SHA"
           echo "HEAD_SHA=$HEAD_SHA" >> "$GITHUB_ENV"
           git worktree add --detach /tmp/pr-head "$HEAD_SHA"
       - name: Write PR body as the design brief
@@ -104,7 +147,6 @@ jobs:
         run: gh pr view ${{ needs.resolve.outputs.number }} --json body --jq .body > /tmp/design-brief.md
       - name: Run the design gate
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           DESIGN_REVIEW_API_KEY: ${{ secrets.ZEN_API_KEY }}
           ANTHROPIC_BASE_URL: https://opencode.ai/zen/go
           ANTHROPIC_MODEL: deepseek-v4.1-flash
@@ -116,7 +158,8 @@ jobs:
             --sha "$HEAD_SHA" \
             --brief /tmp/design-brief.md \
             --pr ${{ needs.resolve.outputs.number }} \
-            --repo-slug "$GITHUB_REPOSITORY" \
+            --requirements specs/requirements.yaml \
+            --no-publish \
             ${{ needs.resolve.outputs.trusted == 'true' && '--allow-bash' || '' }} \
             --budget-usd 4.0 \
             --out reports/design-gate.json
@@ -127,12 +170,44 @@ jobs:
           name: design-gate-report
           path: reports/design-gate.json
           if-no-files-found: warn
-      - name: Fail closed on workflow errors
-        if: failure()
+  publish:
+    needs: [resolve, design_gate]
+    if: always() && needs.resolve.result == 'success' && needs.resolve.outputs.skip != 'true'
+    runs-on: ubuntu-24.04
+    concurrency:
+      group: design-gate-publish-${{ github.event.workflow_run.pull_requests[0].number || github.event.workflow_run.head_sha }}
+      cancel-in-progress: false
+    permissions:
+      actions: read
+      contents: read
+      issues: write
+      pull-requests: write
+      statuses: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.resolve.outputs.base }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install the publisher dependency
+        run: python3 -m pip install pyyaml
+      - name: Download the gate report
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          name: design-gate-report
+          path: reports
+      - name: Publish the verdict and blocking issues
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh api -X POST "repos/${{ github.repository }}/statuses/${{ needs.resolve.outputs.head }}" \
-            -f state=failure \
-            -f context=design-review \
-            -f description="Design gate workflow failed"
+          python3 scripts/design_publish.py \
+            --repo-slug "$GITHUB_REPOSITORY" \
+            --pr ${{ needs.resolve.outputs.number }} \
+            --sha ${{ needs.resolve.outputs.head }} \
+            --requirements specs/requirements.yaml \
+            --gate-result "${{ needs.design_gate.result }}" \
+            --started-at "${{ github.run_started_at }}" \
+            --report reports/design-gate.json

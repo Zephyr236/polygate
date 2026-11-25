@@ -1,0 +1,104 @@
+version: 1
+owner: platform
+requirements:
+  AUTH-001:
+    title: Caller keys cannot cross their provider allowlist
+    statement: >-
+      A request authenticated by a client key may route only to providers in that key's
+      allowed_providers; a key value that aliases another principal is rejected.
+    severity: P0
+    owner: security
+    adr: [0011]
+    verify: [specs/features/auth.feature, backend/tests/unit/test_client_keys.py]
+  AUTH-002:
+    title: Readiness reflects usable proxy authentication
+    statement: A process that cannot serve /v1 must not report ready to an orchestrator.
+    severity: P1
+    owner: operations
+    adr: [0011]
+    verify: [specs/features/auth.feature, backend/tests/integration/test_api.py]
+  ROUTE-001:
+    title: Per-key weights preserve documented ordering
+    statement: >-
+      Per-key weights and respect_priority must select providers according to docs/routing.md;
+      they may not silently change the documented priority contract.
+    severity: P1
+    owner: routing
+    adr: [0011]
+    verify: [backend/tests/unit/test_scheduler.py, docs/routing.md]
+  CFG-001:
+    title: Optional credentials degrade locally
+    statement: A missing optional client-key or provider credential affects only that credential.
+    severity: P1
+    owner: platform
+    adr: [0011]
+    verify: [specs/features/auth.feature, backend/tests/unit/test_client_keys.py]
+  GATE-001:
+    title: Red CI spends no review budget
+    statement: A pull request whose deterministic CI is not green must not invoke the design agent.
+    severity: P1
+    owner: platform
+    adr: [0014]
+    verify: [.github/workflows/design-gate.yml]
+  GATE-002:
+    title: Review applies only to the tested head
+    statement: >-
+      A review may run and publish only for the pull-request head SHA that the triggering CI
+      run tested; a stale or moved head is skipped.
+    severity: P0
+    owner: platform
+    adr: [0014]
+    verify: [specs/features/gate.feature, scripts/gate_contract.py]
+  GATE-003:
+    title: One final verdict per head
+    statement: An older review completion may not overwrite a newer final verdict for the same head.
+    severity: P1
+    owner: platform
+    adr: [0014]
+    verify: [specs/features/gate.feature, scripts/gate_contract.py]
+  GATE-004:
+    title: Agent capabilities are read-only
+    statement: >-
+      The agent job must not hold statuses, issues or pull-requests write permission; only the
+      trusted publish job may publish the verdict.
+    severity: P0
+    owner: security
+    adr: [0016]
+    verify: [specs/features/gate.feature, specs/capabilities.yaml, scripts/capability_gate.py]
+  GATE-005:
+    title: A failed gate cannot be forged into success
+    statement: >-
+      A report artifact produced by the agent is not authoritative when the agent job did not
+      succeed; a killed or failed gate must publish failure.
+    severity: P0
+    owner: security
+    adr: [0016]
+    verify: [specs/features/gate.feature, scripts/gate_contract.py]
+  GATE-006:
+    title: Gate failures are visible
+    statement: Missing or failed gate publication leaves a visible failure, never a silent pass.
+    severity: P0
+    owner: platform
+    adr: [0014]
+    verify: [specs/features/gate.feature, scripts/gate_contract.py]
+  DOC-001:
+    title: Decisions have a matching brief and ADR
+    statement: A design decision has a brief and ADR whose terms agree with the implementation.
+    severity: P2
+    owner: docs
+    adr: [0010]
+    verify: [scripts/docs_gate.py, docs/adr]
+  TEST-001:
+    title: Non-trivial behavior has an executable check
+    statement: Every non-trivial acceptance criterion has a test or Gherkin scenario.
+    severity: P1
+    owner: platform
+    adr: [0017]
+    verify: [specs/features]
+  ARCH-001:
+    title: Layer boundaries fail on a probe
+    statement: Every enforced layer rule has a deliberate violation test proving it fires.
+    severity: P1
+    owner: architecture
+    adr: [0002]
+    verify: [backend/pyproject.toml, rules]

@@ -1,0 +1,37 @@
+version: 1
+principles:
+  ARCH-LAYER-001:
+    statement: Layer directions in docs/architecture.md are enforced by import-linter.
+    severity: P0
+    doc: docs/architecture.md#module-layers
+    metric: import-linter
+  ARCH-CYCLE-001:
+    statement: No new Python or frontend dependency cycle.
+    severity: P0
+    doc: docs/architecture.md#module-layers
+    metric: scripts/architecture_gate.py
+  ARCH-SIZE-001:
+    statement: No module exceeds the size gate limit.
+    severity: P1
+    doc: docs/architecture.md
+    metric: scripts/size_gate.py
+  ARCH-COHESION-001:
+    statement: Module cohesion stays within the LCOM gate.
+    severity: P1
+    doc: docs/architecture.md
+    metric: scripts/cohesion_gate.py
+  ARCH-DUP-001:
+    statement: Duplication does not exceed the jscpd threshold.
+    severity: P1
+    doc: docs/architecture.md
+    metric: jscpd
+  ARCH-CRAP-001:
+    statement: Complexity and coverage stay within the CRAP bound.
+    severity: P1
+    doc: docs/architecture.md
+    metric: crap4py/crap-score
+  ARCH-EDGE-001:
+    statement: Side effects and credentials stay at adapter and edge layers.
+    severity: P1
+    doc: docs/architecture.md#request-flow
+    metric: semgrep/ast-grep

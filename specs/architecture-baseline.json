@@ -1,0 +1,18 @@
+{
+  "python": {
+    "files": 25,
+    "lines": 2786,
+    "max_file": {
+      "path": "backend/src/polygate/providers/base.py",
+      "lines": 307
+    },
+    "imports": 17,
+    "cycles": []
+  },
+  "frontend": {
+    "files": 13,
+    "lines": 1457,
+    "imports": 20,
+    "cycles": []
+  }
+}

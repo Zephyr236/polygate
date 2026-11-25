@@ -4,7 +4,7 @@ on:
   push:
     branches: [main]
   pull_request:
-    branches: [main]
+    branches: [main, "fix/gate-59-60"]
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -132,6 +132,9 @@ jobs:
           cache: pnpm
           cache-dependency-path: frontend/pnpm-lock.yaml
       - run: pnpm install --frozen-lockfile
+      - run: pnpm run gherkin:lint
+      - run: pnpm run bdd
+      - run: pnpm run openspec:validate
       - run: pnpm run lint
       - run: pnpm run format:check
       - run: pnpm run typecheck
@@ -257,12 +260,89 @@ jobs:
       - name: Fail on high or critical CodeQL findings
         run: python3 scripts/codeql_gate.py codeql-results
 
+  contract:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.12"
+          enable-cache: true
+      - run: cd backend && uv sync --extra dev --frozen
+      - name: BDD scenarios
+        run: cd backend && uv run pytest tests/bdd --junitxml=bdd.xml
+      - name: Requirements and finding policy
+        run: backend/.venv/bin/python scripts/contract_gate.py --junit backend/bdd.xml --out contract.json
+      - name: ADR contract
+        run: backend/.venv/bin/python scripts/adr_gate.py
+      - name: Workflow capability contract
+        run: backend/.venv/bin/python scripts/capability_gate.py
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - name: Gate state-machine model
+        run: backend/.venv/bin/python scripts/tla_gate.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: contract-report
+          path: contract.json
+
+  architecture:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.12"
+          enable-cache: true
+      - run: cd backend && uv sync --extra dev --frozen
+      - name: Load the trusted architecture baseline
+        if: github.event_name == 'pull_request'
+        run: |
+          git fetch origin "${{ github.event.pull_request.base.ref }}" --depth=1
+          if git show FETCH_HEAD:specs/architecture-baseline.json > /tmp/architecture-baseline.json 2>/dev/null; then
+            echo "ARCH_BASELINE=/tmp/architecture-baseline.json" >> "$GITHUB_ENV"
+          else
+            echo "No base baseline; this change introduces the first baseline."
+          fi
+      - name: Architecture metrics ratchet
+        run: backend/.venv/bin/python scripts/architecture_gate.py --baseline "${ARCH_BASELINE:-specs/architecture-baseline.json}"
+      - name: Architecture metrics report
+        run: backend/.venv/bin/python scripts/architecture_metrics.py --out architecture-metrics.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: architecture-metrics
+          path: architecture-metrics.json
+
   gate:
     if: always()
     needs:
-      [backend, design-rules, backend-e2e, backend-mutation, frontend, frontend-mutation, frontend-e2e, docs, secrets, docker, codeql]
+      [backend, design-rules, backend-e2e, backend-mutation, frontend, frontend-mutation, frontend-e2e, docs, secrets, docker, codeql, contract, architecture]
     runs-on: ubuntu-24.04
+    permissions:
+      checks: write
+      contents: read
     steps:
+      - name: Record the tested pull-request head
+        if: github.event_name == 'pull_request'
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          for target in "${{ github.event.pull_request.head.sha }}" "${{ github.sha }}"; do
+            gh api -X POST "repos/$GITHUB_REPOSITORY/check-runs" \
+              -f name=ci-head \
+              -f head_sha="$target" \
+              -f status=completed \
+              -f conclusion=success \
+              -f 'output[title]=Tested PR head' \
+              -f "output[summary]=tested_head=${{ github.event.pull_request.head.sha }}"
+          done
       - name: Require every gate to pass
         run: |
           python3 - <<'PYTHON'

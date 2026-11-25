@@ -1,0 +1,153 @@
+name: Architecture review
+
+on:
+  workflow_run:
+    workflows: ["ci"]
+    types: [completed]
+
+permissions:
+  checks: read
+  contents: read
+  pull-requests: read
+
+concurrency:
+  group: architecture-review-${{ github.event.workflow_run.pull_requests[0].number || github.event.workflow_run.head_sha }}
+  cancel-in-progress: true
+
+jobs:
+  resolve:
+    if: >-
+      ${{ github.event.workflow_run.conclusion == 'success' &&
+          github.event.workflow_run.event == 'pull_request' }}
+    runs-on: ubuntu-24.04
+    outputs:
+      number: ${{ steps.pr.outputs.number }}
+      head: ${{ steps.pr.outputs.head }}
+      base: ${{ steps.pr.outputs.base }}
+      skip: ${{ steps.pr.outputs.skip }}
+    steps:
+      - name: Resolve the pull request
+        id: pr
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PR="${{ github.event.workflow_run.pull_requests[0].number }}"
+          if [ -z "$PR" ]; then
+            PR=$(gh api "repos/$GITHUB_REPOSITORY/commits/${{ github.event.workflow_run.head_sha }}/pulls" --jq '.[0].number // empty')
+          fi
+          if [ -z "$PR" ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          HEAD=$(gh pr view "$PR" --repo "$GITHUB_REPOSITORY" --json headRefOid --jq .headRefOid)
+          BASE=$(gh pr view "$PR" --repo "$GITHUB_REPOSITORY" --json baseRefOid --jq .baseRefOid)
+          MARKER=$(gh api "repos/$GITHUB_REPOSITORY/commits/${{ github.event.workflow_run.head_sha }}/check-runs?check_name=ci-head" --jq '.check_runs[0].output.summary // empty')
+          RUN_HEAD=$(printf '%s\n' "$MARKER" | sed -n 's/.*tested_head=\([0-9a-f]\{7,\}\).*/\1/p' | head -1)
+          if [ -z "$RUN_HEAD" ] || [ "$RUN_HEAD" != "$HEAD" ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "No matching CI-tested head; waiting for the next CI run."
+            exit 0
+          fi
+          CHANGED=$(gh api "repos/$GITHUB_REPOSITORY/pulls/$PR/files?per_page=100" --jq '.[].filename')
+          if ! printf '%s\n' "$CHANGED" | grep -Eq '^(backend/src/|frontend/src/|\.github/workflows/|backend/pyproject.toml|frontend/package.json)'; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "No architecture-sensitive paths changed."
+            exit 0
+          fi
+          echo "number=$PR" >> "$GITHUB_OUTPUT"
+          echo "head=$HEAD" >> "$GITHUB_OUTPUT"
+          echo "base=$BASE" >> "$GITHUB_OUTPUT"
+          echo "skip=false" >> "$GITHUB_OUTPUT"
+
+  architecture:
+    needs: resolve
+    if: needs.resolve.outputs.skip != 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.resolve.outputs.base }}
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install the Claude Agent SDK
+        run: python3 -m pip install 'claude-agent-sdk==0.2.188' pyyaml
+      - name: Fetch the pull request head
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git fetch --no-tags origin "pull/${{ needs.resolve.outputs.number }}/head:refs/remotes/origin/pr-head"
+          HEAD_SHA=$(git rev-parse refs/remotes/origin/pr-head)
+          if [ "$HEAD_SHA" != "${{ needs.resolve.outputs.head }}" ]; then
+            echo "PR head moved; waiting for the next CI run."
+            exit 1
+          fi
+          echo "HEAD_SHA=$HEAD_SHA" >> "$GITHUB_ENV"
+          git worktree add --detach /tmp/pr-head "$HEAD_SHA"
+      - name: Compute architecture metrics
+        run: python3 scripts/architecture_metrics.py --root /tmp/pr-head --out /tmp/architecture-metrics.json
+      - name: Run the advisory architecture review
+        env:
+          DESIGN_REVIEW_API_KEY: ${{ secrets.ZEN_API_KEY }}
+          ANTHROPIC_BASE_URL: https://opencode.ai/zen/go
+          ANTHROPIC_MODEL: deepseek-v4.1-flash
+        run: |
+          python3 scripts/architecture_review.py \
+            --repo /tmp/pr-head \
+            --base ${{ needs.resolve.outputs.base }} \
+            --head "$HEAD_SHA" \
+            --metrics /tmp/architecture-metrics.json \
+            --budget-usd 2.0 \
+            --out reports/architecture-review.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: architecture-review
+          path: reports/architecture-review.json
+          if-no-files-found: warn
+
+  publish:
+    needs: [resolve, architecture]
+    if: always() && needs.resolve.result == 'success' && needs.resolve.outputs.skip != 'true'
+    runs-on: ubuntu-24.04
+    permissions:
+      actions: read
+      contents: read
+      pull-requests: write
+      statuses: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.resolve.outputs.base }}
+      - uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          name: architecture-review
+          path: reports
+      - name: Publish advisory status
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ARCH_RESULT: ${{ needs.architecture.result }}
+        run: |
+          STATE=success
+          DESC="no architecture finding"
+          if [ "$ARCH_RESULT" != "success" ] || [ ! -f reports/architecture-review.json ]; then
+            STATE=failure
+            DESC="architecture review unavailable"
+          else
+            P0=$(python3 -c 'import json; print(sum(1 for item in json.load(open("reports/architecture-review.json")).get("findings", []) if item.get("severity") == "P0"))')
+            COUNT=$(python3 -c 'import json; print(len(json.load(open("reports/architecture-review.json")).get("findings", [])))')
+            VERDICT=$(python3 -c 'import json; print(json.load(open("reports/architecture-review.json")).get("verdict", ""))')
+            DESC="$COUNT advisory finding(s)"
+            if [ "$P0" != "0" ]; then
+              STATE=failure
+              DESC="$P0 structural P0 finding(s)"
+            elif [ "$VERDICT" != "pass" ] && [ "$COUNT" = "0" ]; then
+              STATE=failure
+              DESC="architecture review produced no verdict"
+            fi
+          fi
+          gh api -X POST "repos/$GITHUB_REPOSITORY/statuses/${{ needs.resolve.outputs.head }}" \
+            -f state="$STATE" -f context=architecture-review -f description="$DESC"

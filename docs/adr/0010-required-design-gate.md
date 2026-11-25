@@ -1,6 +1,7 @@
 # ADR 0010: A single agent is a required design gate
 
-- Status: Accepted (supersedes [0008](0008-ci-only-gates.md))
+- Status: Superseded by [0014](0014-ci-first-design-gate.md) (trigger) and
+  [0016](0016-review-agent-bypass.md) (tool policy) (supersedes [0008](0008-ci-only-gates.md))
 - Date: 2026-11-24
 - Deciders: polygate maintainers
 
@@ -18,7 +19,7 @@ it can be wrong, can be prompt-injected, and is not a formal proof.
 
 - `scripts/design_gate.py` runs one Claude Agent SDK agent on the design decision. It uses the Zen
   `deepseek-v4.1-flash` model, a rich design-review system prompt, JSON-schema structured output,
-  `Read`/`Grep`/`Glob` only, a turn limit and a USD budget.
+  a USD budget, and the tool policy recorded in [0016](0016-review-agent-bypass.md).
 - `.github/workflows/design-gate.yml` runs on every `pull_request_target` open/synchronize/reopen/
   ready event. It checks out the base commit, runs the trusted base script, and gives the agent a
   worktree at the PR head for reading. It does not execute PR-controlled code.
@@ -40,8 +41,9 @@ it can be wrong, can be prompt-injected, and is not a formal proof.
   emergency protection override. The brief and evidence requirements are the main mitigation.
 - An agent outage leaves the status missing or failed, so merges stop rather than bypass the gate.
 - The required status and issues are visible on the PR; `gate` still covers all deterministic CI.
-- Fork PRs run the base script against a read-only worktree; no PR code is executed, but the agent
-  still reads untrusted text. Prompt injection can affect findings, not execute commands.
+- Under [0016](0016-review-agent-bypass.md), trusted PRs get full tool access and may execute PR
+  code; fork PRs remain read-only with `Read`/`Grep`/`Glob` and a read-only verifier. The runner
+  has `contents: read`, but this is not a security sandbox.
 - Design quality still depends on human judgment; the agent is a reviewer, not a proof.
 
 ## References

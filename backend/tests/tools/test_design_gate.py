@@ -18,6 +18,7 @@ SPEC = importlib.util.spec_from_file_location("design_gate", SCRIPT)
 assert SPEC and SPEC.loader
 gate: types.ModuleType = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(gate)
+REQUIREMENTS = gate.load_requirements(REPO / "specs" / "requirements.yaml")
 
 
 def _finding() -> dict[str, Any]:
@@ -28,6 +29,9 @@ def _finding() -> dict[str, Any]:
         "why": "the why",
         "evidence": "evidence",
         "fix": "fix",
+        "requirement_id": "AUTH-001",
+        "severity": "P0",
+        "doc_ref": "docs/api.md#caller-keys",
     }
 
 
@@ -84,6 +88,8 @@ def _run(tmp_path: Path, report: dict[str, Any], monkeypatch: pytest.MonkeyPatch
             "",
             "--out",
             str(tmp_path / "report.json"),
+            "--requirements",
+            str(REPO / "specs" / "requirements.yaml"),
         ]
     )
 
@@ -103,19 +109,21 @@ def test_issue_marker_round_trips() -> None:
 def test_pass_requires_no_findings() -> None:
     report = _pass()
     report["findings"] = [_finding()]
-    assert gate._validate(report)["verdict"] == "needs-changes"
+    assert gate._validate(report, REQUIREMENTS)["verdict"] == "needs-changes"
 
 
 def test_needs_changes_without_findings_gets_a_blocking_finding() -> None:
     report = gate._validate(
-        {"verdict": "needs-changes", "summary": "no finding", "findings": [], "questions": []}
+        {"verdict": "needs-changes", "summary": "no finding", "findings": [], "questions": []},
+        REQUIREMENTS,
     )
     assert report["findings"][0]["title"].startswith("Agent requested")
 
 
 def test_insufficient_context_gets_a_blocking_finding() -> None:
     report = gate._validate(
-        {"verdict": "insufficient-context", "summary": "no brief", "findings": [], "questions": []}
+        {"verdict": "insufficient-context", "summary": "no brief", "findings": [], "questions": []},
+        REQUIREMENTS,
     )
     assert report["findings"][0]["title"].startswith("Design brief")
 
@@ -125,18 +133,47 @@ def test_main_passes_with_empty_findings(tmp_path: Path, monkeypatch: pytest.Mon
     assert json.loads((tmp_path / "report.json").read_text(encoding="utf-8"))["verdict"] == "pass"
 
 
-def test_main_fails_with_a_finding(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_main_records_a_finding_without_failing_the_job(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     report = {"verdict": "needs-changes", "summary": "bad", "findings": [_finding()], "questions": []}
-    assert _run(tmp_path, report, monkeypatch) == 1
+    assert _run(tmp_path, report, monkeypatch) == 0
+    published = json.loads((tmp_path / "report.json").read_text(encoding="utf-8"))
+    assert published["findings"][0]["title"] == "Problem"
 
 
 def test_dry_run_prints_the_gate_prompt(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
     diff = tmp_path / "x.diff"
     diff.write_text("diff --git a/x b/x\n", encoding="utf-8")
-    assert gate.main(["design_gate.py", "--diff-file", str(diff), "--pr", "1", "--dry-run"]) == 0
+    assert (
+        gate.main(
+            [
+                "design_gate.py",
+                "--diff-file",
+                str(diff),
+                "--pr",
+                "1",
+                "--dry-run",
+                "--requirements",
+                str(REPO / "specs" / "requirements.yaml"),
+            ]
+        )
+        == 0
+    )
     assert "merge-gate design reviewer" in capsys.readouterr().out
 
 
 def test_run_query_prefers_structured_output(monkeypatch: pytest.MonkeyPatch) -> None:
     _install_fake_sdk(monkeypatch, structured=_pass())
-    assert asyncio.run(gate.run_query("prompt", object()))["verdict"] == "pass"
+    assert asyncio.run(gate.run_query("prompt", object(), REQUIREMENTS))["verdict"] == "pass"
+
+
+def test_unknown_requirement_is_a_contract_gap_not_a_validation_error() -> None:
+    report = _pass()
+    finding = _finding()
+    finding["requirement_id"] = "NOPE-001"
+    finding["severity"] = "P1"
+    report["verdict"] = "needs-changes"
+    report["findings"] = [finding]
+    validated = gate._validate(report, REQUIREMENTS)
+    assert validated["findings"][0]["contract_gap"] is True

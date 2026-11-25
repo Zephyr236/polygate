@@ -174,9 +174,16 @@ is broken, and `semgrep` / `ast-grep` rules cover ownership facts that are not m
 
 All `/admin/*` routes require `Authorization: Bearer $ADMIN_TOKEN`. `/v1/*` accepts the legacy
 `PROXY_API_KEY`, or a `[[client_key]]` credential resolved from its `api_key_env`. Once client keys
-are configured, a valid client credential is required even if `PROXY_API_KEY` is unset; a key set
-with no provisioned env value fails at startup instead of serving 503s. Leave both unset for
+are configured, a valid client credential is required even if `PROXY_API_KEY` is unset. An
+unprovisioned optional key is inactive (`401` for that key) and does not take down legacy/admin
+traffic; startup fails when no usable proxy credential exists. Leave both unset for
 loopback-only development.
+
+## Acceptance contract
+
+Requirements, Gherkin scenarios and review findings share stable IDs in `specs/`. P0 requirements
+need a passing scenario; P0 findings block, P1 findings follow up, P2 findings are advisory. See
+[docs/acceptance-contract.md](docs/acceptance-contract.md).
 
 ## Quality gates
 
