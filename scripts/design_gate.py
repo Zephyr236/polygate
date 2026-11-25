@@ -414,7 +414,7 @@ def main(argv: list[str]) -> int:
                 if state == "success"
                 else f"{len(report['findings'])} blocking finding(s)",
             )
-        return 0 if report["verdict"] == "pass" and not report["findings"] else 1
+        return 0
     except (OSError, GateError) as error:
         print(f"design gate failed to publish: {error}", file=sys.stderr)
         if options.repo_slug and not options.no_publish:

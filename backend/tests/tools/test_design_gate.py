@@ -125,9 +125,13 @@ def test_main_passes_with_empty_findings(tmp_path: Path, monkeypatch: pytest.Mon
     assert json.loads((tmp_path / "report.json").read_text(encoding="utf-8"))["verdict"] == "pass"
 
 
-def test_main_fails_with_a_finding(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_main_records_a_finding_without_failing_the_job(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     report = {"verdict": "needs-changes", "summary": "bad", "findings": [_finding()], "questions": []}
-    assert _run(tmp_path, report, monkeypatch) == 1
+    assert _run(tmp_path, report, monkeypatch) == 0
+    published = json.loads((tmp_path / "report.json").read_text(encoding="utf-8"))
+    assert published["findings"][0]["title"] == "Problem"
 
 
 def test_dry_run_prints_the_gate_prompt(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
