@@ -51,9 +51,10 @@ evolvability.
 
 ## Ratchet
 
-`scripts/architecture_gate.py` compares `specs/architecture-baseline.json` with current metrics.
-A PR may improve the baseline; it may not increase the largest module or add a cycle. The baseline
-is updated by `--update` after a reviewed improvement.
+`scripts/architecture_gate.py` compares the **base branch's** `specs/architecture-baseline.json`
+with current metrics. A PR may improve the baseline; it may not increase the largest module or add a
+cycle. The baseline is updated by `--update` after a reviewed improvement. A missing base baseline
+is an error; the first PR that introduces the ratchet is the only bootstrap exception.
 
 ## Cost control
 

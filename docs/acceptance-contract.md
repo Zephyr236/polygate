@@ -58,6 +58,7 @@ A review finding must include `requirement_id` and `severity`:
 - `P2`: advisory
 - P0 with an unknown or missing requirement: contract gap; block
 - P1/P2 without a requirement: advisory
+- An unknown requirement on a P0 finding is a contract gap and blocks; on P1/P2 it is advisory
 
 The requirement severity is not a blanket upgrade for every finding; severity belongs to the
 finding. The historical replay showed that a requirement-level max policy blocks 29/56 findings

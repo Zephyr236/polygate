@@ -94,10 +94,23 @@ def main(argv: list[str]) -> int:
             for finding, item in zip(findings, decisions, strict=False)
             if item.get("decision") == gate_contract.BLOCK
         ]
+        followups = [
+            finding
+            for finding, item in zip(findings, decisions, strict=False)
+            if item.get("decision") == gate_contract.FOLLOW_UP
+        ]
         if decision["status"] == gate_contract.BLOCK and not blocking:
             report = _failure_report("Design gate could not produce an actionable decision")
             blocking = report["findings"]
         design_gate.reconcile_issues(options.repo_slug, options.pr, options.sha, blocking)
+        design_gate.reconcile_issues(
+            options.repo_slug,
+            options.pr,
+            options.sha,
+            followups,
+            label=design_gate.LABEL_FOLLOW_UP,
+            blocking=False,
+        )
         passed = decision["status"] != gate_contract.BLOCK
         design_gate.set_status(
             options.repo_slug,

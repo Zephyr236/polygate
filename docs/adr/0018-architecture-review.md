@@ -25,8 +25,8 @@ increase the chance of endless style findings.
   are below 20% for two weeks.
 - It runs only after CI succeeds, only for architecture-sensitive changed paths, with a USD 2 budget
   and at most five findings.
-- `scripts/architecture_gate.py` is the ratchet: a PR may not exceed the baseline's largest module or
-  add a dependency cycle.
+- `scripts/architecture_gate.py` is the ratchet: it reads the base branch baseline, and a PR may
+  not exceed its largest module or add a dependency cycle. A missing baseline fails closed.
 
 ## Consequences
 

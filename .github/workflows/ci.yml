@@ -293,13 +293,24 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: astral-sh/setup-uv@v5
         with:
           python-version: "3.12"
           enable-cache: true
       - run: cd backend && uv sync --extra dev --frozen
+      - name: Load the trusted architecture baseline
+        if: github.event_name == 'pull_request'
+        run: |
+          git fetch origin "${{ github.event.pull_request.base.ref }}" --depth=1
+          if git show FETCH_HEAD:specs/architecture-baseline.json > /tmp/architecture-baseline.json 2>/dev/null; then
+            echo "ARCH_BASELINE=/tmp/architecture-baseline.json" >> "$GITHUB_ENV"
+          else
+            echo "No base baseline; this change introduces the first baseline."
+          fi
       - name: Architecture metrics ratchet
-        run: backend/.venv/bin/python scripts/architecture_gate.py
+        run: backend/.venv/bin/python scripts/architecture_gate.py --baseline "${ARCH_BASELINE:-specs/architecture-baseline.json}"
       - name: Architecture metrics report
         run: backend/.venv/bin/python scripts/architecture_metrics.py --out architecture-metrics.json
       - uses: actions/upload-artifact@v4

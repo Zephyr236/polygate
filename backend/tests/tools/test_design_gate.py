@@ -166,3 +166,14 @@ def test_dry_run_prints_the_gate_prompt(tmp_path: Path, capsys: pytest.CaptureFi
 def test_run_query_prefers_structured_output(monkeypatch: pytest.MonkeyPatch) -> None:
     _install_fake_sdk(monkeypatch, structured=_pass())
     assert asyncio.run(gate.run_query("prompt", object(), REQUIREMENTS))["verdict"] == "pass"
+
+
+def test_unknown_requirement_is_a_contract_gap_not_a_validation_error() -> None:
+    report = _pass()
+    finding = _finding()
+    finding["requirement_id"] = "NOPE-001"
+    finding["severity"] = "P1"
+    report["verdict"] = "needs-changes"
+    report["findings"] = [finding]
+    validated = gate._validate(report, REQUIREMENTS)
+    assert validated["findings"][0]["contract_gap"] is True

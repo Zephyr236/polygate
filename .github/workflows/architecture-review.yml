@@ -121,19 +121,24 @@ jobs:
       - name: Publish advisory status
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ARCH_RESULT: ${{ needs.architecture.result }}
         run: |
           STATE=success
           DESC="no architecture finding"
-          if [ ! -f reports/architecture-review.json ]; then
+          if [ "$ARCH_RESULT" != "success" ] || [ ! -f reports/architecture-review.json ]; then
             STATE=failure
             DESC="architecture review unavailable"
           else
             P0=$(python3 -c 'import json; print(sum(1 for item in json.load(open("reports/architecture-review.json")).get("findings", []) if item.get("severity") == "P0"))')
             COUNT=$(python3 -c 'import json; print(len(json.load(open("reports/architecture-review.json")).get("findings", [])))')
+            VERDICT=$(python3 -c 'import json; print(json.load(open("reports/architecture-review.json")).get("verdict", ""))')
             DESC="$COUNT advisory finding(s)"
             if [ "$P0" != "0" ]; then
               STATE=failure
               DESC="$P0 structural P0 finding(s)"
+            elif [ "$VERDICT" != "pass" ] && [ "$COUNT" = "0" ]; then
+              STATE=failure
+              DESC="architecture review produced no verdict"
             fi
           fi
           gh api -X POST "repos/$GITHUB_REPOSITORY/statuses/${{ needs.resolve.outputs.head }}" \

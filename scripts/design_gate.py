@@ -22,6 +22,7 @@ import gate_contract
 
 CONTEXT = "design-review"
 LABEL = "design-review-blocking"
+LABEL_FOLLOW_UP = "design-review-follow-up"
 MARKER = "<!-- design-review-gate pr={pr} fingerprint={fingerprint} -->"
 SYSTEM = """You are the merge-gate design reviewer for a production LLM gateway. A pull request may merge
 only when you return verdict "pass" with no findings. You review the design decision, not style or
@@ -203,8 +204,8 @@ def set_status(repo: str, sha: str, state: str, description: str) -> None:
     )
 
 
-def issue_body(finding: dict[str, Any], pr: int, sha: str) -> str:
-    """Render one blocking issue."""
+def issue_body(finding: dict[str, Any], pr: int, sha: str, *, blocking: bool = True) -> str:
+    """Render one blocking or follow-up issue."""
     return (
         MARKER.format(pr=pr, fingerprint=fingerprint(finding))
         + "\n\n## Design gate finding\n\n"
@@ -216,7 +217,11 @@ def issue_body(finding: dict[str, Any], pr: int, sha: str) -> str:
         + f"**Why:** {finding['why']}\n\n"
         + f"**Evidence:** {finding['evidence']}\n\n"
         + f"**Minimal fix:** {finding['fix']}\n\n"
-        + "This issue blocks merge. It closes automatically when the design gate no longer reports it."
+        + (
+            "This issue blocks merge. It closes automatically when the design gate no longer reports it."
+            if blocking
+            else "This is a follow-up; it does not block this pull request."
+        )
     )
 
 
@@ -233,18 +238,30 @@ def parse_issue(body: str) -> tuple[int, str] | None:
     return None
 
 
-def reconcile_issues(repo: str, pr: int, sha: str, findings: list[dict[str, Any]]) -> None:
+def reconcile_issues(
+    repo: str,
+    pr: int,
+    sha: str,
+    findings: list[dict[str, Any]],
+    *,
+    label: str = LABEL,
+    blocking: bool = True,
+) -> None:
     """Create/update active issues and close resolved ones for this PR."""
     try:
         _gh(
             "POST",
             f"/repos/{repo}/labels",
-            {"name": LABEL, "color": "B60205", "description": "Blocking design review finding"},
+            {
+                "name": label,
+                "color": "B60205" if blocking else "FBCA04",
+                "description": "Blocking design review finding" if blocking else "Design review follow-up",
+            },
         )
     except GateError as error:
         if "422" not in str(error):
             raise
-    open_issues = _gh("GET", f"/repos/{repo}/issues?state=open&labels={LABEL}&per_page=100")
+    open_issues = _gh("GET", f"/repos/{repo}/issues?state=open&labels={label}&per_page=100")
     active = {fingerprint(item): item for item in findings}
     existing: dict[str, dict[str, Any]] = {}
     for issue in open_issues if isinstance(open_issues, list) else []:
@@ -255,13 +272,13 @@ def reconcile_issues(repo: str, pr: int, sha: str, findings: list[dict[str, Any]
             continue
         existing[parsed[1]] = issue
     for key, finding in active.items():
-        body = issue_body(finding, pr, sha)
+        body = issue_body(finding, pr, sha, blocking=blocking)
         title = f"[design-review] {finding['title']}"[:240]
         issue = existing.get(key)
         if issue:
             _gh("PATCH", f"/repos/{repo}/issues/{issue['number']}", {"title": title, "body": body})
         else:
-            _gh("POST", f"/repos/{repo}/issues", {"title": title, "body": body, "labels": [LABEL]})
+            _gh("POST", f"/repos/{repo}/issues", {"title": title, "body": body, "labels": [label]})
     for key, issue in existing.items():
         if key not in active:
             _gh(
@@ -297,7 +314,7 @@ def _validate(report: dict[str, Any], requirements: dict[str, dict[str, Any]]) -
         if item["severity"] not in {"P0", "P1", "P2"}:
             raise GateError(f"invalid finding severity: {item['severity']!r}")
         if item["requirement_id"] not in requirements:
-            raise GateError(f"unknown requirement: {item['requirement_id']!r}")
+            item["contract_gap"] = True
         if not str(item["doc_ref"]).strip():
             raise GateError("finding requires a non-empty doc_ref")
         item["line"] = int(item["line"])

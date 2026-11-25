@@ -33,11 +33,14 @@ def main() -> int:
     parser.add_argument("--update", action="store_true")
     options = parser.parse_args()
     current = architecture_metrics.metrics(options.root.resolve())
-    if options.update or not options.baseline.exists():
+    if options.update:
         options.baseline.parent.mkdir(parents=True, exist_ok=True)
         options.baseline.write_text(json.dumps(current, indent=2) + "\n", encoding="utf-8")
         print(f"architecture baseline written: {options.baseline}")
         return 0
+    if not options.baseline.exists():
+        print(f"architecture baseline is missing: {options.baseline}")
+        return 1
     baseline = json.loads(options.baseline.read_text(encoding="utf-8"))
     problems = _regressions(current, baseline)
     if problems:
