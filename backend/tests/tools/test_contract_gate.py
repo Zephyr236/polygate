@@ -18,10 +18,12 @@ SPEC.loader.exec_module(contract)
 def test_complete_contract_passes(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     (tmp_path / "specs" / "features").mkdir(parents=True)
     (tmp_path / "specs" / "features" / "auth.feature").write_text(
-        "@req:AUTH-001 @p0\nFeature: auth\n  Scenario: A key stays inside its allowlist\n    Given x\n    Then y\n"
+        "@req:AUTH-001 @p0\nFeature: auth\n"
+        "  Scenario: A key stays inside its allowlist\n    Given x\n    Then y\n"
     )
     (tmp_path / "specs" / "requirements.yaml").write_text(
-        "requirements:\n  AUTH-001:\n    title: Auth\n    statement: stays inside\n    severity: P0\n    owner: security\n    verify: [specs/features/auth.feature]\n"
+        "requirements:\n  AUTH-001:\n    title: Auth\n    statement: stays inside\n"
+        "    severity: P0\n    owner: security\n    verify: [specs/features/auth.feature]\n"
     )
     (tmp_path / "specs" / "scope.yaml").write_text("requirements: [AUTH-001]\n")
     (tmp_path / "bdd.xml").write_text(
@@ -34,7 +36,8 @@ def test_complete_contract_passes(tmp_path: Path, monkeypatch: pytest.MonkeyPatc
 def test_missing_p0_scenario_fails(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     (tmp_path / "specs" / "features").mkdir(parents=True)
     (tmp_path / "specs" / "requirements.yaml").write_text(
-        "requirements:\n  AUTH-001:\n    title: Auth\n    statement: stays inside\n    severity: P0\n    owner: security\n    verify: [specs/features]\n"
+        "requirements:\n  AUTH-001:\n    title: Auth\n    statement: stays inside\n"
+        "    severity: P0\n    owner: security\n    verify: [specs/features]\n"
     )
     (tmp_path / "specs" / "scope.yaml").write_text("requirements: [AUTH-001]\n")
     monkeypatch.chdir(tmp_path)
@@ -44,7 +47,8 @@ def test_missing_p0_scenario_fails(tmp_path: Path, monkeypatch: pytest.MonkeyPat
 def test_p0_design_finding_blocks(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     (tmp_path / "specs" / "features").mkdir(parents=True)
     (tmp_path / "specs" / "requirements.yaml").write_text(
-        "requirements:\n  AUTH-001:\n    title: Auth\n    statement: stays inside\n    severity: P0\n    owner: security\n    verify: [specs/features]\n"
+        "requirements:\n  AUTH-001:\n    title: Auth\n    statement: stays inside\n"
+        "    severity: P0\n    owner: security\n    verify: [specs/features]\n"
     )
     (tmp_path / "specs" / "scope.yaml").write_text("requirements: [AUTH-001]\n")
     (tmp_path / "report.json").write_text(

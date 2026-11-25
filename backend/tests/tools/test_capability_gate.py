@@ -13,9 +13,12 @@ SPEC.loader.exec_module(capability)
 
 
 def test_checked_in_workflow_passes() -> None:
-    assert capability.check(
-        REPO / ".github" / "workflows" / "design-gate.yml", REPO / "specs" / "capabilities.yaml"
-    ) == []
+    assert (
+        capability.check(
+            REPO / ".github" / "workflows" / "design-gate.yml", REPO / "specs" / "capabilities.yaml"
+        )
+        == []
+    )
 
 
 def test_write_capable_agent_is_rejected(tmp_path: Path) -> None:

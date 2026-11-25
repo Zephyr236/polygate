@@ -18,7 +18,8 @@ def test_checked_in_adrs_pass() -> None:
 
 def test_unknown_requirement_is_rejected(tmp_path: Path) -> None:
     (tmp_path / "0001-test.md").write_text(
-        "# ADR\n\n- Status: Accepted\n- Requirements: NOPE-001\n\n## Context\nx\n## Decision\ny\n## Consequences\nz\n"
+        "# ADR\n\n- Status: Accepted\n- Requirements: NOPE-001\n\n"
+        "## Context\nx\n## Decision\ny\n## Consequences\nz\n"
     )
     requirements = tmp_path / "requirements.yaml"
     requirements.write_text("requirements:\n  AUTH-001:\n    severity: P0\n")

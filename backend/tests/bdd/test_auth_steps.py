@@ -53,9 +53,7 @@ def key_value(state: dict[str, Any], value: str) -> None:
 
 @given("an unprovisioned optional client key")
 def unprovisioned_key(state: dict[str, Any]) -> None:
-    state["document"]["client_key"] = [
-        {"id": "team-a", "api_key_env": "MISSING", "allowed_providers": ["a"]}
-    ]
+    state["document"]["client_key"] = [{"id": "team-a", "api_key_env": "MISSING", "allowed_providers": ["a"]}]
 
 
 @given(parsers.parse('a legacy proxy key "{value}"'))

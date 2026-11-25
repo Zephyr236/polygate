@@ -18,9 +18,7 @@ def test_stale_head_is_not_reviewed() -> None:
 
 
 def test_superseded_status_is_skipped() -> None:
-    statuses = [
-        {"context": "design-review", "state": "success", "created_at": "2026-11-25T10:01:00Z"}
-    ]
+    statuses = [{"context": "design-review", "state": "success", "created_at": "2026-11-25T10:01:00Z"}]
     assert gate.is_superseded("2026-11-25T10:00:00Z", statuses) is True
     assert gate.is_superseded("2026-11-25T10:02:00Z", statuses) is False
 

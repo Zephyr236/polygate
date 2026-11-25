@@ -14,8 +14,8 @@ ROOT = Path(__file__).resolve().parents[3]
 FEATURE = ROOT / "specs" / "features" / "gate.feature"
 scenarios(str(FEATURE))
 sys.path.insert(0, str(ROOT / "scripts"))
-import capability_gate
-import gate_contract
+import capability_gate  # noqa: E402
+import gate_contract  # noqa: E402
 
 
 @pytest.fixture()
