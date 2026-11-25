@@ -55,3 +55,13 @@ re-checks the head after the gate wait and again before fetching the worktree, s
 it review the wrong tree. The gate is keyed by the triggering CI head SHA; stale triggers skip, and
 publish ignores a superseded run when a newer final status already exists. See
 [ADR 0014](adr/0014-ci-first-design-gate.md) for the trigger rules.
+
+## Finding policy
+
+Every finding must carry a `requirement_id`, a `severity` and a `doc_ref`. `P0` findings block the
+merge; `P1` findings become `design-review-follow-up` issues and do not block; `P2` findings are
+advisory. A `P0` finding without a known requirement is a contract gap and blocks. An
+`insufficient-context` verdict fails closed and never publishes success.
+
+The policy is implemented in `scripts/gate_contract.py`, applied by `scripts/design_publish.py`, and
+validated by `specs/requirements.yaml`. See [acceptance-contract.md](acceptance-contract.md).
