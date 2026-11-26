@@ -5,6 +5,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { HttpResponse, http } from "msw";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 
 import { App } from "@/App";
@@ -61,6 +62,18 @@ describe("App shell", () => {
     await userEvent.click(screen.getByText("Playground"));
     await userEvent.click(screen.getByText("Send"));
     await waitFor(() => expect(screen.getByTestId("playground-output")).toHaveTextContent("PONG"));
+  });
+
+  it("returns to login when the stored token is rejected", async () => {
+    server.use(
+      http.get("**/admin/providers", () =>
+        HttpResponse.json({ detail: "invalid admin token" }, { status: 401 }),
+      ),
+    );
+    renderApp("expired-token");
+    await waitFor(() => expect(screen.getByLabelText("admin-token")).toBeInTheDocument());
+    expect(screen.getByText("Invalid admin token. Try again.")).toBeInTheDocument();
+    expect(getToken()).toBe("");
   });
 
   it("signs out and clears the stored token", async () => {

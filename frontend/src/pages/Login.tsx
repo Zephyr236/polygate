@@ -7,20 +7,33 @@ import { useState } from "react";
 import { Icon } from "../components/icons";
 import { useI18n } from "../i18n";
 
+/** Brand header used by the login card. */
+function LoginBrand({ tagline }: { tagline: string }) {
+  return (
+    <div className="brand">
+      <div className="brand-mark">PG</div>
+      <div>
+        <h1>polygate</h1>
+        <p>{tagline}</p>
+      </div>
+    </div>
+  );
+}
+
 /** Login form storing the admin bearer token. */
-export function TokenGate({ onSubmit }: { onSubmit: (token: string) => void }) {
+export function TokenGate({
+  onSubmit,
+  invalid = false,
+}: {
+  onSubmit: (token: string) => void;
+  invalid?: boolean;
+}) {
   const { t } = useI18n();
   const [token, setToken] = useState("");
   return (
     <div className="login-shell">
       <main className="login-card">
-        <div className="brand">
-          <div className="brand-mark">PG</div>
-          <div>
-            <h1>polygate</h1>
-            <p>{t("app.tagline")}</p>
-          </div>
-        </div>
+        <LoginBrand tagline={t("app.tagline")} />
         <div>
           <h2>{t("login.title")}</h2>
           <p className="muted">{t("login.description")}</p>
@@ -38,6 +51,7 @@ export function TokenGate({ onSubmit }: { onSubmit: (token: string) => void }) {
             }}
             placeholder={t("login.placeholder")}
           />
+          {invalid ? <span className="error">{t("login.invalid")}</span> : null}
         </label>
         <button className="action" disabled={token.trim() === ""} onClick={() => onSubmit(token.trim())}>
           <Icon name="check" />

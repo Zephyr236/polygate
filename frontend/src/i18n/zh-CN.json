@@ -135,5 +135,7 @@
   "playground.cachedTokens": "缓存",
   "dashboard.healthTitle": "渠道健康",
   "dashboard.latency": "延迟",
-  "dashboard.capacity": "并发"
+  "dashboard.capacity": "并发",
+  "login.invalid": "管理令牌无效,请重新输入。",
+  "dashboard.loadFailed": "指标加载失败"
 }

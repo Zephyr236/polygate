@@ -2,9 +2,9 @@
  * Application shell wiring navigation, queries and the token gate.
  */
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
-import { clearToken, setToken } from "./api/client";
+import { ApiError, clearToken, setToken } from "./api/client";
 import { Icon } from "./components/icons";
 import { I18nProvider, LocaleSwitch, useI18n, type Locale } from "./i18n";
 import { Dashboard } from "./pages/Dashboard";
@@ -47,12 +47,19 @@ function AppContent({ initialToken }: { initialToken: string }) {
   const simulation = useSimulate();
   const chat = useChat();
 
-  if (!token) {
+  const unauthorized = providers.error instanceof ApiError && providers.error.status === 401;
+  useEffect(() => {
+    if (unauthorized) clearToken();
+  }, [unauthorized]);
+
+  if (!token || unauthorized) {
     return (
       <TokenGate
+        invalid={unauthorized}
         onSubmit={(value) => {
           setToken(value);
           setTokenState(value);
+          void providers.refetch();
         }}
       />
     );
@@ -221,9 +228,10 @@ function DashboardTab({
   range,
   onRangeChange,
 }: Pick<TabBodyProps, "metrics" | "range" | "onRangeChange">) {
+  const { t } = useI18n();
   return (
     <>
-      {metrics.isError ? <div className="main error">Failed to load metrics</div> : null}
+      {metrics.isError ? <div className="main error">{t("dashboard.loadFailed")}</div> : null}
       <Dashboard data={metrics.data} range={range} onRangeChange={onRangeChange} />
     </>
   );

@@ -135,5 +135,7 @@
   "playground.cachedTokens": "cached",
   "dashboard.healthTitle": "Provider health",
   "dashboard.latency": "latency",
-  "dashboard.capacity": "capacity"
+  "dashboard.capacity": "capacity",
+  "login.invalid": "Invalid admin token. Try again.",
+  "dashboard.loadFailed": "Failed to load metrics"
 }
