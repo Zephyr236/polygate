@@ -116,6 +116,23 @@ def test_admin_requires_token(client: TestClient) -> None:
     assert client.get("/admin/providers", headers=headers).status_code == 200
 
 
+def test_admin_password_setup_login_and_session(client: TestClient) -> None:
+    assert client.get("/admin/auth/status").json() == {"configured": False}
+    setup = client.post("/admin/auth/setup", json={"password": "correct horse"})
+    assert setup.status_code == 200
+    token = setup.json()["token"]
+    assert client.get("/admin/auth/status").json() == {"configured": True}
+    headers = {"authorization": f"Bearer {token}"}
+    assert client.get("/admin/providers", headers=headers).status_code == 200
+    assert client.post("/admin/auth/setup", json={"password": "another pass"}).status_code == 409
+    assert client.post("/admin/auth/login", json={"password": "wrong pass"}).status_code == 401
+    login = client.post("/admin/auth/login", json={"password": "correct horse"})
+    assert login.status_code == 200
+    assert login.json()["token"] != token
+    assert client.post("/admin/auth/logout", headers=headers).status_code == 200
+    assert client.get("/admin/providers", headers=headers).status_code == 401
+
+
 def test_chat_completions_routes_to_amr(client: TestClient, upstreams: Upstreams) -> None:
     upstreams.on(
         "amr.example", upstreams.respond({"model": "up", "choices": [{"message": {"content": "PONG"}}]})

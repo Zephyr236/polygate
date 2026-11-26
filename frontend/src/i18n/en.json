@@ -11,7 +11,7 @@
   "app.tagline": "multi-provider routing gateway",
   "app.console": "Admin console",
   "login.title": "Admin console",
-  "login.description": "Authenticate with the bearer token from ADMIN_TOKEN. It stays in this browser only.",
+  "login.description": "Sign in with your admin password. The session stays in this browser only.",
   "login.tokenLabel": "Admin token",
   "login.placeholder": "Bearer token from ADMIN_TOKEN",
   "login.enter": "Enter",
@@ -137,5 +137,16 @@
   "dashboard.latency": "latency",
   "dashboard.capacity": "capacity",
   "login.invalid": "Invalid admin token. Try again.",
-  "dashboard.loadFailed": "Failed to load metrics"
+  "dashboard.loadFailed": "Failed to load metrics",
+  "login.setupTitle": "Set admin password",
+  "login.setupDescription": "First use: set an admin password. It is stored only in the local database.",
+  "login.passwordLabel": "Admin password",
+  "login.confirmLabel": "Confirm password",
+  "login.setupButton": "Set password and enter",
+  "login.loginButton": "Sign in",
+  "login.passwordMismatch": "Passwords do not match",
+  "login.passwordTooShort": "Use at least 8 characters",
+  "login.statusFailed": "Could not load sign-in status",
+  "login.checking": "Checking sign-in status…",
+  "login.retry": "Retry"
 }

@@ -74,6 +74,26 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   return (await response.json()) as T;
 }
 
+/** Report whether an admin password has been set. */
+export function fetchAuthStatus(): Promise<{ configured: boolean }> {
+  return request("/admin/auth/status");
+}
+
+/** Set the first-run password and return a browser session token. */
+export function setupPassword(password: string): Promise<{ token: string }> {
+  return request("/admin/auth/setup", { method: "POST", body: JSON.stringify({ password }) });
+}
+
+/** Login with the admin password and return a browser session token. */
+export function loginPassword(password: string): Promise<{ token: string }> {
+  return request("/admin/auth/login", { method: "POST", body: JSON.stringify({ password }) });
+}
+
+/** Revoke the current browser session on the server. */
+export function logoutSession(): Promise<{ ok: boolean }> {
+  return request("/admin/auth/logout", { method: "POST" });
+}
+
 /** Fetch provider configs and health. */
 export function fetchProviders(): Promise<{ providers: ProviderConfig[]; health: ProviderHealth[] }> {
   return request("/admin/providers");

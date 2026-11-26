@@ -6,6 +6,9 @@ All notable changes are documented here. The format follows Keep a Changelog and
 
 ### Added
 
+- Admin password login: first-run password setup, salted scrypt hashes, expiring hashed browser
+  sessions, logout revocation and automatic return to login on 401. `ADMIN_TOKEN` remains optional
+  for API automation.
 - Frontend redesign: Blueprint Grid visual system, simplified Chinese default with persisted English
   switch, data-dense dashboard, searchable provider cards with loading/error/empty states, and
   improved route/playground layouts.

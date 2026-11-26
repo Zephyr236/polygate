@@ -29,10 +29,10 @@ function renderApp(token = "test-token") {
 describe("App shell", () => {
   it("shows the token gate when no token is present", async () => {
     renderApp("");
-    expect(screen.getByLabelText("admin-token")).toBeInTheDocument();
-    await userEvent.type(screen.getByLabelText("admin-token"), "abc");
-    await userEvent.click(screen.getByText("Enter"));
-    expect(getToken()).toBe("abc");
+    await waitFor(() => expect(screen.getByLabelText("admin-password")).toBeInTheDocument());
+    await userEvent.type(screen.getByLabelText("admin-password"), "correct horse");
+    await userEvent.click(screen.getByText("Sign in"));
+    await waitFor(() => expect(getToken()).toBe("test-session"));
   });
 
   it("renders the dashboard after metrics load and switches tabs", async () => {
@@ -71,7 +71,7 @@ describe("App shell", () => {
       ),
     );
     renderApp("expired-token");
-    await waitFor(() => expect(screen.getByLabelText("admin-token")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByLabelText("admin-password")).toBeInTheDocument());
     expect(screen.getByText("Invalid admin token. Try again.")).toBeInTheDocument();
     expect(getToken()).toBe("");
   });
@@ -79,7 +79,7 @@ describe("App shell", () => {
   it("signs out and clears the stored token", async () => {
     renderApp();
     await userEvent.click(screen.getByText("Sign out"));
-    expect(screen.getByLabelText("admin-token")).toBeInTheDocument();
+    expect(screen.getByLabelText("admin-password")).toBeInTheDocument();
   });
 
   it("switches dashboard ranges", async () => {

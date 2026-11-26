@@ -146,6 +146,10 @@ const handlers = [
     return HttpResponse.json({ ...metricsFixture, range });
   }),
   http.get("/admin/events", () => HttpResponse.json({ events: [] })),
+  http.get("/admin/auth/status", () => HttpResponse.json({ configured: true })),
+  http.post("/admin/auth/login", () => HttpResponse.json({ token: "test-session" })),
+  http.post("/admin/auth/setup", () => HttpResponse.json({ token: "test-session" })),
+  http.post("/admin/auth/logout", () => HttpResponse.json({ ok: true })),
   http.post("/admin/simulate", async () =>
     HttpResponse.json({
       model: "deepseek-v4.1-flash",

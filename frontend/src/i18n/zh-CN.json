@@ -11,7 +11,7 @@
   "app.tagline": "多渠道路由网关",
   "app.console": "管理控制台",
   "login.title": "管理控制台",
-  "login.description": "使用 ADMIN_TOKEN 的 Bearer token 登录。令牌只保存在当前浏览器。",
+  "login.description": "输入管理密码登录。登录状态只保存在当前浏览器。",
   "login.tokenLabel": "管理令牌",
   "login.placeholder": "输入 ADMIN_TOKEN 对应的令牌",
   "login.enter": "进入",
@@ -137,5 +137,16 @@
   "dashboard.latency": "延迟",
   "dashboard.capacity": "并发",
   "login.invalid": "管理令牌无效,请重新输入。",
-  "dashboard.loadFailed": "指标加载失败"
+  "dashboard.loadFailed": "指标加载失败",
+  "login.setupTitle": "设置管理密码",
+  "login.setupDescription": "首次使用管理台，请先设置一个管理密码。密码只保存在本机数据库中。",
+  "login.passwordLabel": "管理密码",
+  "login.confirmLabel": "确认密码",
+  "login.setupButton": "设置密码并进入",
+  "login.loginButton": "登录",
+  "login.passwordMismatch": "两次密码不一致",
+  "login.passwordTooShort": "密码至少 8 位",
+  "login.statusFailed": "无法读取登录状态",
+  "login.checking": "正在检查登录状态…",
+  "login.retry": "重试"
 }

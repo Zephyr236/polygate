@@ -12,7 +12,7 @@ from fastapi import FastAPI, Request
 from fastapi.responses import FileResponse, JSONResponse, Response
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from polygate.api import admin, health
+from polygate.api import account, admin, health
 from polygate.api.proxy import router as proxy_router
 from polygate.config import AppConfig
 from polygate.config_loader import load_app_config
@@ -72,6 +72,7 @@ def create_app(
     app.state.owned_client = client
     app.state.gateway_holder = gateway_holder
     app.include_router(proxy_router)
+    app.include_router(account.router)
     app.include_router(admin.router)
     app.include_router(health.router)
     if static_dir is not None and static_dir.is_dir():

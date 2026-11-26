@@ -10,6 +10,8 @@ const TOKEN = "e2e-token";
 
 test.beforeEach(async ({ page }) => {
   await page.addInitScript(() => window.localStorage.setItem("polygate.locale", "en"));
+  await page.route("**/admin/auth/status", (route) => route.fulfill({ json: { configured: true } }));
+  await page.route("**/admin/auth/login", (route) => route.fulfill({ json: { token: "e2e-session" } }));
   await page.route("**/admin/providers", async (route) => {
     if (route.request().method() === "PUT") {
       return route.fulfill({ json: { providers: providerFixtures } });
@@ -22,7 +24,9 @@ test.beforeEach(async ({ page }) => {
       json: {
         model: "deepseek-v4.1-flash",
         prompt_length: 5,
-        ranking: [{ provider_id: "amr", success: 0.98, speed: 1, cost: 1, cache: 0.2, total: 0.94, priority: 1 }],
+        ranking: [
+          { provider_id: "amr", success: 0.98, speed: 1, cost: 1, cache: 0.2, total: 0.94, priority: 1 },
+        ],
         decisions: [{ provider_id: "amr", model: "m", eligible: true, reasons: [] }],
       },
     }),
@@ -37,15 +41,19 @@ test.beforeEach(async ({ page }) => {
       });
     }
     return route.fulfill({
-      json: { model: "amr", choices: [{ message: { content: "PONG" } }], usage: { prompt_tokens: 5, completion_tokens: 2 } },
+      json: {
+        model: "amr",
+        choices: [{ message: { content: "PONG" } }],
+        usage: { prompt_tokens: 5, completion_tokens: 2 },
+      },
     });
   });
 });
 
 test("dashboard shows provider cards and KPI totals", async ({ page }) => {
   await page.goto("/");
-  await page.getByLabel("admin-token").fill(TOKEN);
-  await page.getByRole("button", { name: "Enter" }).click();
+  await page.getByLabel("admin-password").fill(TOKEN);
+  await page.getByRole("button", { name: "Sign in" }).click();
   await expect(page.getByTestId("provider-amr")).toBeVisible();
   await expect(page.getByTestId("provider-zen")).toBeVisible();
   await expect(page.getByText("Traffic (calls per bucket)")).toBeVisible();
@@ -53,8 +61,8 @@ test("dashboard shows provider cards and KPI totals", async ({ page }) => {
 
 test("provider editor saves changes", async ({ page }) => {
   await page.goto("/");
-  await page.getByLabel("admin-token").fill(TOKEN);
-  await page.getByRole("button", { name: "Enter" }).click();
+  await page.getByLabel("admin-password").fill(TOKEN);
+  await page.getByRole("button", { name: "Sign in" }).click();
   await page.getByRole("button", { name: "Providers" }).click();
   await expect(page.getByRole("button", { name: "Save providers" })).toBeVisible();
   await page.getByLabel("priority-0").fill("3");
@@ -64,8 +72,8 @@ test("provider editor saves changes", async ({ page }) => {
 
 test("routes simulation renders candidates", async ({ page }) => {
   await page.goto("/");
-  await page.getByLabel("admin-token").fill(TOKEN);
-  await page.getByRole("button", { name: "Enter" }).click();
+  await page.getByLabel("admin-password").fill(TOKEN);
+  await page.getByRole("button", { name: "Sign in" }).click();
   await page.getByRole("button", { name: "Routes" }).click();
   await page.getByRole("button", { name: "Simulate" }).click();
   await expect(page.getByText("Candidates")).toBeVisible();
@@ -74,8 +82,8 @@ test("routes simulation renders candidates", async ({ page }) => {
 
 test("playground runs a chat and shows the response", async ({ page }) => {
   await page.goto("/");
-  await page.getByLabel("admin-token").fill(TOKEN);
-  await page.getByRole("button", { name: "Enter" }).click();
+  await page.getByLabel("admin-password").fill(TOKEN);
+  await page.getByRole("button", { name: "Sign in" }).click();
   await page.getByRole("button", { name: "Playground" }).click();
   await page.getByRole("button", { name: "Send" }).click();
   await expect(page.getByTestId("playground-output")).toHaveText("PONG");

@@ -23,6 +23,7 @@ considered and what was rejected.
 | [0016](0016-review-agent-bypass.md) | The design reviewer runs with full tool access and bypass permissions | Accepted |
 | [0017](0017-acceptance-contract.md) | Requirements, scenarios and review findings share IDs and severity policy | Accepted |
 | [0018](0018-architecture-review.md) | A separate advisory architecture review with a metrics ratchet | Accepted |
+| [0019](0019-admin-password-login.md) | First-run admin password and expiring browser sessions | Accepted |
 
 ## Writing a new ADR
 

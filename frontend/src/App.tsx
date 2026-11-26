@@ -4,7 +4,7 @@
 
 import { useEffect, useState } from "react";
 
-import { ApiError, clearToken, setToken } from "./api/client";
+import { ApiError, clearToken, logoutSession, setToken } from "./api/client";
 import { Icon } from "./components/icons";
 import { I18nProvider, LocaleSwitch, useI18n, type Locale } from "./i18n";
 import { Dashboard } from "./pages/Dashboard";
@@ -34,6 +34,10 @@ export function App({ initialToken, initialLocale }: { initialToken: string; ini
       <AppContent initialToken={initialToken} />
     </I18nProvider>
   );
+}
+
+function tabLabel(tab: Tab) {
+  return NAV.find((item) => item.name === tab)?.key ?? "nav.dashboard";
 }
 
 function AppContent({ initialToken }: { initialToken: string }) {
@@ -94,6 +98,7 @@ function AppContent({ initialToken }: { initialToken: string }) {
           <button
             className="ghost"
             onClick={() => {
+              void logoutSession().catch(() => undefined);
               clearToken();
               setTokenState("");
             }}
@@ -107,7 +112,7 @@ function AppContent({ initialToken }: { initialToken: string }) {
         <header className="workspace-head">
           <div>
             <div className="eyebrow">{t("app.workspace")}</div>
-            <h2>{t(NAV.find((item) => item.name === tab)?.key ?? "nav.dashboard")}</h2>
+            <h2>{t(tabLabel(tab))}</h2>
           </div>
           <div className="workspace-meta">
             <span className="pill">

@@ -4,6 +4,7 @@
 
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { HttpResponse, http } from "msw";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 
 import type { MetricsResponse } from "@/api/types";
@@ -152,15 +153,63 @@ describe("Provider editor", () => {
 });
 
 describe("TokenGate", () => {
-  it("submits the entered token", async () => {
+  it("logs in with the admin password", async () => {
     const onSubmit = vi.fn();
-    render(<TokenGate onSubmit={onSubmit} />);
-    expect(screen.getByText("Enter")).toBeDisabled();
-    await userEvent.type(screen.getByLabelText("admin-token"), "secret");
-    await userEvent.click(screen.getByText("Enter"));
-    expect(onSubmit).toHaveBeenCalledWith("secret");
-    await userEvent.type(screen.getByLabelText("admin-token"), "{enter}");
-    expect(onSubmit).toHaveBeenCalledTimes(2);
+    render(<TokenGate initialConfigured={true} onSubmit={onSubmit} />);
+    expect(screen.getByText("Sign in")).toBeDisabled();
+    await userEvent.type(screen.getByLabelText("admin-password"), "correct horse");
+    await userEvent.click(screen.getByText("Sign in"));
+    await waitFor(() => expect(onSubmit).toHaveBeenCalledWith("test-session"));
+    await userEvent.type(screen.getByLabelText("admin-password"), "{enter}");
+    await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(2));
+  });
+
+  it("sets the first-run password after confirmation", async () => {
+    const onSubmit = vi.fn();
+    render(<TokenGate initialConfigured={false} onSubmit={onSubmit} />);
+    await userEvent.type(screen.getByLabelText("admin-password"), "correct horse");
+    await userEvent.type(screen.getByLabelText("admin-password-confirm"), "correct horse");
+    await userEvent.click(screen.getByText("Set password and enter"));
+    await waitFor(() => expect(onSubmit).toHaveBeenCalledWith("test-session"));
+  });
+
+  it("rejects mismatched and short passwords before calling the API", async () => {
+    const onSubmit = vi.fn();
+    render(<TokenGate initialConfigured={false} onSubmit={onSubmit} />);
+    await userEvent.type(screen.getByLabelText("admin-password"), "correct horse");
+    await userEvent.type(screen.getByLabelText("admin-password-confirm"), "different");
+    await userEvent.click(screen.getByText("Set password and enter"));
+    expect(screen.getByText("Passwords do not match")).toBeInTheDocument();
+    await userEvent.clear(screen.getByLabelText("admin-password"));
+    await userEvent.clear(screen.getByLabelText("admin-password-confirm"));
+    await userEvent.type(screen.getByLabelText("admin-password"), "short");
+    await userEvent.type(screen.getByLabelText("admin-password-confirm"), "short");
+    await userEvent.click(screen.getByText("Set password and enter"));
+    expect(screen.getByText("Use at least 8 characters")).toBeInTheDocument();
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+
+  it("shows an invalid-password error from login", async () => {
+    server.use(
+      http.post("**/admin/auth/login", () =>
+        HttpResponse.json({ detail: "invalid admin password" }, { status: 401 }),
+      ),
+    );
+    const onSubmit = vi.fn();
+    render(<TokenGate initialConfigured={true} onSubmit={onSubmit} />);
+    await userEvent.type(screen.getByLabelText("admin-password"), "wrong password");
+    await userEvent.click(screen.getByText("Sign in"));
+    await waitFor(() => expect(screen.getByText("Invalid admin token. Try again.")).toBeInTheDocument());
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+
+  it("shows a retry state when auth status cannot be loaded", async () => {
+    server.use(
+      http.get("**/admin/auth/status", () => HttpResponse.json({ detail: "boom" }, { status: 500 })),
+    );
+    render(<TokenGate onSubmit={vi.fn()} />);
+    await waitFor(() => expect(screen.getByText("Could not load sign-in status")).toBeInTheDocument());
+    expect(screen.getByText("Retry")).toBeInTheDocument();
   });
 });
 

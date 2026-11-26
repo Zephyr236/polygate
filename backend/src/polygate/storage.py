@@ -58,6 +58,16 @@ CREATE TABLE IF NOT EXISTS providers (
     payload TEXT NOT NULL,
     updated_at REAL NOT NULL
 );
+CREATE TABLE IF NOT EXISTS admin_password (
+    id INTEGER PRIMARY KEY CHECK (id = 1),
+    password_hash TEXT NOT NULL,
+    updated_at REAL NOT NULL
+);
+CREATE TABLE IF NOT EXISTS admin_sessions (
+    token_hash TEXT PRIMARY KEY,
+    created_at REAL NOT NULL,
+    expires_at REAL NOT NULL
+);
 """
 
 
@@ -122,6 +132,59 @@ class MetricsStore:
                 "INSERT INTO events (at, kind, provider_id, detail) VALUES (?, ?, ?, ?)",
                 (time.time(), kind, provider_id, detail),
             )
+            await db.commit()
+
+    async def admin_password_configured(self) -> bool:
+        """Return whether the first-run admin password exists."""
+        db = await self._connection()
+        cursor = await db.execute("SELECT 1 FROM admin_password WHERE id = 1")
+        return await cursor.fetchone() is not None
+
+    async def get_admin_password_hash(self) -> str | None:
+        """Return the stored password hash, if configured."""
+        db = await self._connection()
+        cursor = await db.execute("SELECT password_hash FROM admin_password WHERE id = 1")
+        row = await cursor.fetchone()
+        return None if row is None else str(row["password_hash"])
+
+    async def set_admin_password(self, password_hash: str) -> bool:
+        """Set the first-run password once; return False if already configured."""
+        async with self._lock:
+            db = await self._connection()
+            cursor = await db.execute("SELECT 1 FROM admin_password WHERE id = 1")
+            if await cursor.fetchone() is not None:
+                return False
+            await db.execute(
+                "INSERT INTO admin_password (id, password_hash, updated_at) VALUES (1, ?, ?)",
+                (password_hash, time.time()),
+            )
+            await db.commit()
+            return True
+
+    async def create_admin_session(self, token_hash: str, expires_at: float) -> None:
+        """Persist a hashed browser session token."""
+        async with self._lock:
+            db = await self._connection()
+            await db.execute(
+                "INSERT INTO admin_sessions (token_hash, created_at, expires_at) VALUES (?, ?, ?)",
+                (token_hash, time.time(), expires_at),
+            )
+            await db.commit()
+
+    async def admin_session_valid(self, token_hash: str) -> bool:
+        """Return whether a session token is present and unexpired."""
+        db = await self._connection()
+        cursor = await db.execute(
+            "SELECT 1 FROM admin_sessions WHERE token_hash = ? AND expires_at > ?",
+            (token_hash, time.time()),
+        )
+        return await cursor.fetchone() is not None
+
+    async def delete_admin_session(self, token_hash: str) -> None:
+        """Revoke one browser session token."""
+        async with self._lock:
+            db = await self._connection()
+            await db.execute("DELETE FROM admin_sessions WHERE token_hash = ?", (token_hash,))
             await db.commit()
 
     async def overview(self, since_seconds: float) -> list[dict[str, Any]]:

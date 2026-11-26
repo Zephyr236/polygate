@@ -44,11 +44,11 @@ behaviour is visible on a dashboard.
 
 ```sh
 git clone https://github.com/Zephyr236/polygate.git && cd polygate
-cp .env.example .env                 # set ADMIN_TOKEN and your channel keys
+cp .env.example .env                 # set your channel keys (ADMIN_TOKEN is optional)
 docker compose -f deploy/docker-compose.yml up -d --build
 ```
 
-Open <http://localhost:8080>, enter `ADMIN_TOKEN`, and the dashboard appears.
+Open <http://localhost:8080>, set the admin password on first visit, and the dashboard appears.
 
 ### Local development
 
@@ -172,7 +172,8 @@ is broken, and `semgrep` / `ast-grep` rules cover ownership facts that are not m
 | `POST /admin/simulate` | score breakdown without calling upstreams |
 | `GET /metrics` | Prometheus text |
 
-All `/admin/*` routes require `Authorization: Bearer $ADMIN_TOKEN`. `/v1/*` accepts the legacy
+The management UI uses a first-run admin password and a seven-day browser session. `ADMIN_TOKEN`
+remains an optional bearer credential for API automation. `/v1/*` accepts the legacy
 `PROXY_API_KEY`, or a `[[client_key]]` credential resolved from its `api_key_env`. Once client keys
 are configured, a valid client credential is required even if `PROXY_API_KEY` is unset. An
 unprovisioned optional key is inactive (`401` for that key) and does not take down legacy/admin
@@ -308,11 +309,11 @@ polygate 把它们池化:对外提供 OpenAI 与 Anthropic 两种协议,按成�
 
 ```sh
 git clone https://github.com/Zephyr236/polygate.git && cd polygate
-cp .env.example .env                  # 填 ADMIN_TOKEN 与各渠道密钥
+cp .env.example .env                  # 填各渠道密钥（ADMIN_TOKEN 可选）
 docker compose -f deploy/docker-compose.yml up -d --build
 ```
 
-浏览器打开 <http://localhost:8080>,输入 `ADMIN_TOKEN` 即可进入管理台。
+浏览器打开 <http://localhost:8080>,首次访问设置管理密码后即可进入管理台。
 
 本地开发:
 

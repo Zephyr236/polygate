@@ -7,6 +7,7 @@ import secrets
 from fastapi import HTTPException, Request
 
 from polygate.config import ClientKeyConfig, ClientPolicy
+from polygate.password import session_digest
 
 
 def _bearer(request: Request) -> str:
@@ -17,14 +18,18 @@ def _bearer(request: Request) -> str:
     return header[7:].strip()
 
 
-def require_admin(request: Request) -> None:
-    """Require the configured admin token on admin endpoints."""
+async def require_admin(request: Request) -> None:
+    """Accept a browser session or the legacy ADMIN_TOKEN on admin endpoints."""
     expected = request.app.state.config.admin_token
     provided = _bearer(request)
-    if not expected:
-        raise HTTPException(status_code=503, detail="ADMIN_TOKEN is not configured")
-    if not secrets.compare_digest(provided, expected):
-        raise HTTPException(status_code=401, detail="invalid admin token")
+    if expected and provided and secrets.compare_digest(provided, expected):
+        return
+    if provided and await request.app.state.store.admin_session_valid(session_digest(provided)):
+        return
+    configured = await request.app.state.store.admin_password_configured()
+    if not expected and not configured:
+        raise HTTPException(status_code=503, detail="admin password is not configured")
+    raise HTTPException(status_code=401, detail="invalid admin credentials")
 
 
 def _active_clients(clients: list[tuple[ClientKeyConfig, str]]) -> list[tuple[ClientKeyConfig, str]]:

@@ -35,7 +35,8 @@ startup is not supported because admin routes cannot repair credentials.
 
 ## Admin
 
-All admin routes require `Authorization: Bearer $ADMIN_TOKEN`.
+The management UI uses a first-run admin password and an expiring browser session. `ADMIN_TOKEN`
+remains an optional bearer credential for API automation; the UI never asks for it.
 
 | Route | Method | Purpose |
 | --- | --- | --- |
