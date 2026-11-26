@@ -168,6 +168,31 @@ function TrafficPanel({ buckets }: { buckets: ReturnType<typeof bucketTotals> })
 }
 
 /** Provider cards or an empty state. */
+function HealthCard({ health }: { health: ProviderHealth }) {
+  const { t } = useI18n();
+  return (
+    <div className="health-card">
+      <div className="health-card-head">
+        <strong>{health.id}</strong>
+        <HealthBadge state={health.state} />
+      </div>
+      <div className="health-card-metrics">
+        <span>{percent(health.success_rate)}</span>
+        <span>{latency(health.latency_ms)}</span>
+        <span>
+          {health.inflight}/{health.capacity}
+        </span>
+      </div>
+      <CapacityBar inflight={health.inflight} capacity={health.capacity} />
+      <div className="health-card-labels">
+        <span>{t("dashboard.success")}</span>
+        <span>{t("dashboard.latency")}</span>
+        <span>{t("dashboard.capacity")}</span>
+      </div>
+    </div>
+  );
+}
+
 function ProviderSection({
   rows,
   healthById,
@@ -177,11 +202,23 @@ function ProviderSection({
 }) {
   const { t } = useI18n();
   if (rows.length === 0) {
+    const health = [...healthById.values()];
+    if (health.length === 0) {
+      return (
+        <div className="empty-state">
+          <strong>{t("dashboard.noMetricsTitle")}</strong>
+          <span>{t("dashboard.noMetricsBody")}</span>
+        </div>
+      );
+    }
     return (
-      <div className="empty-state">
-        <strong>{t("dashboard.noMetricsTitle")}</strong>
-        <span>{t("dashboard.noMetricsBody")}</span>
-      </div>
+      <Panel title={t("dashboard.healthTitle")}>
+        <div className="providers-grid">
+          {health.map((item) => (
+            <HealthCard key={item.id} health={item} />
+          ))}
+        </div>
+      </Panel>
     );
   }
   return <ProviderGrid rows={rows} healthById={healthById} />;

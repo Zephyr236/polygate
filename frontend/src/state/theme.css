@@ -1,6 +1,6 @@
 :root {
-  --bg: #eef3f9;
-  --bg-grid: #dbe6f2;
+  --bg: #f1f5fa;
+  --bg-grid: #e3ebf5;
   --panel: #ffffff;
   --panel-alt: #f7faff;
   --panel-hover: #f0f6ff;
@@ -14,7 +14,12 @@
   --bad: #b42318;
   --border: #c8d6e5;
   --border-soft: #dfe8f3;
-  --shadow: 0 10px 30px rgba(15, 42, 74, 0.07);
+  --shadow: 0 1px 2px rgba(15, 42, 74, 0.04), 0 12px 32px rgba(15, 42, 74, 0.06);
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-pill: 999px;
+  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
   --font-sans: "IBM Plex Sans", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
   --font-display: "Space Grotesk", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
   --font-mono: "JetBrains Mono", "IBM Plex Mono", ui-monospace, monospace;
@@ -36,7 +41,7 @@ body {
   background-image:
     linear-gradient(var(--bg-grid) 1px, transparent 1px),
     linear-gradient(90deg, var(--bg-grid) 1px, transparent 1px);
-  background-size: 24px 24px;
+  background-size: 32px 32px;
   background-position: -1px -1px;
   color: var(--text);
   font-family: var(--font-sans);
@@ -79,7 +84,7 @@ a:focus-visible {
   background-image:
     linear-gradient(var(--bg-grid) 1px, transparent 1px),
     linear-gradient(90deg, var(--bg-grid) 1px, transparent 1px);
-  background-size: 24px 24px;
+  background-size: 32px 32px;
 }
 
 .login-card {
@@ -89,8 +94,8 @@ a:focus-visible {
   padding: 28px;
   background: var(--panel);
   border: 1px solid var(--border);
-  border-radius: 4px;
-  box-shadow: var(--shadow);
+  border-radius: 20px;
+  box-shadow: 0 20px 60px rgba(15, 42, 74, 0.1);
 }
 
 .login-card h2 {
@@ -128,9 +133,10 @@ a:focus-visible {
   align-items: center;
   gap: 24px;
   padding: 12px 28px;
-  background: rgba(255, 255, 255, 0.94);
-  border-bottom: 1px solid var(--border);
-  backdrop-filter: blur(12px);
+  background: rgba(255, 255, 255, 0.92);
+  border-bottom: 1px solid rgba(200, 214, 229, 0.8);
+  box-shadow: 0 8px 24px rgba(15, 42, 74, 0.035);
+  backdrop-filter: blur(16px);
 }
 
 .brand {
@@ -146,7 +152,7 @@ a:focus-visible {
   display: grid;
   place-items: center;
   background: var(--accent);
-  border-radius: 3px;
+  border-radius: 10px;
   color: #fff;
   font-family: var(--font-mono);
   font-size: 11px;
@@ -174,7 +180,7 @@ a:focus-visible {
   background: var(--panel-alt);
   border: 1px solid var(--border-soft);
   padding: 3px;
-  border-radius: 4px;
+  border-radius: 12px;
 }
 
 .nav button {
@@ -218,7 +224,7 @@ a:focus-visible {
   display: inline-flex;
   border: 1px solid var(--border);
   background: var(--panel);
-  border-radius: 3px;
+  border-radius: 9px;
   overflow: hidden;
 }
 
@@ -227,7 +233,10 @@ a:focus-visible {
   background: transparent;
   color: var(--muted);
   font-size: 11px;
-  padding: 6px 9px;
+  padding: 6px 10px;
+  transition:
+    background 0.2s var(--ease),
+    color 0.2s var(--ease);
 }
 .locale-switch button.active {
   background: var(--accent);
@@ -307,9 +316,13 @@ a:focus-visible {
 .provider-card {
   background: var(--panel);
   border: 1px solid var(--border);
-  border-radius: 4px;
-  padding: 14px;
+  border-radius: var(--radius-md);
+  padding: 16px;
   box-shadow: var(--shadow);
+  transition:
+    box-shadow 0.25s var(--ease),
+    border-color 0.25s var(--ease),
+    transform 0.25s var(--ease);
 }
 
 .card h3,
@@ -346,8 +359,16 @@ a:focus-visible {
   font-variant-numeric: tabular-nums;
 }
 .kpis .card {
-  padding: 12px;
+  padding: 14px;
   min-width: 0;
+  border-radius: var(--radius-md);
+}
+
+.kpis .card:hover {
+  border-color: #b9cce2;
+  box-shadow:
+    0 2px 4px rgba(15, 42, 74, 0.04),
+    0 18px 40px rgba(15, 42, 74, 0.08);
 }
 .kpis .card .mono {
   margin-top: 2px;
@@ -359,7 +380,7 @@ a:focus-visible {
   gap: 0;
   width: fit-content;
   border: 1px solid var(--border);
-  border-radius: 3px;
+  border-radius: 10px;
   overflow: hidden;
   background: var(--panel);
 }
@@ -370,7 +391,10 @@ a:focus-visible {
   color: var(--muted);
   font-family: var(--font-mono);
   font-size: 10px;
-  padding: 7px 12px;
+  padding: 8px 13px;
+  transition:
+    background 0.2s var(--ease),
+    color 0.2s var(--ease);
 }
 .range-picker button:last-child {
   border-right: 0;
@@ -380,6 +404,49 @@ a:focus-visible {
   color: white;
 }
 
+.health-card {
+  display: grid;
+  gap: 8px;
+  padding: 14px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow);
+}
+
+.health-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.health-card-head strong {
+  font-family: var(--font-display);
+  font-size: 16px;
+  letter-spacing: -0.02em;
+}
+
+.health-card-metrics {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.health-card-labels {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 8px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
 .providers-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
@@ -387,7 +454,7 @@ a:focus-visible {
 }
 .provider-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(480px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
   gap: 12px;
 }
 .split-grid {
@@ -401,14 +468,22 @@ a:focus-visible {
 .provider-card {
   padding: 0;
   overflow: hidden;
+  border-radius: var(--radius-lg);
+}
+
+.provider-card:hover {
+  border-color: #b9cce2;
+  box-shadow:
+    0 2px 4px rgba(15, 42, 74, 0.04),
+    0 18px 44px rgba(15, 42, 74, 0.08);
 }
 .provider-card-head {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: 14px;
-  padding: 14px;
-  background: var(--panel-alt);
+  padding: 18px;
+  background: linear-gradient(180deg, #fbfdff, #f5f9ff);
   border-bottom: 1px solid var(--border);
 }
 .provider-card-head .eyebrow {
@@ -466,13 +541,14 @@ textarea {
   width: 100%;
   background: var(--panel);
   border: 1px solid var(--border);
-  border-radius: 3px;
+  border-radius: 9px;
   color: var(--text);
-  padding: 8px 9px;
+  padding: 9px 11px;
   font-size: 12px;
   transition:
-    border-color 0.15s ease,
-    box-shadow 0.15s ease;
+    border-color 0.2s var(--ease),
+    box-shadow 0.2s var(--ease),
+    background 0.2s var(--ease);
 }
 
 .field input:focus,
@@ -505,7 +581,7 @@ textarea {
   gap: 5px;
   padding: 3px 7px;
   border: 1px solid var(--border);
-  border-radius: 2px;
+  border-radius: var(--radius-pill);
   background: var(--panel-alt);
   color: var(--muted);
   font-family: var(--font-mono);
@@ -514,8 +590,8 @@ textarea {
 }
 .badge {
   display: inline-block;
-  padding: 2px 7px;
-  border-radius: 2px;
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
   font-family: var(--font-mono);
   font-size: 9px;
   font-weight: 600;
@@ -542,14 +618,16 @@ button.danger {
   align-items: center;
   justify-content: center;
   gap: 6px;
-  border-radius: 3px;
-  padding: 8px 12px;
+  border-radius: 10px;
+  min-height: 36px;
+  padding: 8px 13px;
   font-size: 12px;
   font-weight: 600;
   transition:
-    background 0.16s ease,
-    border-color 0.16s ease,
-    filter 0.16s ease;
+    background 0.2s var(--ease),
+    border-color 0.2s var(--ease),
+    box-shadow 0.2s var(--ease),
+    transform 0.2s var(--ease);
 }
 button.action {
   background: var(--accent);
@@ -558,6 +636,14 @@ button.action {
 }
 button.action:hover {
   background: var(--accent-strong);
+  box-shadow: 0 8px 20px rgba(21, 94, 239, 0.22);
+  transform: translateY(-1px);
+}
+
+button.action:active,
+button.ghost:active,
+button.danger:active {
+  transform: translateY(1px);
 }
 button.ghost {
   background: var(--panel);
@@ -591,9 +677,9 @@ button.danger:disabled {
   padding: 10px 12px;
   background: rgba(255, 255, 255, 0.96);
   border: 1px solid var(--border);
-  border-radius: 3px;
-  box-shadow: var(--shadow);
-  backdrop-filter: blur(10px);
+  border-radius: var(--radius-md);
+  box-shadow: 0 12px 32px rgba(15, 42, 74, 0.1);
+  backdrop-filter: blur(12px);
 }
 .savebar .muted {
   font-family: var(--font-mono);
@@ -638,9 +724,9 @@ tbody tr:hover {
   padding: 24px;
   text-align: center;
   color: var(--muted);
-  background: rgba(255, 255, 255, 0.55);
-  border: 1px dashed var(--border);
-  border-radius: 3px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(247, 250, 255, 0.8));
+  border: 1px dashed #b9cce2;
+  border-radius: var(--radius-lg);
 }
 .empty-state strong {
   color: var(--text);
@@ -652,7 +738,7 @@ tbody tr:hover {
 .skeleton {
   min-height: 100px;
   border: 1px solid var(--border-soft);
-  border-radius: 3px;
+  border-radius: var(--radius-md);
   background: linear-gradient(90deg, #e7eef7 25%, #f8fbff 37%, #e7eef7 63%);
   background-size: 400% 100%;
   animation: shimmer 1.5s ease infinite;

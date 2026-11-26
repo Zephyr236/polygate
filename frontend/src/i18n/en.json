@@ -132,5 +132,8 @@
   "playground.provider": "provider",
   "playground.promptTokens": "prompt",
   "playground.completionTokens": "completion",
-  "playground.cachedTokens": "cached"
+  "playground.cachedTokens": "cached",
+  "dashboard.healthTitle": "Provider health",
+  "dashboard.latency": "latency",
+  "dashboard.capacity": "capacity"
 }

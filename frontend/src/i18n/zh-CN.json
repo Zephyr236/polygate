@@ -132,5 +132,8 @@
   "playground.provider": "渠道",
   "playground.promptTokens": "输入",
   "playground.completionTokens": "输出",
-  "playground.cachedTokens": "缓存"
+  "playground.cachedTokens": "缓存",
+  "dashboard.healthTitle": "渠道健康",
+  "dashboard.latency": "延迟",
+  "dashboard.capacity": "并发"
 }
