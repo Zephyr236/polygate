@@ -5,6 +5,7 @@
 import { useState } from "react";
 
 import type { ChatResult } from "@/api/types";
+import { Icon } from "@/components/icons";
 import { Panel } from "@/components/widgets";
 import { tokens } from "@/utils/format";
 
@@ -26,18 +27,29 @@ export function Playground({
 
   return (
     <div className="main">
-      <PromptForm
-        model={model}
-        prompt={prompt}
-        stream={stream}
-        pending={pending}
-        error={error}
-        onModel={setModel}
-        onPrompt={setPrompt}
-        onStream={setStream}
-        onSend={() => onChat({ model, prompt, stream })}
-      />
-      {result ? <Completion result={result} /> : null}
+      <div className="split-grid">
+        <PromptForm
+          model={model}
+          prompt={prompt}
+          stream={stream}
+          pending={pending}
+          error={error}
+          onModel={setModel}
+          onPrompt={setPrompt}
+          onStream={setStream}
+          onSend={() => onChat({ model, prompt, stream })}
+        />
+        {result ? (
+          <Completion result={result} />
+        ) : (
+          <Panel title="Response">
+            <div className="empty-state" style={{ minHeight: 180 }}>
+              <strong>No response yet</strong>
+              <span>Send a prompt to exercise the live router and inspect usage.</span>
+            </div>
+          </Panel>
+        )}
+      </div>
     </div>
   );
 }
@@ -57,16 +69,16 @@ function PromptForm(props: {
   return (
     <Panel title="Playground">
       <div style={{ display: "grid", gap: 12 }}>
-        <label>
-          Model
+        <label className="field">
+          <span className="field-label">Model</span>
           <input
             aria-label="playground-model"
             value={props.model}
             onChange={(e) => props.onModel(e.target.value)}
           />
         </label>
-        <label>
-          Prompt
+        <label className="field">
+          <span className="field-label">Prompt</span>
           <textarea
             aria-label="playground-prompt"
             rows={4}
@@ -74,17 +86,17 @@ function PromptForm(props: {
             onChange={(e) => props.onPrompt(e.target.value)}
           />
         </label>
-        <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
+        <label className="switch">
           <input
             aria-label="playground-stream"
             type="checkbox"
             checked={props.stream}
             onChange={(e) => props.onStream(e.target.checked)}
-            style={{ width: 18 }}
           />
-          Stream
+          Stream responses
         </label>
         <button className="action" disabled={props.pending} onClick={props.onSend}>
+          <Icon name="play" size={16} />
           {props.pending ? "Running…" : "Send"}
         </button>
         {props.error ? <div className="error">{props.error}</div> : null}

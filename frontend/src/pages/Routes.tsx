@@ -5,6 +5,7 @@
 import { useState } from "react";
 
 import type { SimulateResponse } from "@/api/types";
+import { Icon } from "@/components/icons";
 import { Panel, ReasonList } from "@/components/widgets";
 
 /** Simulate the router and render each candidate's score components. */
@@ -22,31 +23,43 @@ export function Routes({
 
   return (
     <div className="main">
-      <Panel title="Simulate routing">
-        <div style={{ display: "grid", gap: 12 }}>
-          <label>
-            Model
-            <input
-              aria-label="simulate-model"
-              value={model}
-              onChange={(event) => setModel(event.target.value)}
-            />
-          </label>
-          <label>
-            Prompt
-            <textarea
-              aria-label="simulate-prompt"
-              rows={3}
-              value={prompt}
-              onChange={(event) => setPrompt(event.target.value)}
-            />
-          </label>
-          <button className="action" disabled={pending} onClick={() => onSimulate({ model, prompt })}>
-            {pending ? "Simulating…" : "Simulate"}
-          </button>
-        </div>
-      </Panel>
-      {data ? <CandidateTable data={data} /> : null}
+      <div className="split-grid">
+        <Panel title="Simulate routing">
+          <div style={{ display: "grid", gap: 12 }}>
+            <label className="field">
+              <span className="field-label">Model</span>
+              <input
+                aria-label="simulate-model"
+                value={model}
+                onChange={(event) => setModel(event.target.value)}
+              />
+            </label>
+            <label className="field">
+              <span className="field-label">Prompt</span>
+              <textarea
+                aria-label="simulate-prompt"
+                rows={3}
+                value={prompt}
+                onChange={(event) => setPrompt(event.target.value)}
+              />
+            </label>
+            <button className="action" disabled={pending} onClick={() => onSimulate({ model, prompt })}>
+              <Icon name="play" size={16} />
+              {pending ? "Simulating…" : "Simulate"}
+            </button>
+          </div>
+        </Panel>
+        {data ? (
+          <CandidateTable data={data} />
+        ) : (
+          <Panel title="Candidates">
+            <div className="empty-state" style={{ minHeight: 180 }}>
+              <strong>No simulation yet</strong>
+              <span>Run a model and prompt to inspect eligibility and score components.</span>
+            </div>
+          </Panel>
+        )}
+      </div>
     </div>
   );
 }
@@ -55,36 +68,38 @@ export function Routes({
 function CandidateTable({ data }: { data: SimulateResponse }) {
   return (
     <Panel title="Candidates">
-      <table>
-        <thead>
-          <tr>
-            <th>Provider</th>
-            <th>Priority</th>
-            <th>Success</th>
-            <th>Speed</th>
-            <th>Cost</th>
-            <th>Cache</th>
-            <th>Total</th>
-            <th>Status</th>
-          </tr>
-        </thead>
-        <tbody>
-          {data.ranking.map((row) => (
-            <tr key={row.provider_id}>
-              <td>{row.provider_id}</td>
-              <td>{row.priority}</td>
-              <td>{row.success.toFixed(3)}</td>
-              <td>{row.speed.toFixed(3)}</td>
-              <td>{row.cost.toFixed(3)}</td>
-              <td>{row.cache.toFixed(3)}</td>
-              <td>{row.total.toFixed(3)}</td>
-              <td>
-                <ReasonList reasons={reasonsFor(data, row.provider_id)} />
-              </td>
+      <div className="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Provider</th>
+              <th>Priority</th>
+              <th>Success</th>
+              <th>Speed</th>
+              <th>Cost</th>
+              <th>Cache</th>
+              <th>Total</th>
+              <th>Status</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {data.ranking.map((row) => (
+              <tr key={row.provider_id}>
+                <td>{row.provider_id}</td>
+                <td>{row.priority}</td>
+                <td>{row.success.toFixed(3)}</td>
+                <td>{row.speed.toFixed(3)}</td>
+                <td>{row.cost.toFixed(3)}</td>
+                <td>{row.cache.toFixed(3)}</td>
+                <td>{row.total.toFixed(3)}</td>
+                <td>
+                  <ReasonList reasons={reasonsFor(data, row.provider_id)} />
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </Panel>
   );
 }

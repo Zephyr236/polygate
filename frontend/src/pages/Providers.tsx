@@ -5,26 +5,9 @@
 import { useState } from "react";
 
 import type { ProviderConfig } from "../api/types";
-
-/** Editable copy of a provider config with string-encoded numeric inputs. */
-interface ProviderDraft {
-  id: string;
-  base_url: string;
-  protocol: ProviderConfig["protocol"];
-  model: string;
-  api_key_env: string;
-  auth_style: ProviderConfig["auth_style"];
-  session_header: string;
-  session_mode: ProviderConfig["session_mode"];
-  lanes: string;
-  max_concurrency: string;
-  max_tokens_min: string;
-  stream_usage: ProviderConfig["stream_usage"];
-  cost_coefficient: string;
-  priority: string;
-  enabled: boolean;
-  tags: string;
-}
+import { Icon } from "../components/icons";
+import { ProviderCard } from "./ProviderCard";
+import type { ProviderDraft } from "./providerDraft";
 
 /** Build an editable draft from a provider config. */
 export function toDraft(config: ProviderConfig): ProviderDraft {
@@ -114,7 +97,58 @@ const EMPTY_DRAFT: ProviderDraft = {
   tags: "",
 };
 
-/** Editable table of provider configs. */
+/** Filter drafts by id, model or tags. */
+function filterDrafts(drafts: ProviderDraft[], filter: string): { draft: ProviderDraft; index: number }[] {
+  const needle = filter.trim().toLowerCase();
+  return drafts
+    .map((draft, index) => ({ draft, index }))
+    .filter(
+      ({ draft }) =>
+        needle === "" ||
+        draft.id.toLowerCase().includes(needle) ||
+        draft.model.toLowerCase().includes(needle) ||
+        draft.tags.toLowerCase().includes(needle),
+    );
+}
+
+/** Render the provider cards or an appropriate empty state. */
+function ProviderList({
+  drafts,
+  visible,
+  update,
+  remove,
+}: {
+  drafts: ProviderDraft[];
+  visible: { draft: ProviderDraft; index: number }[];
+  update: (index: number, patch: Partial<ProviderDraft>) => void;
+  remove: (index: number) => void;
+}) {
+  if (drafts.length === 0) {
+    return (
+      <div className="empty-state">
+        <strong>No providers configured</strong>
+        <span>Add a provider to start routing traffic.</span>
+      </div>
+    );
+  }
+  if (visible.length === 0) {
+    return (
+      <div className="empty-state">
+        <strong>No matches</strong>
+        <span>Clear the filter to see all {drafts.length} providers.</span>
+      </div>
+    );
+  }
+  return (
+    <div className="provider-grid">
+      {visible.map(({ draft, index }) => (
+        <ProviderCard key={index} draft={draft} index={index} onChange={update} onRemove={remove} />
+      ))}
+    </div>
+  );
+}
+
+/** Editable provider pool. */
 export function ProviderEditor({
   providers,
   onSave,
@@ -126,9 +160,15 @@ export function ProviderEditor({
 }) {
   const [drafts, setDrafts] = useState<ProviderDraft[]>(() => providers.map(toDraft));
   const [errors, setErrors] = useState<string[]>([]);
+  const [filter, setFilter] = useState("");
 
   const update = (index: number, patch: Partial<ProviderDraft>) => {
     setDrafts((current) => current.map((draft, i) => (i === index ? { ...draft, ...patch } : draft)));
+  };
+
+  const remove = (index: number) => {
+    setDrafts((current) => current.filter((_, i) => i !== index));
+    setErrors([]);
   };
 
   const submit = () => {
@@ -138,10 +178,39 @@ export function ProviderEditor({
     onSave(drafts.map(fromDraft));
   };
 
+  const visible = filterDrafts(drafts, filter);
+
   return (
-    <div className="main">
+    <>
+      <div className="page-head">
+        <div>
+          <div className="eyebrow">Provider pool</div>
+          <p>Channel endpoints, credentials, concurrency and cost. Secrets stay in environment variables.</p>
+        </div>
+        <div className="toolbar">
+          <input
+            aria-label="provider-filter"
+            placeholder="Filter by id, model or tag"
+            value={filter}
+            onChange={(event) => setFilter(event.target.value)}
+            style={{ width: 240 }}
+          />
+          <button
+            className="ghost"
+            onClick={() => {
+              setDrafts((current) => [...current, { ...EMPTY_DRAFT }]);
+              setErrors([]);
+            }}
+          >
+            <Icon name="plus" size={16} />
+            Add provider
+          </button>
+        </div>
+      </div>
+
       {errors.length > 0 ? (
         <div className="card" role="alert">
+          <div className="eyebrow">Validation</div>
           {errors.map((problem) => (
             <div className="error" key={problem}>
               {problem}
@@ -149,144 +218,18 @@ export function ProviderEditor({
           ))}
         </div>
       ) : null}
-      <div className="card" style={{ overflowX: "auto" }}>
-        <table>
-          <thead>
-            <tr>
-              <th>id</th>
-              <th>base_url</th>
-              <th>protocol</th>
-              <th>model</th>
-              <th>api_key_env</th>
-              <th>auth</th>
-              <th>session header</th>
-              <th>lanes</th>
-              <th>concurrency</th>
-              <th>min tokens</th>
-              <th>cost coefficient</th>
-              <th>priority</th>
-              <th>enabled</th>
-            </tr>
-          </thead>
-          <tbody>
-            {drafts.map((draft, index) => (
-              <tr key={index}>
-                <td>
-                  <input
-                    aria-label={`id-${index}`}
-                    value={draft.id}
-                    onChange={(event) => update(index, { id: event.target.value })}
-                  />
-                </td>
-                <td>
-                  <input
-                    aria-label={`base_url-${index}`}
-                    value={draft.base_url}
-                    onChange={(event) => update(index, { base_url: event.target.value })}
-                  />
-                </td>
-                <td>
-                  <select
-                    aria-label={`protocol-${index}`}
-                    value={draft.protocol}
-                    onChange={(event) =>
-                      update(index, { protocol: event.target.value as ProviderConfig["protocol"] })
-                    }
-                  >
-                    <option value="openai">openai</option>
-                    <option value="anthropic">anthropic</option>
-                  </select>
-                </td>
-                <td>
-                  <input
-                    aria-label={`model-${index}`}
-                    value={draft.model}
-                    onChange={(event) => update(index, { model: event.target.value })}
-                  />
-                </td>
-                <td>
-                  <input
-                    aria-label={`api_key_env-${index}`}
-                    value={draft.api_key_env}
-                    onChange={(event) => update(index, { api_key_env: event.target.value })}
-                  />
-                </td>
-                <td>
-                  <select
-                    aria-label={`auth-${index}`}
-                    value={draft.auth_style}
-                    onChange={(event) =>
-                      update(index, { auth_style: event.target.value as ProviderConfig["auth_style"] })
-                    }
-                  >
-                    <option value="bearer">bearer</option>
-                    <option value="x-api-key">x-api-key</option>
-                    <option value="both">both</option>
-                  </select>
-                </td>
-                <td>
-                  <input
-                    aria-label={`session-${index}`}
-                    value={draft.session_header}
-                    onChange={(event) => update(index, { session_header: event.target.value })}
-                  />
-                </td>
-                <td>
-                  <input
-                    aria-label={`lanes-${index}`}
-                    value={draft.lanes}
-                    onChange={(event) => update(index, { lanes: event.target.value })}
-                  />
-                </td>
-                <td>
-                  <input
-                    aria-label={`concurrency-${index}`}
-                    value={draft.max_concurrency}
-                    onChange={(event) => update(index, { max_concurrency: event.target.value })}
-                  />
-                </td>
-                <td>
-                  <input
-                    aria-label={`min-tokens-${index}`}
-                    value={draft.max_tokens_min}
-                    onChange={(event) => update(index, { max_tokens_min: event.target.value })}
-                  />
-                </td>
-                <td>
-                  <input
-                    aria-label={`cost-${index}`}
-                    value={draft.cost_coefficient}
-                    onChange={(event) => update(index, { cost_coefficient: event.target.value })}
-                  />
-                </td>
-                <td>
-                  <input
-                    aria-label={`priority-${index}`}
-                    value={draft.priority}
-                    onChange={(event) => update(index, { priority: event.target.value })}
-                  />
-                </td>
-                <td>
-                  <input
-                    aria-label={`enabled-${index}`}
-                    type="checkbox"
-                    checked={draft.enabled}
-                    onChange={(event) => update(index, { enabled: event.target.checked })}
-                  />
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      <div style={{ display: "flex", gap: 12 }}>
-        <button className="action" onClick={() => setDrafts((current) => [...current, { ...EMPTY_DRAFT }])}>
-          Add provider
-        </button>
+
+      <ProviderList drafts={drafts} visible={visible} update={update} remove={remove} />
+
+      <div className="savebar">
+        <div className="muted">
+          {drafts.length} provider{drafts.length === 1 ? "" : "s"}
+          {filter ? ` · ${visible.length} shown` : ""}
+        </div>
         <button className="action" onClick={submit} disabled={saving}>
           {saving ? "Saving…" : "Save providers"}
         </button>
       </div>
-    </div>
+    </>
   );
 }

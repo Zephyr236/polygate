@@ -6,12 +6,26 @@ import type { ReactNode } from "react";
 
 import type { ProviderHealth } from "../api/types";
 import { percent } from "../utils/format";
+import { Icon, type IconName } from "./icons";
 
 /** KPI tile showing a label and a formatted value. */
-export function KpiCard({ label, value, hint }: { label: string; value: string; hint?: string }) {
+export function KpiCard({
+  label,
+  value,
+  hint,
+  icon,
+}: {
+  label: string;
+  value: string;
+  hint?: string;
+  icon?: IconName;
+}) {
   return (
     <div className="card">
-      <h3>{label}</h3>
+      <div className="kpi-head">
+        <h3>{label}</h3>
+        {icon ? <Icon name={icon} size={16} /> : null}
+      </div>
       <div className="kpi-value">{value}</div>
       {hint ? (
         <div className="mono" style={{ color: "var(--muted)", fontSize: 12 }}>
