@@ -7,6 +7,7 @@ import { useState } from "react";
 import type { ChatResult } from "@/api/types";
 import { Icon } from "@/components/icons";
 import { Panel } from "@/components/widgets";
+import { useI18n } from "@/i18n";
 import { tokens } from "@/utils/format";
 
 /** Prompt form plus the rendered completion. */
@@ -21,14 +22,23 @@ export function Playground({
   pending: boolean;
   error: string | undefined;
 }) {
+  const { t } = useI18n();
   const [model, setModel] = useState("deepseek-v4.1-flash");
-  const [prompt, setPrompt] = useState("Reply with exactly: PONG");
+  const [prompt, setPrompt] = useState(t("playground.promptDefault"));
   const [stream, setStream] = useState(true);
 
   return (
     <div className="main">
       <div className="split-grid">
         <PromptForm
+          labels={{
+            title: t("playground.title"),
+            model: t("playground.model"),
+            prompt: t("playground.prompt"),
+            stream: t("playground.stream"),
+            send: t("playground.send"),
+            running: t("playground.running"),
+          }}
           model={model}
           prompt={prompt}
           stream={stream}
@@ -42,10 +52,10 @@ export function Playground({
         {result ? (
           <Completion result={result} />
         ) : (
-          <Panel title="Response">
+          <Panel title={t("playground.response")}>
             <div className="empty-state" style={{ minHeight: 180 }}>
-              <strong>No response yet</strong>
-              <span>Send a prompt to exercise the live router and inspect usage.</span>
+              <strong>{t("playground.noTitle")}</strong>
+              <span>{t("playground.noBody")}</span>
             </div>
           </Panel>
         )}
@@ -56,6 +66,14 @@ export function Playground({
 
 /** Editable prompt form with the send action. */
 function PromptForm(props: {
+  labels: {
+    title: string;
+    model: string;
+    prompt: string;
+    stream: string;
+    send: string;
+    running: string;
+  };
   model: string;
   prompt: string;
   stream: boolean;
@@ -67,10 +85,10 @@ function PromptForm(props: {
   onSend: () => void;
 }) {
   return (
-    <Panel title="Playground">
+    <Panel title={props.labels.title}>
       <div style={{ display: "grid", gap: 12 }}>
         <label className="field">
-          <span className="field-label">Model</span>
+          <span className="field-label">{props.labels.model}</span>
           <input
             aria-label="playground-model"
             value={props.model}
@@ -78,7 +96,7 @@ function PromptForm(props: {
           />
         </label>
         <label className="field">
-          <span className="field-label">Prompt</span>
+          <span className="field-label">{props.labels.prompt}</span>
           <textarea
             aria-label="playground-prompt"
             rows={4}
@@ -93,11 +111,11 @@ function PromptForm(props: {
             checked={props.stream}
             onChange={(e) => props.onStream(e.target.checked)}
           />
-          Stream responses
+          {props.labels.stream}
         </label>
         <button className="action" disabled={props.pending} onClick={props.onSend}>
           <Icon name="play" size={16} />
-          {props.pending ? "Running…" : "Send"}
+          {props.pending ? props.labels.running : props.labels.send}
         </button>
         {props.error ? <div className="error">{props.error}</div> : null}
       </div>
@@ -107,14 +125,16 @@ function PromptForm(props: {
 
 /** Rendered completion with usage details. */
 function Completion({ result }: { result: ChatResult }) {
+  const { t } = useI18n();
   return (
-    <Panel title="Response">
+    <Panel title={t("playground.response")}>
       <pre className="mono" style={{ whiteSpace: "pre-wrap", margin: 0 }} data-testid="playground-output">
         {result.content}
       </pre>
       <div style={{ color: "var(--muted)", fontSize: 12, marginTop: 10 }}>
-        provider {result.provider || "—"} · prompt {tokens(result.promptTokens)} · completion{" "}
-        {tokens(result.completionTokens)} · cached {tokens(result.cachedTokens)}
+        {t("playground.provider")} {result.provider || "—"} · {t("playground.promptTokens")}{" "}
+        {tokens(result.promptTokens)} · {t("playground.completionTokens")} {tokens(result.completionTokens)} ·{" "}
+        {t("playground.cachedTokens")} {tokens(result.cachedTokens)}
       </div>
     </Panel>
   );

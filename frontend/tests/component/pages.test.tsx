@@ -159,6 +159,8 @@ describe("TokenGate", () => {
     await userEvent.type(screen.getByLabelText("admin-token"), "secret");
     await userEvent.click(screen.getByText("Enter"));
     expect(onSubmit).toHaveBeenCalledWith("secret");
+    await userEvent.type(screen.getByLabelText("admin-token"), "{enter}");
+    expect(onSubmit).toHaveBeenCalledTimes(2);
   });
 });
 

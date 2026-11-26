@@ -6,6 +6,7 @@ import { useState } from "react";
 
 import { clearToken, setToken } from "./api/client";
 import { Icon } from "./components/icons";
+import { I18nProvider, LocaleSwitch, useI18n, type Locale } from "./i18n";
 import { Dashboard } from "./pages/Dashboard";
 import { TokenGate } from "./pages/Login";
 import { Playground } from "./pages/Playground";
@@ -16,14 +17,27 @@ import { useChat, useMetrics, useProviders, useSaveProviders, useSimulate } from
 type Tab = "Dashboard" | "Providers" | "Routes" | "Playground";
 
 const NAV = [
-  { name: "Dashboard", icon: "dashboard" },
-  { name: "Providers", icon: "server" },
-  { name: "Routes", icon: "route" },
-  { name: "Playground", icon: "play" },
-] as const satisfies readonly { name: Tab; icon: "dashboard" | "server" | "route" | "play" }[];
+  { name: "Dashboard", key: "nav.dashboard", icon: "dashboard" },
+  { name: "Providers", key: "nav.providers", icon: "server" },
+  { name: "Routes", key: "nav.routes", icon: "route" },
+  { name: "Playground", key: "nav.playground", icon: "play" },
+] as const satisfies readonly {
+  name: Tab;
+  key: "nav.dashboard" | "nav.providers" | "nav.routes" | "nav.playground";
+  icon: "dashboard" | "server" | "route" | "play";
+}[];
 
-/** Root component rendering the selected tab. */
-export function App({ initialToken }: { initialToken: string }) {
+/** Root component providing locale context. */
+export function App({ initialToken, initialLocale }: { initialToken: string; initialLocale?: Locale }) {
+  return (
+    <I18nProvider initialLocale={initialLocale}>
+      <AppContent initialToken={initialToken} />
+    </I18nProvider>
+  );
+}
+
+function AppContent({ initialToken }: { initialToken: string }) {
+  const { t } = useI18n();
   const [token, setTokenState] = useState(initialToken);
   const [tab, setTab] = useState<Tab>("Dashboard");
   const [range, setRange] = useState("1h");
@@ -46,33 +60,30 @@ export function App({ initialToken }: { initialToken: string }) {
 
   const providerCount = providers.data?.providers.length ?? 0;
   return (
-    <div className="app-shell">
-      <aside className="sidebar">
+    <div className="app">
+      <header className="topbar">
         <div className="brand">
           <div className="brand-mark">PG</div>
           <div>
             <h1>polygate</h1>
-            <p>routing gateway</p>
+            <p>{t("app.tagline")}</p>
           </div>
         </div>
-        <nav className="side-nav" aria-label="Primary">
+        <nav className="nav" aria-label={t("app.workspace")}>
           {NAV.map((item) => (
             <button
               key={item.name}
               className={item.name === tab ? "active" : ""}
               onClick={() => setTab(item.name)}
             >
-              <Icon name={item.icon} />
-              <span>{item.name}</span>
+              <Icon name={item.icon} size={16} />
+              <span>{t(item.key)}</span>
             </button>
           ))}
         </nav>
-        <div className="sidebar-foot">
-          <div className="status-line">
-            <span className="status-dot" />
-            <span>ready</span>
-          </div>
-          <div className="muted">{providerCount} providers</div>
+        <div className="topbar-actions">
+          <span className="pill mono">{t("providers.count", { count: providerCount })}</span>
+          <LocaleSwitch />
           <button
             className="ghost"
             onClick={() => {
@@ -80,21 +91,21 @@ export function App({ initialToken }: { initialToken: string }) {
               setTokenState("");
             }}
           >
-            <Icon name="logout" />
-            Sign out
+            <Icon name="logout" size={16} />
+            {t("app.signOut")}
           </button>
         </div>
-      </aside>
+      </header>
       <section className="workspace">
         <header className="workspace-head">
           <div>
-            <div className="eyebrow">Workspace</div>
-            <h2>{tab}</h2>
+            <div className="eyebrow">{t("app.workspace")}</div>
+            <h2>{t(NAV.find((item) => item.name === tab)?.key ?? "nav.dashboard")}</h2>
           </div>
           <div className="workspace-meta">
             <span className="pill">
-              <Icon name="pulse" size={14} />
-              live
+              <span className="status-dot" />
+              {t("app.live")}
             </span>
             <span className="pill mono">v0.1.0</span>
           </div>
@@ -138,6 +149,7 @@ function ProvidersTab({ providers, save }: Pick<TabBodyProps, "providers" | "sav
 }
 
 function ProvidersState({ providers, save }: Pick<TabBodyProps, "providers" | "save">) {
+  const { t } = useI18n();
   if (providers.isPending) {
     return (
       <div className="main">
@@ -150,10 +162,10 @@ function ProvidersState({ providers, save }: Pick<TabBodyProps, "providers" | "s
     return (
       <div className="main">
         <div className="empty-state">
-          <strong>Providers could not be loaded</strong>
+          <strong>{t("providers.loadFailed")}</strong>
           <span>{providers.error.message}</span>
           <button className="ghost" onClick={() => void providers.refetch()}>
-            Retry
+            {t("providers.retry")}
           </button>
         </div>
       </div>
@@ -163,6 +175,7 @@ function ProvidersState({ providers, save }: Pick<TabBodyProps, "providers" | "s
 }
 
 function ProvidersReady({ providers, save }: Pick<TabBodyProps, "providers" | "save">) {
+  const { t } = useI18n();
   return (
     <div className="main">
       {providers.data ? (
@@ -174,7 +187,7 @@ function ProvidersReady({ providers, save }: Pick<TabBodyProps, "providers" | "s
       ) : null}
       {save.isError ? (
         <div className="empty-state" role="alert">
-          <strong>Save failed</strong>
+          <strong>{t("providers.saveFailed")}</strong>
           <span>{save.error.message}</span>
         </div>
       ) : null}

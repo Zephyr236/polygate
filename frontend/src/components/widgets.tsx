@@ -5,6 +5,7 @@
 import type { ReactNode } from "react";
 
 import type { ProviderHealth } from "../api/types";
+import { useI18n, type MessageKey } from "../i18n";
 import { percent } from "../utils/format";
 import { Icon, type IconName } from "./icons";
 
@@ -38,16 +39,18 @@ export function KpiCard({
 
 /** Health badge for a provider circuit state. */
 export function HealthBadge({ state }: { state: ProviderHealth["state"] }) {
-  return <span className={`badge ${state}`}>{state.replace("_", " ")}</span>;
+  const { t } = useI18n();
+  return <span className={`badge ${state}`}>{t(`health.${state}` as MessageKey)}</span>;
 }
 
 /** Concurrency gauge showing used slots against capacity. */
 export function CapacityBar({ inflight, capacity }: { inflight: number; capacity: number }) {
+  const { t } = useI18n();
   const ratio = capacity > 0 ? Math.min(inflight / capacity, 1) : 0;
   return (
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: "var(--muted)" }}>
-        <span>inflight</span>
+        <span>{t("widget.inflight")}</span>
         <span>
           {inflight} / {capacity}
         </span>
@@ -69,10 +72,11 @@ export function CapacityBar({ inflight, capacity }: { inflight: number; capacity
 
 /** Success-rate ring rendered with CSS conic gradient. */
 export function SuccessRing({ rate }: { rate: number }) {
+  const { t } = useI18n();
   const degrees = Math.round(Math.max(0, Math.min(rate, 1)) * 360);
   return (
     <div
-      aria-label={`success ${percent(rate)}`}
+      aria-label={t("widget.success", { value: percent(rate) })}
       style={{
         width: 56,
         height: 56,
@@ -102,6 +106,7 @@ export function Panel({ title, children }: { title: string; children: ReactNode 
 
 /** Renders a list of short text reasons. */
 export function ReasonList({ reasons }: { reasons: string[] }) {
-  if (reasons.length === 0) return <span style={{ color: "var(--ok)" }}>eligible</span>;
+  const { t } = useI18n();
+  if (reasons.length === 0) return <span style={{ color: "var(--ok)" }}>{t("widget.eligible")}</span>;
   return <span>{reasons.join(", ")}</span>;
 }

@@ -5,9 +5,11 @@
 import { useState } from "react";
 
 import { Icon } from "../components/icons";
+import { useI18n } from "../i18n";
 
 /** Login form storing the admin bearer token. */
 export function TokenGate({ onSubmit }: { onSubmit: (token: string) => void }) {
+  const { t } = useI18n();
   const [token, setToken] = useState("");
   return (
     <div className="login-shell">
@@ -16,18 +18,15 @@ export function TokenGate({ onSubmit }: { onSubmit: (token: string) => void }) {
           <div className="brand-mark">PG</div>
           <div>
             <h1>polygate</h1>
-            <p>multi-provider routing gateway</p>
+            <p>{t("app.tagline")}</p>
           </div>
         </div>
         <div>
-          <h2>Admin console</h2>
-          <p className="muted">
-            Authenticate with the bearer token from <span className="mono">ADMIN_TOKEN</span>. It stays in
-            this browser only.
-          </p>
+          <h2>{t("login.title")}</h2>
+          <p className="muted">{t("login.description")}</p>
         </div>
         <label className="field">
-          <span className="field-label">Admin token</span>
+          <span className="field-label">{t("login.tokenLabel")}</span>
           <input
             aria-label="admin-token"
             type="password"
@@ -37,19 +36,19 @@ export function TokenGate({ onSubmit }: { onSubmit: (token: string) => void }) {
             onKeyDown={(event) => {
               if (event.key === "Enter" && token.trim() !== "") onSubmit(token.trim());
             }}
-            placeholder="Bearer token from ADMIN_TOKEN"
+            placeholder={t("login.placeholder")}
           />
         </label>
         <button className="action" disabled={token.trim() === ""} onClick={() => onSubmit(token.trim())}>
           <Icon name="check" />
-          Enter
+          {t("login.enter")}
         </button>
         <div className="login-foot">
           <span className="status-line">
             <span className="status-dot" />
-            local gateway
+            {t("login.local")}
           </span>
-          <span className="pill mono">/v1 · /admin</span>
+          <span className="pill mono">{t("login.endpoints")}</span>
         </div>
       </main>
     </div>

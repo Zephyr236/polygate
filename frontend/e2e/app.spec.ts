@@ -9,6 +9,7 @@ import { metricsFixture, providerFixtures, healthFixtures } from "../tests/msw";
 const TOKEN = "e2e-token";
 
 test.beforeEach(async ({ page }) => {
+  await page.addInitScript(() => window.localStorage.setItem("polygate.locale", "en"));
   await page.route("**/admin/providers", async (route) => {
     if (route.request().method() === "PUT") {
       return route.fulfill({ json: { providers: providerFixtures } });

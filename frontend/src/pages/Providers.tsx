@@ -6,6 +6,7 @@ import { useState } from "react";
 
 import type { ProviderConfig } from "../api/types";
 import { Icon } from "../components/icons";
+import { useI18n, type Translate } from "../i18n";
 import { ProviderCard } from "./ProviderCard";
 import type { ProviderDraft } from "./providerDraft";
 
@@ -68,13 +69,21 @@ export function fromDraft(draft: ProviderDraft): ProviderConfig {
   };
 }
 
+const ENGLISH_VALIDATION: Record<string, string> = {
+  "providers.validation.id": "id must be lowercase alphanumeric with dashes",
+  "providers.validation.baseUrl": "base_url must be an http(s) URL",
+  "providers.validation.concurrency": "max_concurrency must be at least 1",
+  "providers.validation.cost": "cost_coefficient must be positive",
+};
+
 /** Validate a draft before sending it to the server. */
-export function validateDraft(draft: ProviderDraft): string[] {
+export function validateDraft(draft: ProviderDraft, t?: Translate): string[] {
+  const tr: Translate = t ?? ((key) => ENGLISH_VALIDATION[key] ?? key);
   const problems: string[] = [];
-  if (!/^[a-z0-9][a-z0-9-]*$/.test(draft.id)) problems.push("id must be lowercase alphanumeric with dashes");
-  if (!draft.base_url.startsWith("http")) problems.push("base_url must be an http(s) URL");
-  if (Number(draft.max_concurrency) < 1) problems.push("max_concurrency must be at least 1");
-  if (Number(draft.cost_coefficient) <= 0) problems.push("cost_coefficient must be positive");
+  if (!/^[a-z0-9][a-z0-9-]*$/.test(draft.id)) problems.push(tr("providers.validation.id"));
+  if (!draft.base_url.startsWith("http")) problems.push(tr("providers.validation.baseUrl"));
+  if (Number(draft.max_concurrency) < 1) problems.push(tr("providers.validation.concurrency"));
+  if (Number(draft.cost_coefficient) <= 0) problems.push(tr("providers.validation.cost"));
   return problems;
 }
 
@@ -123,19 +132,20 @@ function ProviderList({
   update: (index: number, patch: Partial<ProviderDraft>) => void;
   remove: (index: number) => void;
 }) {
+  const { t } = useI18n();
   if (drafts.length === 0) {
     return (
       <div className="empty-state">
-        <strong>No providers configured</strong>
-        <span>Add a provider to start routing traffic.</span>
+        <strong>{t("providers.emptyTitle")}</strong>
+        <span>{t("providers.emptyBody")}</span>
       </div>
     );
   }
   if (visible.length === 0) {
     return (
       <div className="empty-state">
-        <strong>No matches</strong>
-        <span>Clear the filter to see all {drafts.length} providers.</span>
+        <strong>{t("providers.noMatchesTitle")}</strong>
+        <span>{t("providers.noMatchesBody", { count: drafts.length })}</span>
       </div>
     );
   }
@@ -158,6 +168,7 @@ export function ProviderEditor({
   onSave: (providers: ProviderConfig[]) => void;
   saving: boolean;
 }) {
+  const { t } = useI18n();
   const [drafts, setDrafts] = useState<ProviderDraft[]>(() => providers.map(toDraft));
   const [errors, setErrors] = useState<string[]>([]);
   const [filter, setFilter] = useState("");
@@ -172,7 +183,7 @@ export function ProviderEditor({
   };
 
   const submit = () => {
-    const problems = drafts.flatMap(validateDraft);
+    const problems = drafts.flatMap((draft) => validateDraft(draft, t));
     setErrors(problems);
     if (problems.length > 0) return;
     onSave(drafts.map(fromDraft));
@@ -184,13 +195,13 @@ export function ProviderEditor({
     <>
       <div className="page-head">
         <div>
-          <div className="eyebrow">Provider pool</div>
-          <p>Channel endpoints, credentials, concurrency and cost. Secrets stay in environment variables.</p>
+          <div className="eyebrow">{t("providers.eyebrow")}</div>
+          <p>{t("providers.description")}</p>
         </div>
         <div className="toolbar">
           <input
             aria-label="provider-filter"
-            placeholder="Filter by id, model or tag"
+            placeholder={t("providers.filter")}
             value={filter}
             onChange={(event) => setFilter(event.target.value)}
             style={{ width: 240 }}
@@ -203,14 +214,14 @@ export function ProviderEditor({
             }}
           >
             <Icon name="plus" size={16} />
-            Add provider
+            {t("providers.add")}
           </button>
         </div>
       </div>
 
       {errors.length > 0 ? (
         <div className="card" role="alert">
-          <div className="eyebrow">Validation</div>
+          <div className="eyebrow">{t("providers.validationTitle")}</div>
           {errors.map((problem) => (
             <div className="error" key={problem}>
               {problem}
@@ -223,11 +234,12 @@ export function ProviderEditor({
 
       <div className="savebar">
         <div className="muted">
-          {drafts.length} provider{drafts.length === 1 ? "" : "s"}
-          {filter ? ` · ${visible.length} shown` : ""}
+          {t("providers.count", { count: drafts.length })}
+          {filter ? ` · ${t("providers.shown", { count: visible.length })}` : ""}
         </div>
         <button className="action" onClick={submit} disabled={saving}>
-          {saving ? "Saving…" : "Save providers"}
+          <Icon name="save" size={16} />
+          {saving ? t("providers.saving") : t("providers.save")}
         </button>
       </div>
     </>

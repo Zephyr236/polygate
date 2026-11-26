@@ -7,6 +7,7 @@ import { useState } from "react";
 import type { SimulateResponse } from "@/api/types";
 import { Icon } from "@/components/icons";
 import { Panel, ReasonList } from "@/components/widgets";
+import { useI18n } from "@/i18n";
 
 /** Simulate the router and render each candidate's score components. */
 export function Routes({
@@ -18,16 +19,17 @@ export function Routes({
   data: SimulateResponse | undefined;
   pending: boolean;
 }) {
+  const { t } = useI18n();
   const [model, setModel] = useState("deepseek-v4.1-flash");
   const [prompt, setPrompt] = useState("hello");
 
   return (
     <div className="main">
       <div className="split-grid">
-        <Panel title="Simulate routing">
+        <Panel title={t("routes.title")}>
           <div style={{ display: "grid", gap: 12 }}>
             <label className="field">
-              <span className="field-label">Model</span>
+              <span className="field-label">{t("routes.model")}</span>
               <input
                 aria-label="simulate-model"
                 value={model}
@@ -35,7 +37,7 @@ export function Routes({
               />
             </label>
             <label className="field">
-              <span className="field-label">Prompt</span>
+              <span className="field-label">{t("routes.prompt")}</span>
               <textarea
                 aria-label="simulate-prompt"
                 rows={3}
@@ -45,17 +47,17 @@ export function Routes({
             </label>
             <button className="action" disabled={pending} onClick={() => onSimulate({ model, prompt })}>
               <Icon name="play" size={16} />
-              {pending ? "Simulating…" : "Simulate"}
+              {pending ? t("routes.simulating") : t("routes.simulate")}
             </button>
           </div>
         </Panel>
         {data ? (
           <CandidateTable data={data} />
         ) : (
-          <Panel title="Candidates">
+          <Panel title={t("routes.candidates")}>
             <div className="empty-state" style={{ minHeight: 180 }}>
-              <strong>No simulation yet</strong>
-              <span>Run a model and prompt to inspect eligibility and score components.</span>
+              <strong>{t("routes.noTitle")}</strong>
+              <span>{t("routes.noBody")}</span>
             </div>
           </Panel>
         )}
@@ -66,8 +68,9 @@ export function Routes({
 
 /** Candidate score table with eligibility reasons. */
 function CandidateTable({ data }: { data: SimulateResponse }) {
+  const { t } = useI18n();
   return (
-    <Panel title="Candidates">
+    <Panel title={t("routes.candidates")}>
       <div className="table-wrap">
         <table>
           <thead>

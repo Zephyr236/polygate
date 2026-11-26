@@ -20,7 +20,7 @@ function renderApp(token = "test-token") {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={client}>
-      <App initialToken={token} />
+      <App initialToken={token} initialLocale="en" />
     </QueryClientProvider>,
   );
 }

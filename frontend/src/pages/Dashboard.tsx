@@ -2,29 +2,34 @@
  * Dashboard page: KPI row, per-provider cards and time-series charts.
  */
 
-import { CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-
 import type { MetricsResponse, ProviderHealth, ProviderMetrics } from "../api/types";
+import { useI18n, type MessageKey } from "../i18n";
+import { DetailTable, TrafficChart } from "./dashboardCharts";
 import { CapacityBar, HealthBadge, KpiCard, Panel, SuccessRing } from "../components/widgets";
-import { clockTime, latency, percent, tokens, usd } from "../utils/format";
+import { latency, percent, tokens, usd } from "../utils/format";
 import type { Totals } from "../utils/metrics";
 import { aggregate, bucketTotals, costPerThousand, p95Estimate, providerColor } from "../utils/metrics";
 
 /** Time-range selector options. */
-const RANGES = ["15m", "1h", "24h", "7d"] as const;
+const RANGES: { value: string; key: MessageKey }[] = [
+  { value: "15m", key: "dashboard.range.15m" },
+  { value: "1h", key: "dashboard.range.1h" },
+  { value: "24h", key: "dashboard.range.24h" },
+  { value: "7d", key: "dashboard.range.7d" },
+];
 
 /** Range switch buttons. */
 function RangePicker({ range, onRangeChange }: { range: string; onRangeChange: (range: string) => void }) {
+  const { t } = useI18n();
   return (
-    <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+    <div className="range-picker">
       {RANGES.map((item) => (
         <button
-          key={item}
-          className="action"
-          style={{ background: item === range ? "var(--accent)" : "var(--panel-alt)" }}
-          onClick={() => onRangeChange(item)}
+          key={item.value}
+          className={item.value === range ? "active" : ""}
+          onClick={() => onRangeChange(item.value)}
         >
-          {item}
+          {t(item.key)}
         </button>
       ))}
     </div>
@@ -43,14 +48,29 @@ function KpiRow({
   cacheRate: number;
   providers: number;
 }) {
+  const { t } = useI18n();
   return (
     <div className="kpis">
-      <KpiCard label="Calls" value={tokens(totals.calls)} hint={`${providers} providers`} icon="pulse" />
-      <KpiCard label="Success" value={percent(success)} hint={`${totals.failures} failures`} icon="check" />
-      <KpiCard label="Prompt tokens" value={tokens(totals.promptTokens)} icon="server" />
-      <KpiCard label="Completion tokens" value={tokens(totals.completionTokens)} icon="server" />
-      <KpiCard label="Cache hits" value={percent(cacheRate)} icon="refresh" />
-      <KpiCard label="Est. cost" value={usd(totals.cost)} icon="route" />
+      <KpiCard
+        label={t("dashboard.calls")}
+        value={tokens(totals.calls)}
+        hint={t("dashboard.providers", { count: providers })}
+        icon="pulse"
+      />
+      <KpiCard
+        label={t("dashboard.success")}
+        value={percent(success)}
+        hint={t("dashboard.failures", { count: totals.failures })}
+        icon="check"
+      />
+      <KpiCard label={t("dashboard.promptTokens")} value={tokens(totals.promptTokens)} icon="server" />
+      <KpiCard
+        label={t("dashboard.completionTokens")}
+        value={tokens(totals.completionTokens)}
+        icon="server"
+      />
+      <KpiCard label={t("dashboard.cacheHits")} value={percent(cacheRate)} icon="refresh" />
+      <KpiCard label={t("dashboard.cost")} value={usd(totals.cost)} icon="route" />
     </div>
   );
 }
@@ -58,88 +78,6 @@ function KpiRow({
 /** Guarded ratio helper that yields zero for empty denominators. */
 function ratio(numerator: number, denominator: number): number {
   return denominator > 0 ? numerator / denominator : 0;
-}
-
-/** Traffic chart of calls and failures per bucket. */
-function TrafficChart({ buckets }: { buckets: ReturnType<typeof bucketTotals> }) {
-  return (
-    <ResponsiveContainer width="100%" height={220}>
-      <LineChart data={buckets} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
-        <CartesianGrid stroke="var(--border-soft)" vertical={false} />
-        <XAxis
-          dataKey="bucket"
-          tickFormatter={(value) => clockTime(Number(value))}
-          fontSize={11}
-          stroke="var(--muted)"
-        />
-        <YAxis fontSize={11} allowDecimals={false} stroke="var(--muted)" />
-        <Tooltip
-          labelFormatter={(value) => clockTime(Number(value))}
-          contentStyle={{
-            background: "var(--panel-alt)",
-            border: "1px solid var(--border)",
-            borderRadius: 10,
-            color: "var(--text)",
-          }}
-        />
-        <Legend wrapperStyle={{ fontSize: 12, color: "var(--muted)" }} />
-        <Line
-          type="monotone"
-          dataKey="calls"
-          name="calls"
-          stroke="var(--accent)"
-          strokeWidth={2}
-          dot={false}
-        />
-        <Line
-          type="monotone"
-          dataKey="failures"
-          name="failures"
-          stroke="var(--bad)"
-          strokeWidth={2}
-          dot={false}
-        />
-      </LineChart>
-    </ResponsiveContainer>
-  );
-}
-
-/** Per-provider numeric detail table. */
-function DetailTable({ rows }: { rows: ProviderMetrics[] }) {
-  return (
-    <div className="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th>Provider</th>
-            <th>Calls</th>
-            <th>Failures</th>
-            <th>Switches</th>
-            <th>Prompt</th>
-            <th>Completion</th>
-            <th>Reasoning</th>
-            <th>Cached</th>
-            <th>Cost</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((row) => (
-            <tr key={row.provider_id}>
-              <td>{row.provider_id}</td>
-              <td>{tokens(row.calls)}</td>
-              <td>{tokens(row.failures)}</td>
-              <td>{tokens(row.switches)}</td>
-              <td>{tokens(row.prompt_tokens)}</td>
-              <td>{tokens(row.completion_tokens)}</td>
-              <td>{tokens(row.reasoning_tokens)}</td>
-              <td>{tokens(row.cache_read_tokens)}</td>
-              <td>{usd(row.cost)}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
 }
 
 /** Provider cards grid. */
@@ -214,14 +152,15 @@ function DashboardLoading() {
 
 /** Traffic panel with an explicit empty state. */
 function TrafficPanel({ buckets }: { buckets: ReturnType<typeof bucketTotals> }) {
+  const { t } = useI18n();
   return (
-    <Panel title="Traffic (calls per bucket)">
+    <Panel title={t("dashboard.trafficTitle")}>
       {buckets.length > 0 ? (
         <TrafficChart buckets={buckets} />
       ) : (
         <div className="empty-state" style={{ minHeight: 180 }}>
-          <strong>No traffic yet</strong>
-          <span>Send a request through the Playground or your application to populate this chart.</span>
+          <strong>{t("dashboard.noTrafficTitle")}</strong>
+          <span>{t("dashboard.noTrafficBody")}</span>
         </div>
       )}
     </Panel>
@@ -236,11 +175,12 @@ function ProviderSection({
   rows: ProviderMetrics[];
   healthById: Map<string, ProviderHealth>;
 }) {
+  const { t } = useI18n();
   if (rows.length === 0) {
     return (
       <div className="empty-state">
-        <strong>No provider metrics in this range</strong>
-        <span>Choose a wider range or send a request through a configured provider.</span>
+        <strong>{t("dashboard.noMetricsTitle")}</strong>
+        <span>{t("dashboard.noMetricsBody")}</span>
       </div>
     );
   }
@@ -271,6 +211,7 @@ function DashboardContent({
   range: string;
   onRangeChange: (range: string) => void;
 }) {
+  const { t } = useI18n();
   const rows = data.providers ?? [];
   const totals = aggregate(rows);
   const success = ratio(totals.calls - totals.failures, totals.calls);
@@ -290,7 +231,7 @@ function DashboardContent({
       <TrafficPanel buckets={buckets} />
       <ProviderSection rows={rows} healthById={healthById} />
       {rows.length > 0 ? (
-        <Panel title="Per-provider detail">
+        <Panel title={t("dashboard.detailTitle")}>
           <DetailTable rows={rows} />
         </Panel>
       ) : null}
