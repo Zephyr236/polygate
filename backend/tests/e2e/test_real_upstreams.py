@@ -94,7 +94,7 @@ def test_real_chat_completion(gateway: httpx.Client) -> None:
         "messages": [{"role": "user", "content": "Reply with exactly: PONG"}],
         "max_tokens": 4000,
     }
-    response = gateway.post("/v1/chat/completions", json=payload, timeout=200)
+    response = gateway.post("/v1/chat/completions", json=payload)
     assert response.status_code == 200, response.text[:400]
     assert "PONG" in response.json()["choices"][0]["message"]["content"]
 
@@ -107,16 +107,22 @@ def test_real_streaming_completion(gateway: httpx.Client) -> None:
         "stream": True,
         "max_tokens": 4000,
     }
-    with gateway.stream("POST", "/v1/chat/completions", json=payload, timeout=200) as response:
+    with gateway.stream("POST", "/v1/chat/completions", json=payload) as response:
         body = "".join(response.iter_text())
     assert response.status_code == 200
     assert "[DONE]" in body
 
 
 def test_real_metrics_recorded(gateway: httpx.Client) -> None:
-    """Calls made above must show up in the admin metrics endpoint."""
-    metrics = gateway.get(
-        "/admin/metrics?range=1h", headers={"authorization": "Bearer real-token"}, timeout=30
+    """A real call must show up in the admin metrics endpoint."""
+    gateway.post(
+        "/v1/chat/completions",
+        json={
+            "model": "deepseek-v4.1-flash",
+            "messages": [{"role": "user", "content": "Reply with exactly: METRIC"}],
+            "max_tokens": 4000,
+        },
     )
+    metrics = gateway.get("/admin/metrics?range=1h", headers={"authorization": "Bearer real-token"})
     assert metrics.status_code == 200
     assert metrics.json()["overview"]["calls"] >= 1

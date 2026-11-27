@@ -74,31 +74,31 @@ function AppContent({ initialToken }: { initialToken: string }) {
   const providerCount = providers.data?.providers.length ?? 0;
   return (
     <div className="app">
-      <header className="topbar">
-        <div className="brand">
+      <aside className="sidebar">
+        <div className="brand sidebar-brand">
           <div className="brand-mark">PG</div>
           <div>
             <h1>polygate</h1>
             <p>{t("app.tagline")}</p>
           </div>
         </div>
-        <nav className="nav" aria-label={t("app.workspace")}>
+        <nav className="nav sidebar-nav" aria-label={t("app.workspace")}>
           {NAV.map((item) => (
             <button
               key={item.name}
               className={item.name === tab ? "active" : ""}
               onClick={() => setTab(item.name)}
             >
-              <Icon name={item.icon} size={16} />
+              <Icon name={item.icon} size={17} />
               <span>{t(item.key)}</span>
             </button>
           ))}
         </nav>
-        <div className="topbar-actions">
+        <div className="sidebar-foot">
           <span className="pill mono">{t("providers.count", { count: providerCount })}</span>
           <LocaleSwitch />
           <button
-            className="ghost"
+            className="ghost sidebar-signout"
             onClick={() => {
               void logoutSession().catch(() => undefined);
               clearToken();
@@ -106,35 +106,37 @@ function AppContent({ initialToken }: { initialToken: string }) {
             }}
           >
             <Icon name="logout" size={16} />
-            {t("app.signOut")}
+            <span>{t("app.signOut")}</span>
           </button>
         </div>
-      </header>
-      <section className="workspace">
-        <header className="workspace-head">
-          <div>
-            <div className="eyebrow">{t("app.workspace")}</div>
-            <h2>{t(tabLabel(tab))}</h2>
-          </div>
-          <div className="workspace-meta">
-            <span className="pill">
-              <span className="status-dot" />
-              {t("app.live")}
-            </span>
-            <span className="pill mono">v0.1.0</span>
-          </div>
-        </header>
-        <TabBody
-          tab={tab}
-          range={range}
-          onRangeChange={setRange}
-          metrics={metrics}
-          providers={providers}
-          save={save}
-          simulation={simulation}
-          chat={chat}
-        />
-      </section>
+      </aside>
+      <div className="app-main">
+        <section className="workspace">
+          <header className="workspace-head">
+            <div>
+              <div className="eyebrow">{t("app.workspace")}</div>
+              <h2>{t(tabLabel(tab))}</h2>
+            </div>
+            <div className="workspace-meta">
+              <span className="pill">
+                <span className="status-dot" />
+                {t("app.live")}
+              </span>
+              <span className="pill mono">v0.1.0</span>
+            </div>
+          </header>
+          <TabBody
+            tab={tab}
+            range={range}
+            onRangeChange={setRange}
+            metrics={metrics}
+            providers={providers}
+            save={save}
+            simulation={simulation}
+            chat={chat}
+          />
+        </section>
+      </div>
     </div>
   );
 }

@@ -60,3 +60,5 @@ Coverage is emitted as Istanbul JSON so `crap-score` can compute per-function ri
 
 The **API keys** tab generates scoped caller credentials. A secret is shown once; each key stores
 its provider allowlist and tier (`premium`, `standard`, `economy`) and can be revoked immediately.
+
+The shell uses a persistent left sidebar for navigation; below 900px it collapses into a horizontally scrollable header. API key provider selection is a searchable multi-select with removable chips, not a checkbox wall, so large provider pools stay usable.

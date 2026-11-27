@@ -7,6 +7,7 @@ import { useState } from "react";
 import { Icon } from "../components/icons";
 import { useI18n } from "../i18n";
 import { useApiKeys, useCreateApiKey, useRevokeApiKey } from "../state/queries";
+import { ProviderPicker } from "./ProviderPicker";
 import { calendarTime } from "../utils/format";
 import type { ApiKeyTier, ProviderConfig } from "../api/types";
 
@@ -29,35 +30,6 @@ async function writeClipboard(value: string): Promise<boolean> {
   } catch {
     return false;
   }
-}
-
-function ProviderChoices({
-  providers,
-  selected,
-  onToggle,
-}: {
-  providers: ProviderConfig[];
-  selected: string[];
-  onToggle: (id: string) => void;
-}) {
-  return (
-    <div className="check-grid">
-      {providers.map((provider) => (
-        <label key={provider.id} className="check-row">
-          <input
-            type="checkbox"
-            aria-label={`provider-${provider.id}`}
-            checked={selected.includes(provider.id)}
-            onChange={() => onToggle(provider.id)}
-          />
-          <span>
-            <strong>{provider.id}</strong>
-            <small>{provider.model}</small>
-          </span>
-        </label>
-      ))}
-    </div>
-  );
 }
 
 function CreateFeedback({ error, failure }: { error: string; failure: Error | null }) {
@@ -102,20 +74,17 @@ function CreatePanel({ providers }: { providers: ProviderConfig[] }) {
   const create = useCreateApiKey();
   const [name, setName] = useState("");
   const [tier, setTier] = useState<ApiKeyTier>("standard");
-  const [selected, setSelected] = useState<string[] | null>(null);
+  const [selected, setSelected] = useState<string[]>([]);
   const [error, setError] = useState("");
   const [secret, setSecret] = useState("");
   const [copied, setCopied] = useState(false);
-  const all = providers.map((provider) => provider.id);
-  const active = selected ?? all;
-
   const toggle = (id: string) => {
-    setSelected(toggleProvider(active, id));
+    setSelected(toggleProvider(selected, id));
   };
 
   const submit = (event: React.FormEvent) => {
     event.preventDefault();
-    const problem = inputProblem(name, active.length, t);
+    const problem = inputProblem(name, selected.length, t);
     if (problem) {
       setError(problem);
       return;
@@ -123,7 +92,7 @@ function CreatePanel({ providers }: { providers: ProviderConfig[] }) {
     setError("");
     setSecret("");
     create.mutate(
-      { name: name.trim(), tier, allowed_providers: active },
+      { name: name.trim(), tier, allowed_providers: selected },
       { onSuccess: (created) => setSecret(created.token) },
     );
   };
@@ -167,7 +136,13 @@ function CreatePanel({ providers }: { providers: ProviderConfig[] }) {
         </label>
         <div className="field">
           <span className="field-label">{t("apiKeys.providers")}</span>
-          <ProviderChoices providers={providers} selected={active} onToggle={toggle} />
+          <ProviderPicker
+            providers={providers}
+            selected={selected}
+            onToggle={toggle}
+            onSelectAll={(ids) => setSelected(Array.from(new Set([...selected, ...ids])))}
+            onClear={() => setSelected([])}
+          />
           <small className="field-hint">{t("apiKeys.providersHint")}</small>
         </div>
         <CreateFeedback error={error} failure={create.isError ? create.error : null} />

@@ -109,6 +109,7 @@ test("generates a scoped API key and shows the secret once", async ({ page }) =>
   await expect(page.getByTestId("api-key-key_alpha")).toBeVisible();
   await page.getByLabel("api-key-name").fill("Team E2E");
   await page.getByLabel("api-key-tier").selectOption("economy");
+  await page.getByRole("option", { name: "provider-option-zen" }).click();
   await page.getByRole("button", { name: "Generate key" }).click();
   await expect(page.getByText("pg_e2esecret_token")).toBeVisible();
   await expect(page.getByText("Key generated")).toBeVisible();

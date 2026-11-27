@@ -187,5 +187,12 @@
   "apiKeys.introTitle": "调用方凭据",
   "apiKeys.createEyebrow": "访问控制",
   "apiKeys.createTitle": "生成密钥",
-  "apiKeys.listEyebrow": "密钥池"
+  "apiKeys.listEyebrow": "密钥池",
+  "apiKeys.providerSearch": "搜索提供商…",
+  "apiKeys.selectedCount": "{count} 个已选",
+  "apiKeys.selectAll": "全选",
+  "apiKeys.clear": "清空",
+  "apiKeys.noProviders": "没有匹配的提供商",
+  "apiKeys.remove": "移除",
+  "apiKeys.noneSelected": "尚未选择提供商"
 }

@@ -6,6 +6,7 @@ All notable changes are documented here. The format follows Keep a Changelog and
 
 ### Added
 
+- Sidebar navigation and a searchable provider multi-select for generated API keys.
 - Generated caller API keys: one-time secrets, provider allowlists, premium/standard/economy tiers,
   revocation, and an API keys management page.
 - Admin password login: first-run password setup, salted scrypt hashes, expiring hashed browser
@@ -46,6 +47,7 @@ All notable changes are documented here. The format follows Keep a Changelog and
 
 ### Added
 
+- Sidebar navigation and a searchable provider multi-select for generated API keys.
 - Generated caller API keys: one-time secrets, provider allowlists, premium/standard/economy tiers,
   revocation, and an API keys management page.
 - Multi-provider routing gateway with score-based selection across success rate, latency, cost coefficient and cache hit rate.

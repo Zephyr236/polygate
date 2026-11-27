@@ -187,5 +187,12 @@
   "apiKeys.introTitle": "Caller credentials",
   "apiKeys.createEyebrow": "Access control",
   "apiKeys.createTitle": "Generate a key",
-  "apiKeys.listEyebrow": "Key ring"
+  "apiKeys.listEyebrow": "Key ring",
+  "apiKeys.providerSearch": "Search providers…",
+  "apiKeys.selectedCount": "{count} selected",
+  "apiKeys.selectAll": "Select all",
+  "apiKeys.clear": "Clear",
+  "apiKeys.noProviders": "No matching providers",
+  "apiKeys.remove": "Remove",
+  "apiKeys.noneSelected": "No providers selected"
 }

@@ -39,6 +39,7 @@ describe("ApiKeys", () => {
     renderPage();
     await userEvent.type(screen.getByLabelText("api-key-name"), "Team beta");
     await userEvent.selectOptions(screen.getByLabelText("api-key-tier"), "economy");
+    await userEvent.click(screen.getByRole("option", { name: "provider-option-zen" }));
     await userEvent.click(screen.getByRole("button", { name: "Generate key" }));
     await waitFor(() => expect(screen.getByText("pg_newsecret_token")).toBeInTheDocument());
     expect(screen.getByText("Key generated")).toBeInTheDocument();
@@ -52,17 +53,35 @@ describe("ApiKeys", () => {
     await userEvent.click(screen.getByRole("button", { name: "Generate key" }));
     expect(screen.getByText("Enter a name")).toBeInTheDocument();
     await userEvent.type(screen.getByLabelText("api-key-name"), "Team beta");
-    for (const provider of providerFixtures) {
-      await userEvent.click(screen.getByLabelText(`provider-${provider.id}`));
-    }
     await userEvent.click(screen.getByRole("button", { name: "Generate key" }));
     expect(screen.getByText("Select at least one provider")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("option", { name: "provider-option-zen" }));
+    expect(screen.getAllByText("zen").length).toBeGreaterThan(0);
+  });
+
+  it("filters providers and supports bulk select, clear and chip removal", async () => {
+    renderPage();
+    await userEvent.type(screen.getByLabelText("provider-search"), "zen");
+    expect(screen.queryByRole("option", { name: "provider-option-amr" })).not.toBeInTheDocument();
+    expect(screen.getByRole("option", { name: "provider-option-zen" })).toBeInTheDocument();
+    await userEvent.clear(screen.getByLabelText("provider-search"));
+    await userEvent.type(screen.getByLabelText("provider-search"), "zzz");
+    expect(screen.getByText("No matching providers")).toBeInTheDocument();
+    await userEvent.clear(screen.getByLabelText("provider-search"));
+    await userEvent.click(screen.getByRole("button", { name: "Select all" }));
+    expect(screen.getAllByText("amr").length).toBeGreaterThan(1);
+    await userEvent.click(screen.getByRole("button", { name: "Clear" }));
+    expect(screen.getByText("No providers selected")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("option", { name: "provider-option-zen" }));
+    await userEvent.click(screen.getByLabelText("remove-provider-zen"));
+    expect(screen.getByText("No providers selected")).toBeInTheDocument();
   });
 
   it("shows generation failures and revokes keys", async () => {
     server.use(http.post("**/admin/api-keys", () => HttpResponse.json({ detail: "boom" }, { status: 500 })));
     renderPage();
     await userEvent.type(screen.getByLabelText("api-key-name"), "Team beta");
+    await userEvent.click(screen.getByRole("option", { name: "provider-option-zen" }));
     await userEvent.click(screen.getByRole("button", { name: "Generate key" }));
     await waitFor(() => expect(screen.getByText(/Could not generate the key/)).toBeInTheDocument());
     server.resetHandlers();
