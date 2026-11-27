@@ -5,7 +5,7 @@
 import { http, HttpResponse, delay } from "msw";
 import { setupServer } from "msw/node";
 
-import type { MetricsResponse, ProviderConfig, ProviderHealth } from "@/api/types";
+import type { ApiKey, MetricsResponse, ProviderConfig, ProviderHealth } from "@/api/types";
 
 /** Provider fixtures used across component tests. */
 export const providerFixtures: ProviderConfig[] = [
@@ -81,6 +81,21 @@ export const healthFixtures: ProviderHealth[] = [
   },
 ];
 
+/** Generated API key fixtures. */
+export const apiKeyFixtures: ApiKey[] = [
+  {
+    id: "key_alpha",
+    name: "Team alpha",
+    prefix: "pg_testalpha",
+    tier: "premium",
+    allowed_providers: ["amr", "zen"],
+    enabled: true,
+    created_at: 1_760_000_000,
+    last_used_at: null,
+    revoked_at: null,
+  },
+];
+
 /** Metrics fixture with two providers and two buckets. */
 export const metricsFixture: MetricsResponse = {
   range: "1h",
@@ -150,6 +165,23 @@ const handlers = [
   http.post("/admin/auth/login", () => HttpResponse.json({ token: "test-session" })),
   http.post("/admin/auth/setup", () => HttpResponse.json({ token: "test-session" })),
   http.post("/admin/auth/logout", () => HttpResponse.json({ ok: true })),
+  http.get("/admin/api-keys", () => HttpResponse.json({ keys: apiKeyFixtures })),
+  http.post("/admin/api-keys", async ({ request }) => {
+    const body = (await request.json()) as {
+      name: string;
+      tier: ApiKey["tier"];
+      allowed_providers: string[];
+    };
+    return HttpResponse.json({
+      id: "key_new",
+      name: body.name,
+      prefix: "pg_newsecret",
+      tier: body.tier,
+      allowed_providers: body.allowed_providers,
+      token: "pg_newsecret_token",
+    });
+  }),
+  http.delete("/admin/api-keys/:id", () => HttpResponse.json({ ok: true })),
   http.post("/admin/simulate", async () =>
     HttpResponse.json({
       model: "deepseek-v4.1-flash",

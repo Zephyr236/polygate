@@ -2,15 +2,25 @@
  * TanStack Query hooks and query keys for the admin API.
  */
 
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import { chat, fetchMetrics, fetchProviders, saveProviders, simulate } from "../api/client";
-import type { ProviderConfig } from "../api/types";
+import {
+  chat,
+  createApiKey,
+  fetchApiKeys,
+  fetchMetrics,
+  fetchProviders,
+  revokeApiKey,
+  saveProviders,
+  simulate,
+} from "../api/client";
+import type { ApiKeyTier, ProviderConfig } from "../api/types";
 
 /** Query keys shared by dashboard widgets. */
 const keys = {
   providers: ["providers"] as const,
   metrics: (range: string) => ["metrics", range] as const,
+  apiKeys: ["api-keys"] as const,
 };
 
 /** Poll provider list and health every 20 seconds. */
@@ -30,6 +40,30 @@ export function useMetrics(range: string) {
 /** Persist a new provider pool. */
 export function useSaveProviders() {
   return useMutation({ mutationFn: (providers: ProviderConfig[]) => saveProviders(providers) });
+}
+
+/** List generated caller API keys. */
+export function useApiKeys() {
+  return useQuery({ queryKey: keys.apiKeys, queryFn: fetchApiKeys });
+}
+
+/** Generate a new caller API key and refresh the list. */
+export function useCreateApiKey() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { name: string; tier: ApiKeyTier; allowed_providers: string[] }) =>
+      createApiKey(input),
+    onSuccess: () => client.invalidateQueries({ queryKey: keys.apiKeys }),
+  });
+}
+
+/** Revoke a generated caller API key. */
+export function useRevokeApiKey() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => revokeApiKey(id),
+    onSuccess: () => client.invalidateQueries({ queryKey: keys.apiKeys }),
+  });
 }
 
 /** Simulate a routing decision. */

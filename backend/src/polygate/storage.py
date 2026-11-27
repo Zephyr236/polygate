@@ -3,11 +3,14 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import time
 from dataclasses import dataclass, field
 from typing import Any
 
 import aiosqlite
+
+from polygate.schema import SCHEMA
 
 
 @dataclass
@@ -28,49 +31,6 @@ class MetricRecord:
     at: float = field(default_factory=time.time)
 
 
-_SCHEMA = """
-CREATE TABLE IF NOT EXISTS metrics (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    provider_id TEXT NOT NULL,
-    model TEXT NOT NULL,
-    at REAL NOT NULL,
-    ok INTEGER NOT NULL,
-    error_class TEXT,
-    latency_ms REAL NOT NULL,
-    prompt_tokens INTEGER NOT NULL,
-    completion_tokens INTEGER NOT NULL,
-    reasoning_tokens INTEGER NOT NULL,
-    cache_read_tokens INTEGER NOT NULL,
-    cost REAL NOT NULL,
-    switched INTEGER NOT NULL
-);
-CREATE INDEX IF NOT EXISTS idx_metrics_at ON metrics(at);
-CREATE INDEX IF NOT EXISTS idx_metrics_provider ON metrics(provider_id, at);
-CREATE TABLE IF NOT EXISTS events (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    at REAL NOT NULL,
-    kind TEXT NOT NULL,
-    provider_id TEXT,
-    detail TEXT NOT NULL
-);
-CREATE TABLE IF NOT EXISTS providers (
-    id TEXT PRIMARY KEY,
-    payload TEXT NOT NULL,
-    updated_at REAL NOT NULL
-);
-CREATE TABLE IF NOT EXISTS admin_password (
-    id INTEGER PRIMARY KEY CHECK (id = 1),
-    password_hash TEXT NOT NULL,
-    updated_at REAL NOT NULL
-);
-CREATE TABLE IF NOT EXISTS admin_sessions (
-    token_hash TEXT PRIMARY KEY,
-    created_at REAL NOT NULL,
-    expires_at REAL NOT NULL
-);
-"""
-
-
 class MetricsStore:
     """Async store for call metrics, events and provider overrides."""
 
@@ -83,7 +43,7 @@ class MetricsStore:
         """Open the database and create the schema."""
         db = await aiosqlite.connect(self._path)
         db.row_factory = aiosqlite.Row
-        await db.executescript(_SCHEMA)
+        await db.executescript(SCHEMA)
         await db.commit()
         self._db = db
 
@@ -133,6 +93,77 @@ class MetricsStore:
                 (time.time(), kind, provider_id, detail),
             )
             await db.commit()
+
+    async def create_api_key(
+        self,
+        key_id: str,
+        name: str,
+        prefix: str,
+        key_hash: str,
+        tier: str,
+        allowed_providers: list[str],
+    ) -> None:
+        """Persist a hashed caller API key."""
+        async with self._lock:
+            db = await self._connection()
+            await db.execute(
+                "INSERT INTO api_keys (id, name, prefix, key_hash, tier, allowed_providers,"
+                " enabled, created_at) VALUES (?, ?, ?, ?, ?, ?, 1, ?)",
+                (key_id, name, prefix, key_hash, tier, json.dumps(allowed_providers), time.time()),
+            )
+            await db.commit()
+
+    async def list_api_keys(self) -> list[dict[str, Any]]:
+        """List caller API key metadata without secrets or hashes."""
+        db = await self._connection()
+        cursor = await db.execute(
+            "SELECT id, name, prefix, tier, allowed_providers, enabled, created_at,"
+            " last_used_at, revoked_at FROM api_keys WHERE revoked_at IS NULL"
+            " ORDER BY created_at DESC"
+        )
+        rows = await cursor.fetchall()
+        result = []
+        for row in rows:
+            item = dict(row)
+            item["allowed_providers"] = json.loads(str(item["allowed_providers"]))
+            item["enabled"] = bool(item["enabled"])
+            result.append(item)
+        return result
+
+    async def api_key_policy(self, key_hash: str) -> dict[str, Any] | None:
+        """Resolve an enabled, non-revoked API key to its metadata."""
+        db = await self._connection()
+        cursor = await db.execute(
+            "SELECT id, name, prefix, tier, allowed_providers FROM api_keys"
+            " WHERE key_hash = ? AND enabled = 1 AND revoked_at IS NULL",
+            (key_hash,),
+        )
+        row = await cursor.fetchone()
+        if row is None:
+            return None
+        item = dict(row)
+        item["allowed_providers"] = json.loads(str(item["allowed_providers"]))
+        await db.execute("UPDATE api_keys SET last_used_at = ? WHERE id = ?", (time.time(), item["id"]))
+        await db.commit()
+        return item
+
+    async def api_key_count(self) -> int:
+        """Return the number of generated keys ever created, including revoked ones."""
+        db = await self._connection()
+        cursor = await db.execute("SELECT COUNT(*) AS count FROM api_keys")
+        row = await cursor.fetchone()
+        return int(row["count"]) if row is not None else 0
+
+    async def revoke_api_key(self, key_id: str) -> bool:
+        """Revoke one generated key; return False when it does not exist."""
+        async with self._lock:
+            db = await self._connection()
+            cursor = await db.execute(
+                "UPDATE api_keys SET revoked_at = ? WHERE id = ? AND revoked_at IS NULL",
+                (time.time(), key_id),
+            )
+            await db.commit()
+            return cursor.rowcount > 0
 
     async def admin_password_configured(self) -> bool:
         """Return whether the first-run admin password exists."""

@@ -55,3 +55,8 @@ Coverage is emitted as Istanbul JSON so `crap-score` can compute per-function ri
 - The visual system is Blueprint Grid: cool paper background, a faint engineering grid, cobalt
   actions, thin borders, compact data typography and IBM Plex Mono for numbers.
 - Every form control has a visible label, focus state and inline validation message.
+
+## API keys
+
+The **API keys** tab generates scoped caller credentials. A secret is shown once; each key stores
+its provider allowlist and tier (`premium`, `standard`, `economy`) and can be revoked immediately.

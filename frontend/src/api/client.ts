@@ -74,6 +74,8 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   return (await response.json()) as T;
 }
 
+import type { ApiKey, ApiKeyTier, CreatedApiKey } from "./types";
+
 /** Report whether an admin password has been set. */
 export function fetchAuthStatus(): Promise<{ configured: boolean }> {
   return request("/admin/auth/status");
@@ -92,6 +94,25 @@ export function loginPassword(password: string): Promise<{ token: string }> {
 /** Revoke the current browser session on the server. */
 export function logoutSession(): Promise<{ ok: boolean }> {
   return request("/admin/auth/logout", { method: "POST" });
+}
+
+/** List generated caller API keys. */
+export function fetchApiKeys(): Promise<{ keys: ApiKey[] }> {
+  return request("/admin/api-keys");
+}
+
+/** Generate a caller API key; the token is returned once. */
+export function createApiKey(input: {
+  name: string;
+  tier: ApiKeyTier;
+  allowed_providers: string[];
+}): Promise<CreatedApiKey> {
+  return request("/admin/api-keys", { method: "POST", body: JSON.stringify(input) });
+}
+
+/** Revoke a generated caller API key. */
+export function revokeApiKey(id: string): Promise<{ ok: boolean }> {
+  return request(`/admin/api-keys/${encodeURIComponent(id)}`, { method: "DELETE" });
 }
 
 /** Fetch provider configs and health. */

@@ -168,13 +168,16 @@ is broken, and `semgrep` / `ast-grep` rules cover ownership facts that are not m
 | `GET /admin/metrics/stream` | SSE snapshot every two seconds |
 | `GET /admin/events` | recent switch, config and breaker events |
 | `GET` / `PUT /admin/providers` | read and replace the provider pool |
-| `GET /admin/clients` | caller keys, allowlists and key-presence flags |
+| `GET /admin/clients` | static caller keys, allowlists and key-presence flags |
+| `GET/POST /admin/api-keys` | list or generate scoped caller keys (secret returned once) |
+| `DELETE /admin/api-keys/{id}` | revoke a generated caller key |
 | `POST /admin/simulate` | score breakdown without calling upstreams |
 | `GET /metrics` | Prometheus text |
 
 The management UI uses a first-run admin password and a seven-day browser session. `ADMIN_TOKEN`
 remains an optional bearer credential for API automation. `/v1/*` accepts the legacy
-`PROXY_API_KEY`, or a `[[client_key]]` credential resolved from its `api_key_env`. Once client keys
+`PROXY_API_KEY`, a generated `pg_…` key with its provider allowlist and tier, or a `[[client_key]]`
+credential resolved from its `api_key_env`. Once client keys
 are configured, a valid client credential is required even if `PROXY_API_KEY` is unset. An
 unprovisioned optional key is inactive (`401` for that key) and does not take down legacy/admin
 traffic; startup fails when no usable proxy credential exists. Leave both unset for

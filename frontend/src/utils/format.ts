@@ -28,3 +28,8 @@ export function usd(value: number): string {
 export function clockTime(epochSeconds: number): string {
   return new Date(epochSeconds * 1000).toLocaleTimeString();
 }
+
+/** Format a UNIX timestamp as a local date and time. */
+export function calendarTime(epochSeconds: number): string {
+  return new Date(epochSeconds * 1000).toLocaleString();
+}

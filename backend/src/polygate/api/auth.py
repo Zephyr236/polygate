@@ -6,6 +6,7 @@ import secrets
 
 from fastapi import HTTPException, Request
 
+from polygate.api_keys import hash_api_key, policy_for_record
 from polygate.config import ClientKeyConfig, ClientPolicy
 from polygate.password import session_digest
 
@@ -18,13 +19,21 @@ def _bearer(request: Request) -> str:
     return header[7:].strip()
 
 
+def _legacy_admin(expected: str | None, provided: str) -> bool:
+    return bool(expected and provided and secrets.compare_digest(provided, expected))
+
+
+async def _session_admin(request: Request, provided: str) -> bool:
+    if not provided:
+        return False
+    return bool(await request.app.state.store.admin_session_valid(session_digest(provided)))
+
+
 async def require_admin(request: Request) -> None:
     """Accept a browser session or the legacy ADMIN_TOKEN on admin endpoints."""
     expected = request.app.state.config.admin_token
     provided = _bearer(request)
-    if expected and provided and secrets.compare_digest(provided, expected):
-        return
-    if provided and await request.app.state.store.admin_session_valid(session_digest(provided)):
+    if _legacy_admin(expected, provided) or await _session_admin(request, provided):
         return
     configured = await request.app.state.store.admin_password_configured()
     if not expected and not configured:
@@ -57,29 +66,46 @@ def _match_policy(
     return None if key is None else _policy_for_client(key)
 
 
-def _resolve_policy(
-    expected: str | None,
-    clients: list[tuple[ClientKeyConfig, str]],
-    active: list[tuple[ClientKeyConfig, str]],
-    provided: str,
+async def _generated_policy(request: Request, provided: str) -> ClientPolicy | None:
+    if not provided:
+        return None
+    record = await request.app.state.store.api_key_policy(hash_api_key(provided))
+    return None if record is None else policy_for_record(record)
+
+
+def _open_policy(
+    expected: str | None, clients: list[tuple[ClientKeyConfig, str]], generated: int
 ) -> ClientPolicy | None:
-    if not expected and not clients:
-        return ClientPolicy("open")
-    if not expected and not active:
-        raise HTTPException(status_code=503, detail="no proxy api key is configured")
-    return _match_policy(provided, expected, active)
+    return ClientPolicy("open") if not expected and not clients and generated == 0 else None
 
 
-def require_proxy_key(request: Request) -> ClientPolicy:
-    """Resolve the caller policy from the legacy key or a configured client key."""
+def _missing_credentials(
+    expected: str | None, active: list[tuple[ClientKeyConfig, str]], generated: int
+) -> bool:
+    return not expected and not active and generated == 0
+
+
+async def _configured_policy(request: Request, provided: str) -> ClientPolicy:
     expected = request.app.state.config.proxy_api_key
     clients: list[tuple[ClientKeyConfig, str]] = request.app.state.client_keys
     active = _active_clients(clients)
-    provided = _bearer(request) or request.headers.get("x-api-key", "")
-    policy = _resolve_policy(expected, clients, active, provided)
+    generated = await request.app.state.store.api_key_count()
+    open_policy = _open_policy(expected, clients, generated)
+    if open_policy is not None:
+        return open_policy
+    if _missing_credentials(expected, active, generated):
+        raise HTTPException(status_code=503, detail="no proxy api key is configured")
+    policy = _match_policy(provided, expected, active)
     if policy is None:
         raise HTTPException(status_code=401, detail="invalid proxy api key")
     return policy
+
+
+async def require_proxy_key(request: Request) -> ClientPolicy:
+    """Resolve a generated key, legacy key or configured client key."""
+    provided = _bearer(request) or request.headers.get("x-api-key", "")
+    policy = await _generated_policy(request, provided)
+    return policy if policy is not None else await _configured_policy(request, provided)
 
 
 def _credential_matches(provided: str, expected: str) -> bool:

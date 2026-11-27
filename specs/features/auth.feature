@@ -31,3 +31,10 @@ Feature: Caller keys stay inside their allowlists
     And an unprovisioned optional client key
     When I build the gateway configuration
     Then configuration fails with no usable credential
+
+  @req:AUTH-003 @p0
+  Scenario: A generated key keeps its allowlist and tier policy
+    Given a generated key record for tier "economy" allowing only "zen"
+    When I resolve the generated key policy
+    Then the generated policy rejects provider "amr"
+    And the generated policy uses economy weights

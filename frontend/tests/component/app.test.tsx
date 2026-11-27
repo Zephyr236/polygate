@@ -45,6 +45,20 @@ describe("App shell", () => {
     expect(screen.getByText("Send")).toBeInTheDocument();
   });
 
+  it("opens the generated API keys tab", async () => {
+    renderApp();
+    await userEvent.click(screen.getByText("API keys"));
+    await waitFor(() => expect(screen.getByTestId("api-key-key_alpha")).toBeInTheDocument());
+    expect(screen.getByRole("heading", { name: "Generated keys" })).toBeInTheDocument();
+  });
+
+  it("surfaces a provider load failure on the API keys tab", async () => {
+    server.use(http.get("**/admin/providers", () => HttpResponse.json({ detail: "boom" }, { status: 500 })));
+    renderApp();
+    await userEvent.click(screen.getByText("API keys"));
+    await waitFor(() => expect(screen.getByText("Providers could not be loaded")).toBeInTheDocument());
+  });
+
   it("saves providers from the editor", async () => {
     renderApp();
     await userEvent.click(screen.getByText("Providers"));

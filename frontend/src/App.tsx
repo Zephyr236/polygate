@@ -11,20 +11,22 @@ import { Dashboard } from "./pages/Dashboard";
 import { TokenGate } from "./pages/Login";
 import { Playground } from "./pages/Playground";
 import { Routes } from "./pages/Routes";
+import { ApiKeys } from "./pages/ApiKeys";
 import { ProviderEditor } from "./pages/Providers";
 import { useChat, useMetrics, useProviders, useSaveProviders, useSimulate } from "./state/queries";
 
-type Tab = "Dashboard" | "Providers" | "Routes" | "Playground";
+type Tab = "Dashboard" | "Providers" | "ApiKeys" | "Routes" | "Playground";
 
 const NAV = [
   { name: "Dashboard", key: "nav.dashboard", icon: "dashboard" },
   { name: "Providers", key: "nav.providers", icon: "server" },
+  { name: "ApiKeys", key: "nav.apiKeys", icon: "key" },
   { name: "Routes", key: "nav.routes", icon: "route" },
   { name: "Playground", key: "nav.playground", icon: "play" },
 ] as const satisfies readonly {
   name: Tab;
-  key: "nav.dashboard" | "nav.providers" | "nav.routes" | "nav.playground";
-  icon: "dashboard" | "server" | "route" | "play";
+  key: "nav.dashboard" | "nav.providers" | "nav.apiKeys" | "nav.routes" | "nav.playground";
+  icon: "dashboard" | "server" | "key" | "route" | "play";
 }[];
 
 /** Root component providing locale context. */
@@ -151,6 +153,7 @@ type TabBodyProps = {
 
 function TabBody({ tab, range, onRangeChange, metrics, providers, save, simulation, chat }: TabBodyProps) {
   if (tab === "Providers") return <ProvidersTab providers={providers} save={save} />;
+  if (tab === "ApiKeys") return <ApiKeysTab providers={providers} />;
   if (tab === "Routes") return <RoutesTab simulation={simulation} />;
   if (tab === "Playground") return <PlaygroundTab chat={chat} />;
   return <DashboardTab metrics={metrics} range={range} onRangeChange={onRangeChange} />;
@@ -205,6 +208,30 @@ function ProvidersReady({ providers, save }: Pick<TabBodyProps, "providers" | "s
       ) : null}
     </div>
   );
+}
+
+function ApiKeysTab({ providers }: Pick<TabBodyProps, "providers">) {
+  const { t } = useI18n();
+  if (providers.isPending) {
+    return (
+      <div className="main">
+        <div className="skeleton" style={{ height: 120 }} />
+      </div>
+    );
+  }
+  if (providers.isError) {
+    return (
+      <div className="main">
+        <div className="empty-state">
+          <strong>{t("providers.loadFailed")}</strong>
+          <button className="ghost" onClick={() => void providers.refetch()}>
+            {t("providers.retry")}
+          </button>
+        </div>
+      </div>
+    );
+  }
+  return <ApiKeys providers={providers.data?.providers ?? []} />;
 }
 
 function RoutesTab({ simulation }: Pick<TabBodyProps, "simulation">) {

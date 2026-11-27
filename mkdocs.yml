@@ -38,3 +38,4 @@ nav:
   - ADR 0017 - Acceptance contract: adr/0017-acceptance-contract.md
   - ADR 0018 - Architecture review: adr/0018-architecture-review.md
   - ADR 0019 - Admin password login: adr/0019-admin-password-login.md
+  - ADR 0020 - Generated caller keys: adr/0020-generated-caller-keys.md

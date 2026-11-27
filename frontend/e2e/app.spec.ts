@@ -4,7 +4,7 @@
 
 import { expect, test } from "@playwright/test";
 
-import { metricsFixture, providerFixtures, healthFixtures } from "../tests/msw";
+import { apiKeyFixtures, metricsFixture, providerFixtures, healthFixtures } from "../tests/msw";
 
 const TOKEN = "e2e-token";
 
@@ -19,6 +19,27 @@ test.beforeEach(async ({ page }) => {
     return route.fulfill({ json: { providers: providerFixtures, health: healthFixtures } });
   });
   await page.route("**/admin/metrics**", (route) => route.fulfill({ json: metricsFixture }));
+  await page.route("**/admin/api-keys", async (route) => {
+    if (route.request().method() === "POST") {
+      const body = route.request().postDataJSON() as {
+        name: string;
+        tier: string;
+        allowed_providers: string[];
+      };
+      return route.fulfill({
+        json: {
+          id: "key_e2e",
+          name: body.name,
+          prefix: "pg_e2esecret",
+          tier: body.tier,
+          allowed_providers: body.allowed_providers,
+          token: "pg_e2esecret_token",
+        },
+      });
+    }
+    return route.fulfill({ json: { keys: apiKeyFixtures } });
+  });
+  await page.route("**/admin/api-keys/*", (route) => route.fulfill({ json: { ok: true } }));
   await page.route("**/admin/simulate", (route) =>
     route.fulfill({
       json: {
@@ -78,6 +99,19 @@ test("routes simulation renders candidates", async ({ page }) => {
   await page.getByRole("button", { name: "Simulate" }).click();
   await expect(page.getByText("Candidates")).toBeVisible();
   await expect(page.getByText("0.940")).toBeVisible();
+});
+
+test("generates a scoped API key and shows the secret once", async ({ page }) => {
+  await page.goto("/");
+  await page.getByLabel("admin-password").fill(TOKEN);
+  await page.getByRole("button", { name: "Sign in" }).click();
+  await page.getByRole("button", { name: "API keys" }).click();
+  await expect(page.getByTestId("api-key-key_alpha")).toBeVisible();
+  await page.getByLabel("api-key-name").fill("Team E2E");
+  await page.getByLabel("api-key-tier").selectOption("economy");
+  await page.getByRole("button", { name: "Generate key" }).click();
+  await expect(page.getByText("pg_e2esecret_token")).toBeVisible();
+  await expect(page.getByText("Key generated")).toBeVisible();
 });
 
 test("playground runs a chat and shows the response", async ({ page }) => {

@@ -133,6 +133,55 @@ def test_admin_password_setup_login_and_session(client: TestClient) -> None:
     assert client.get("/admin/providers", headers=headers).status_code == 401
 
 
+def test_generated_api_key_is_scoped_to_providers_and_revocable(
+    client: TestClient, upstreams: Upstreams
+) -> None:
+    admin = {"authorization": "Bearer admin-token"}
+    created = client.post(
+        "/admin/api-keys",
+        headers=admin,
+        json={"name": "team zen", "tier": "economy", "allowed_providers": ["zen"]},
+    )
+    assert created.status_code == 200
+    body = created.json()
+    token = body["token"]
+    assert token.startswith("pg_")
+    listed = client.get("/admin/api-keys", headers=admin).json()["keys"]
+    assert listed[0]["prefix"] == token[:12]
+    assert "token" not in listed[0]
+    assert "key_hash" not in listed[0]
+    upstreams.on(
+        "zen.example",
+        upstreams.respond(
+            {
+                "id": "msg_1",
+                "type": "message",
+                "role": "assistant",
+                "model": "zen",
+                "content": [{"type": "text", "text": "ZEN"}],
+                "stop_reason": "end_turn",
+                "usage": {"input_tokens": 1, "output_tokens": 1},
+            }
+        ),
+    )
+    routed = client.post(
+        "/v1/chat/completions",
+        headers={"x-api-key": token},
+        json={"model": "m", "messages": [{"role": "user", "content": "hi"}]},
+    )
+    assert routed.status_code == 200
+    assert routed.json()["choices"][0]["message"]["content"] == "ZEN"
+    assert client.delete(f"/admin/api-keys/{body['id']}", headers=admin).status_code == 200
+    assert (
+        client.post(
+            "/v1/chat/completions",
+            headers={"x-api-key": token},
+            json={"model": "m", "messages": [{"role": "user", "content": "hi"}]},
+        ).status_code
+        == 401
+    )
+
+
 def test_chat_completions_routes_to_amr(client: TestClient, upstreams: Upstreams) -> None:
     upstreams.on(
         "amr.example", upstreams.respond({"model": "up", "choices": [{"message": {"content": "PONG"}}]})

@@ -40,7 +40,10 @@ remains an optional bearer credential for API automation; the UI never asks for 
 
 | Route | Method | Purpose |
 | --- | --- | --- |
-| `/admin/clients` | GET | List caller keys, allowlists and key-presence flags. |
+| `/admin/clients` | GET | List static caller keys, allowlists and key-presence flags. |
+| `/admin/api-keys` | GET | List generated caller key metadata (never the secret). |
+| `/admin/api-keys` | POST | Generate a key; returns its plaintext token once. |
+| `/admin/api-keys/{id}` | DELETE | Revoke a generated key. |
 | `/admin/providers` | GET | List providers plus health snapshots. |
 | `/admin/providers` | PUT | Replace the provider pool. |
 | `/admin/metrics` | GET | Aggregates for a range. |
