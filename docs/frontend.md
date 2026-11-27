@@ -17,7 +17,8 @@ The frontend is a React 19 single-page app served by the gateway in production a
 ## Pages
 
 - **Dashboard**: KPI tiles, traffic chart, provider cards and a detail table.
-- **Providers**: editable table for ids, URLs, protocol, auth, session headers, lanes, concurrency, cost and priority.
+- **Providers**: searchable, editable provider cards for ids, URLs, protocol, auth, session headers,
+  lanes, concurrency, cost, priority and tags.
 - **Routes**: simulation of candidate scores and eligibility reasons.
 - **Playground**: live chat through `/v1/chat/completions`, streaming or not.
 
@@ -45,3 +46,21 @@ pnpm run e2e    # Playwright against a preview build
 ## Coverage and CRAP
 
 Coverage is emitted as Istanbul JSON so `crap-score` can compute per-function risk. `scripts/crap_js_gate.py` reads that report and fails when any function exceeds CRAP 6.
+
+## Language and visual system
+
+- Default locale is simplified Chinese; the top bar switches to English and persists the choice in
+  `localStorage`.
+- All UI copy lives in `src/i18n/zh-CN.json` and `src/i18n/en.json`; components use `useI18n`.
+- The visual system is Blueprint Grid: cool paper background, a faint engineering grid, cobalt
+  actions, thin borders, compact data typography and IBM Plex Mono for numbers.
+- Every form control has a visible label, focus state and inline validation message.
+
+## API keys
+
+The **API keys** tab generates scoped caller credentials. A secret is shown once; each key stores
+its provider allowlist and tier (`premium`, `standard`, `economy`) and can be revoked immediately.
+
+The shell uses a persistent left sidebar for navigation; below 900px it collapses into a horizontally scrollable header. API key provider selection is a searchable multi-select with removable chips, not a checkbox wall, so large provider pools stay usable.
+
+Provider editing uses expandable list rows; API keys and their generated secrets are also shown as full-width list rows.

@@ -70,7 +70,7 @@ Mutation runs are slow. Backend uses `mutmut` on the routing/provider/protocol l
 | Task | Files |
 | --- | --- |
 | Scoring or weights | `backend/src/polygate/routing/scorer.py`, `docs/routing.md` |
-| Caller keys and per-key routing | `backend/src/polygate/api/auth.py`, `backend/src/polygate/config.py`, `backend/src/polygate/config_loader.py`, `docs/api.md`, `docs/routing.md` |
+| Caller keys and per-key routing | `backend/src/polygate/api/auth.py`, `backend/src/polygate/api_keys.py`, `backend/src/polygate/api/api_keys.py`, `backend/src/polygate/config.py`, `backend/src/polygate/config_loader.py`, `docs/api.md`, `docs/routing.md` |
 | Circuit breaker or cooldowns | `backend/src/polygate/routing/state.py` |
 | Retry and failover order | `backend/src/polygate/routing/scheduler.py` |
 | Upstream headers, sessions, errors | `backend/src/polygate/providers/base.py` |

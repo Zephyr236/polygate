@@ -145,7 +145,7 @@ describe("chat", () => {
     const server = (await import("../msw")).createServer();
     server.listen({ onUnhandledRequest: "error" });
     server.use(
-      http.post("/v1/chat/completions", () => HttpResponse.text("providers_unavailable", { status: 502 })),
+      http.post("/admin/playground", () => HttpResponse.text("providers_unavailable", { status: 502 })),
     );
     await expect(chat("m", "hi", false)).rejects.toBeInstanceOf(ApiError);
     server.close();
@@ -156,7 +156,7 @@ describe("chat", () => {
     const server = (await import("../msw")).createServer();
     server.listen({ onUnhandledRequest: "error" });
     const body = 'data: not-json\ndata: {"choices":[{"delta":{"content":"X"}}]}\n\ndata: [DONE]\n';
-    server.use(http.post("/v1/chat/completions", () => new HttpResponse(body)));
+    server.use(http.post("/admin/playground", () => new HttpResponse(body)));
     const result = await chat("m", "hi", true);
     expect(result.content).toBe("X");
     server.close();

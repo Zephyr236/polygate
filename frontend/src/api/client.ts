@@ -74,6 +74,47 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   return (await response.json()) as T;
 }
 
+import type { ApiKey, ApiKeyTier, CreatedApiKey } from "./types";
+
+/** Report whether an admin password has been set. */
+export function fetchAuthStatus(): Promise<{ configured: boolean }> {
+  return request("/admin/auth/status");
+}
+
+/** Set the first-run password and return a browser session token. */
+export function setupPassword(password: string): Promise<{ token: string }> {
+  return request("/admin/auth/setup", { method: "POST", body: JSON.stringify({ password }) });
+}
+
+/** Login with the admin password and return a browser session token. */
+export function loginPassword(password: string): Promise<{ token: string }> {
+  return request("/admin/auth/login", { method: "POST", body: JSON.stringify({ password }) });
+}
+
+/** Revoke the current browser session on the server. */
+export function logoutSession(): Promise<{ ok: boolean }> {
+  return request("/admin/auth/logout", { method: "POST" });
+}
+
+/** List generated caller API keys. */
+export function fetchApiKeys(): Promise<{ keys: ApiKey[] }> {
+  return request("/admin/api-keys");
+}
+
+/** Generate a caller API key; the token is returned once. */
+export function createApiKey(input: {
+  name: string;
+  tier: ApiKeyTier;
+  allowed_providers: string[];
+}): Promise<CreatedApiKey> {
+  return request("/admin/api-keys", { method: "POST", body: JSON.stringify(input) });
+}
+
+/** Revoke a generated caller API key. */
+export function revokeApiKey(id: string): Promise<{ ok: boolean }> {
+  return request(`/admin/api-keys/${encodeURIComponent(id)}`, { method: "DELETE" });
+}
+
 /** Fetch provider configs and health. */
 export function fetchProviders(): Promise<{ providers: ProviderConfig[]; health: ProviderHealth[] }> {
   return request("/admin/providers");
@@ -109,7 +150,7 @@ export async function chat(model: string, prompt: string, stream: boolean): Prom
 }
 
 async function postChat(model: string, prompt: string, stream: boolean): Promise<Response> {
-  const response = await fetch("/v1/chat/completions", {
+  const response = await fetch("/admin/playground", {
     method: "POST",
     headers: { "content-type": "application/json", ...authHeaders() },
     body: JSON.stringify({ model, messages: [{ role: "user", content: prompt }], stream }),

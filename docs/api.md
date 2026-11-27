@@ -35,11 +35,16 @@ startup is not supported because admin routes cannot repair credentials.
 
 ## Admin
 
-All admin routes require `Authorization: Bearer $ADMIN_TOKEN`.
+The management UI uses a first-run admin password and an expiring browser session. `ADMIN_TOKEN`
+remains an optional bearer credential for API automation; the UI never asks for it.
 
 | Route | Method | Purpose |
 | --- | --- | --- |
-| `/admin/clients` | GET | List caller keys, allowlists and key-presence flags. |
+| `/admin/clients` | GET | List static caller keys, allowlists and key-presence flags. |
+| `/admin/playground` | POST | Run one console chat with the legacy all-provider policy. |
+| `/admin/api-keys` | GET | List generated caller key metadata (never the secret). |
+| `/admin/api-keys` | POST | Generate a key; returns its plaintext token once. |
+| `/admin/api-keys/{id}` | DELETE | Revoke a generated key. |
 | `/admin/providers` | GET | List providers plus health snapshots. |
 | `/admin/providers` | PUT | Replace the provider pool. |
 | `/admin/metrics` | GET | Aggregates for a range. |

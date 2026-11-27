@@ -5,7 +5,7 @@
 import { http, HttpResponse, delay } from "msw";
 import { setupServer } from "msw/node";
 
-import type { MetricsResponse, ProviderConfig, ProviderHealth } from "@/api/types";
+import type { ApiKey, MetricsResponse, ProviderConfig, ProviderHealth } from "@/api/types";
 
 /** Provider fixtures used across component tests. */
 export const providerFixtures: ProviderConfig[] = [
@@ -81,6 +81,21 @@ export const healthFixtures: ProviderHealth[] = [
   },
 ];
 
+/** Generated API key fixtures. */
+export const apiKeyFixtures: ApiKey[] = [
+  {
+    id: "key_alpha",
+    name: "Team alpha",
+    prefix: "pg_testalpha",
+    tier: "premium",
+    allowed_providers: ["amr", "zen"],
+    enabled: true,
+    created_at: 1_760_000_000,
+    last_used_at: null,
+    revoked_at: null,
+  },
+];
+
 /** Metrics fixture with two providers and two buckets. */
 export const metricsFixture: MetricsResponse = {
   range: "1h",
@@ -146,6 +161,27 @@ const handlers = [
     return HttpResponse.json({ ...metricsFixture, range });
   }),
   http.get("/admin/events", () => HttpResponse.json({ events: [] })),
+  http.get("/admin/auth/status", () => HttpResponse.json({ configured: true })),
+  http.post("/admin/auth/login", () => HttpResponse.json({ token: "test-session" })),
+  http.post("/admin/auth/setup", () => HttpResponse.json({ token: "test-session" })),
+  http.post("/admin/auth/logout", () => HttpResponse.json({ ok: true })),
+  http.get("/admin/api-keys", () => HttpResponse.json({ keys: apiKeyFixtures })),
+  http.post("/admin/api-keys", async ({ request }) => {
+    const body = (await request.json()) as {
+      name: string;
+      tier: ApiKey["tier"];
+      allowed_providers: string[];
+    };
+    return HttpResponse.json({
+      id: "key_new",
+      name: body.name,
+      prefix: "pg_newsecret",
+      tier: body.tier,
+      allowed_providers: body.allowed_providers,
+      token: "pg_newsecret_token",
+    });
+  }),
+  http.delete("/admin/api-keys/:id", () => HttpResponse.json({ ok: true })),
   http.post("/admin/simulate", async () =>
     HttpResponse.json({
       model: "deepseek-v4.1-flash",
@@ -164,6 +200,28 @@ const handlers = [
       decisions: [{ provider_id: "amr", model: "m", eligible: true, reasons: [] }],
     }),
   ),
+  http.post("/admin/playground", async ({ request }) => {
+    const body = (await request.json()) as { stream?: boolean };
+    if (body.stream) {
+      const frames = [
+        'data: {"choices":[{"delta":{"content":"PO"}}]}',
+        "",
+        'data: {"choices":[{"delta":{"content":"NG"}}],"model":"amr"}',
+        "",
+        'data: {"choices":[],"usage":{"prompt_tokens":5,"completion_tokens":2}}',
+        "",
+        "data: [DONE]",
+        "",
+      ].join("\n");
+      return new HttpResponse(frames, { headers: { "content-type": "text/event-stream" } });
+    }
+    await delay(1);
+    return HttpResponse.json({
+      model: "amr",
+      choices: [{ message: { content: "PONG" } }],
+      usage: { prompt_tokens: 5, completion_tokens: 2, prompt_tokens_details: { cached_tokens: 1 } },
+    });
+  }),
   http.post("/v1/chat/completions", async ({ request }) => {
     const body = (await request.json()) as { stream?: boolean };
     if (body.stream) {

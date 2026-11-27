@@ -26,3 +26,5 @@ site/
 .cache/
 
 backend/bdd.xml
+
+frontend/tsconfig.tsbuildinfo

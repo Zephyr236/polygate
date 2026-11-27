@@ -6,6 +6,15 @@ All notable changes are documented here. The format follows Keep a Changelog and
 
 ### Added
 
+- Sidebar navigation and a searchable provider multi-select for generated API keys.
+- Generated caller API keys: one-time secrets, provider allowlists, premium/standard/economy tiers,
+  revocation, and an API keys management page.
+- Admin password login: first-run password setup, salted scrypt hashes, expiring hashed browser
+  sessions, logout revocation and automatic return to login on 401. `ADMIN_TOKEN` remains optional
+  for API automation.
+- Frontend redesign: Blueprint Grid visual system, simplified Chinese default with persisted English
+  switch, data-dense dashboard, searchable provider cards with loading/error/empty states, and
+  improved route/playground layouts.
 - Architecture review: metrics/ratchet (`scripts/architecture_metrics.py`, `architecture_gate.py`),
   architecture principles, an advisory agent, and ADR 0018.
 - Acceptance contract: `specs/requirements.yaml`, Gherkin scenarios, pytest-bdd/Cucumber
@@ -38,6 +47,9 @@ All notable changes are documented here. The format follows Keep a Changelog and
 
 ### Added
 
+- Sidebar navigation and a searchable provider multi-select for generated API keys.
+- Generated caller API keys: one-time secrets, provider allowlists, premium/standard/economy tiers,
+  revocation, and an API keys management page.
 - Multi-provider routing gateway with score-based selection across success rate, latency, cost coefficient and cache hit rate.
 - OpenAI and Anthropic compatible proxy endpoints, streaming included.
 - Per-provider quirks for auth style, session headers, streaming usage placement and custom error payloads.

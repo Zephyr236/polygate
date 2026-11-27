@@ -121,3 +121,27 @@ export interface ChatResult {
   completionTokens: number;
   cachedTokens: number;
 }
+
+/** Tier that controls scheduler weights and priority handling. */
+export type ApiKeyTier = "premium" | "standard" | "economy";
+
+/** One generated caller API key, without its secret. */
+export interface ApiKey {
+  id: string;
+  name: string;
+  prefix: string;
+  tier: ApiKeyTier;
+  allowed_providers: string[];
+  enabled: boolean;
+  created_at: number;
+  last_used_at: number | null;
+  revoked_at: number | null;
+}
+
+/** Response returned only when a key is first generated. */
+export interface CreatedApiKey extends Omit<
+  ApiKey,
+  "enabled" | "created_at" | "last_used_at" | "revoked_at"
+> {
+  token: string;
+}

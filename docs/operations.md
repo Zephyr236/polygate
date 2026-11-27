@@ -25,7 +25,8 @@ Keys are referenced by environment variable name. The gateway never stores secre
 
 ## Authentication
 
-- `ADMIN_TOKEN` protects `/admin/*` and the management UI.
+- The management UI uses a first-run admin password stored as a scrypt hash in SQLite; sessions expire
+  after seven days. `ADMIN_TOKEN` is an optional legacy bearer credential for API automation.
 - `PROXY_API_KEY` is the legacy all-provider credential for `/v1/*`.
 - `[[client_key]]` entries protect `/v1/*` with per-caller provider allowlists and weights. Once any
   client key is configured, a valid client credential is required even when `PROXY_API_KEY` is unset.
@@ -51,3 +52,5 @@ Keys are referenced by environment variable name. The gateway never stores secre
 ## Metrics retention
 
 The SQLite file grows with call volume. Use `range` endpoints for dashboards and archive or prune the database on a monthly cadence for large deployments.
+
+An unconfigured admin password makes admin API calls return `428 Precondition Required`; open the UI to finish first-run setup.

@@ -5,6 +5,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { HttpResponse, http } from "msw";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 
 import { App } from "@/App";
@@ -20,7 +21,7 @@ function renderApp(token = "test-token") {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={client}>
-      <App initialToken={token} />
+      <App initialToken={token} initialLocale="en" />
     </QueryClientProvider>,
   );
 }
@@ -28,10 +29,10 @@ function renderApp(token = "test-token") {
 describe("App shell", () => {
   it("shows the token gate when no token is present", async () => {
     renderApp("");
-    expect(screen.getByLabelText("admin-token")).toBeInTheDocument();
-    await userEvent.type(screen.getByLabelText("admin-token"), "abc");
-    await userEvent.click(screen.getByText("Enter"));
-    expect(getToken()).toBe("abc");
+    await waitFor(() => expect(screen.getByLabelText("admin-password")).toBeInTheDocument());
+    await userEvent.type(screen.getByLabelText("admin-password"), "correct horse");
+    await userEvent.click(screen.getByText("Sign in"));
+    await waitFor(() => expect(getToken()).toBe("test-session"));
   });
 
   it("renders the dashboard after metrics load and switches tabs", async () => {
@@ -42,6 +43,20 @@ describe("App shell", () => {
     await userEvent.click(screen.getByText("Routes"));
     await userEvent.click(screen.getByText("Playground"));
     expect(screen.getByText("Send")).toBeInTheDocument();
+  });
+
+  it("opens the generated API keys tab", async () => {
+    renderApp();
+    await userEvent.click(screen.getByText("API keys"));
+    await waitFor(() => expect(screen.getByTestId("api-key-key_alpha")).toBeInTheDocument());
+    expect(screen.getByRole("heading", { name: "Generated keys" })).toBeInTheDocument();
+  });
+
+  it("surfaces a provider load failure on the API keys tab", async () => {
+    server.use(http.get("**/admin/providers", () => HttpResponse.json({ detail: "boom" }, { status: 500 })));
+    renderApp();
+    await userEvent.click(screen.getByText("API keys"));
+    await waitFor(() => expect(screen.getByText("Providers could not be loaded")).toBeInTheDocument());
   });
 
   it("saves providers from the editor", async () => {
@@ -63,10 +78,22 @@ describe("App shell", () => {
     await waitFor(() => expect(screen.getByTestId("playground-output")).toHaveTextContent("PONG"));
   });
 
+  it("returns to login when the stored token is rejected", async () => {
+    server.use(
+      http.get("**/admin/providers", () =>
+        HttpResponse.json({ detail: "invalid admin token" }, { status: 401 }),
+      ),
+    );
+    renderApp("expired-token");
+    await waitFor(() => expect(screen.getByLabelText("admin-password")).toBeInTheDocument());
+    expect(screen.getByText("Invalid admin token. Try again.")).toBeInTheDocument();
+    expect(getToken()).toBe("");
+  });
+
   it("signs out and clears the stored token", async () => {
     renderApp();
     await userEvent.click(screen.getByText("Sign out"));
-    expect(screen.getByLabelText("admin-token")).toBeInTheDocument();
+    expect(screen.getByLabelText("admin-password")).toBeInTheDocument();
   });
 
   it("switches dashboard ranges", async () => {

@@ -17,6 +17,15 @@ requirements:
     owner: operations
     adr: [0011]
     verify: [specs/features/auth.feature, backend/tests/integration/test_api.py]
+  AUTH-003:
+    title: Generated keys preserve scope and tier
+    statement: >-
+      A key generated in the console may route only to its selected providers and must apply its
+      tier's scheduler weights; revocation must stop authentication on the next request.
+    severity: P0
+    owner: security
+    adr: [0020]
+    verify: [specs/features/auth.feature, backend/tests/integration/test_api.py, backend/tests/unit/test_api_keys.py]
   ROUTE-001:
     title: Per-key weights preserve documented ordering
     statement: >-

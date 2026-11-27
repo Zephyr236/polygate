@@ -2,29 +2,34 @@
  * Dashboard page: KPI row, per-provider cards and time-series charts.
  */
 
-import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-
 import type { MetricsResponse, ProviderHealth, ProviderMetrics } from "../api/types";
+import { useI18n, type MessageKey } from "../i18n";
+import { DetailTable, TrafficChart } from "./dashboardCharts";
 import { CapacityBar, HealthBadge, KpiCard, Panel, SuccessRing } from "../components/widgets";
-import { clockTime, latency, percent, tokens, usd } from "../utils/format";
+import { latency, percent, tokens, usd } from "../utils/format";
 import type { Totals } from "../utils/metrics";
 import { aggregate, bucketTotals, costPerThousand, p95Estimate, providerColor } from "../utils/metrics";
 
 /** Time-range selector options. */
-const RANGES = ["15m", "1h", "24h", "7d"] as const;
+const RANGES: { value: string; key: MessageKey }[] = [
+  { value: "15m", key: "dashboard.range.15m" },
+  { value: "1h", key: "dashboard.range.1h" },
+  { value: "24h", key: "dashboard.range.24h" },
+  { value: "7d", key: "dashboard.range.7d" },
+];
 
 /** Range switch buttons. */
 function RangePicker({ range, onRangeChange }: { range: string; onRangeChange: (range: string) => void }) {
+  const { t } = useI18n();
   return (
-    <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+    <div className="range-picker">
       {RANGES.map((item) => (
         <button
-          key={item}
-          className="action"
-          style={{ background: item === range ? "var(--accent)" : "var(--panel-alt)" }}
-          onClick={() => onRangeChange(item)}
+          key={item.value}
+          className={item.value === range ? "active" : ""}
+          onClick={() => onRangeChange(item.value)}
         >
-          {item}
+          {t(item.key)}
         </button>
       ))}
     </div>
@@ -43,14 +48,29 @@ function KpiRow({
   cacheRate: number;
   providers: number;
 }) {
+  const { t } = useI18n();
   return (
     <div className="kpis">
-      <KpiCard label="Calls" value={tokens(totals.calls)} hint={`${providers} providers`} />
-      <KpiCard label="Success" value={percent(success)} hint={`${totals.failures} failures`} />
-      <KpiCard label="Prompt tokens" value={tokens(totals.promptTokens)} />
-      <KpiCard label="Completion tokens" value={tokens(totals.completionTokens)} />
-      <KpiCard label="Cache hits" value={percent(cacheRate)} />
-      <KpiCard label="Est. cost" value={usd(totals.cost)} />
+      <KpiCard
+        label={t("dashboard.calls")}
+        value={tokens(totals.calls)}
+        hint={t("dashboard.providers", { count: providers })}
+        icon="pulse"
+      />
+      <KpiCard
+        label={t("dashboard.success")}
+        value={percent(success)}
+        hint={t("dashboard.failures", { count: totals.failures })}
+        icon="check"
+      />
+      <KpiCard label={t("dashboard.promptTokens")} value={tokens(totals.promptTokens)} icon="server" />
+      <KpiCard
+        label={t("dashboard.completionTokens")}
+        value={tokens(totals.completionTokens)}
+        icon="server"
+      />
+      <KpiCard label={t("dashboard.cacheHits")} value={percent(cacheRate)} icon="refresh" />
+      <KpiCard label={t("dashboard.cost")} value={usd(totals.cost)} icon="route" />
     </div>
   );
 }
@@ -58,57 +78,6 @@ function KpiRow({
 /** Guarded ratio helper that yields zero for empty denominators. */
 function ratio(numerator: number, denominator: number): number {
   return denominator > 0 ? numerator / denominator : 0;
-}
-
-/** Traffic chart of calls and failures per bucket. */
-function TrafficChart({ buckets }: { buckets: ReturnType<typeof bucketTotals> }) {
-  return (
-    <ResponsiveContainer width="100%" height={220}>
-      <LineChart data={buckets}>
-        <XAxis dataKey="bucket" tickFormatter={(value) => clockTime(Number(value))} fontSize={11} />
-        <YAxis fontSize={11} allowDecimals={false} />
-        <Tooltip labelFormatter={(value) => clockTime(Number(value))} />
-        <Line type="monotone" dataKey="calls" stroke="var(--accent)" dot={false} />
-        <Line type="monotone" dataKey="failures" stroke="var(--bad)" dot={false} />
-      </LineChart>
-    </ResponsiveContainer>
-  );
-}
-
-/** Per-provider numeric detail table. */
-function DetailTable({ rows }: { rows: ProviderMetrics[] }) {
-  return (
-    <table>
-      <thead>
-        <tr>
-          <th>Provider</th>
-          <th>Calls</th>
-          <th>Failures</th>
-          <th>Switches</th>
-          <th>Prompt</th>
-          <th>Completion</th>
-          <th>Reasoning</th>
-          <th>Cached</th>
-          <th>Cost</th>
-        </tr>
-      </thead>
-      <tbody>
-        {rows.map((row) => (
-          <tr key={row.provider_id}>
-            <td>{row.provider_id}</td>
-            <td>{tokens(row.calls)}</td>
-            <td>{tokens(row.failures)}</td>
-            <td>{tokens(row.switches)}</td>
-            <td>{tokens(row.prompt_tokens)}</td>
-            <td>{tokens(row.completion_tokens)}</td>
-            <td>{tokens(row.reasoning_tokens)}</td>
-            <td>{tokens(row.cache_read_tokens)}</td>
-            <td>{usd(row.cost)}</td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
-  );
 }
 
 /** Provider cards grid. */
@@ -164,6 +133,97 @@ function ProviderCard({
   );
 }
 
+/** Loading placeholder for the dashboard. */
+function DashboardLoading() {
+  return (
+    <div className="main">
+      <div className="skeleton" style={{ height: 46, width: 260 }} />
+      <div className="kpis">
+        {Array.from({ length: 6 }, (_, index) => (
+          <div className="skeleton" key={index} style={{ height: 112 }} />
+        ))}
+      </div>
+      <Panel title="Traffic (calls per bucket)">
+        <div className="skeleton" style={{ height: 220 }} />
+      </Panel>
+    </div>
+  );
+}
+
+/** Traffic panel with an explicit empty state. */
+function TrafficPanel({ buckets }: { buckets: ReturnType<typeof bucketTotals> }) {
+  const { t } = useI18n();
+  return (
+    <Panel title={t("dashboard.trafficTitle")}>
+      {buckets.length > 0 ? (
+        <TrafficChart buckets={buckets} />
+      ) : (
+        <div className="empty-state" style={{ minHeight: 180 }}>
+          <strong>{t("dashboard.noTrafficTitle")}</strong>
+          <span>{t("dashboard.noTrafficBody")}</span>
+        </div>
+      )}
+    </Panel>
+  );
+}
+
+/** Provider cards or an empty state. */
+function HealthCard({ health }: { health: ProviderHealth }) {
+  const { t } = useI18n();
+  return (
+    <div className="health-card">
+      <div className="health-card-head">
+        <strong>{health.id}</strong>
+        <HealthBadge state={health.state} />
+      </div>
+      <div className="health-card-metrics">
+        <span>{percent(health.success_rate)}</span>
+        <span>{latency(health.latency_ms)}</span>
+        <span>
+          {health.inflight}/{health.capacity}
+        </span>
+      </div>
+      <CapacityBar inflight={health.inflight} capacity={health.capacity} />
+      <div className="health-card-labels">
+        <span>{t("dashboard.success")}</span>
+        <span>{t("dashboard.latency")}</span>
+        <span>{t("dashboard.capacity")}</span>
+      </div>
+    </div>
+  );
+}
+
+function ProviderSection({
+  rows,
+  healthById,
+}: {
+  rows: ProviderMetrics[];
+  healthById: Map<string, ProviderHealth>;
+}) {
+  const { t } = useI18n();
+  if (rows.length === 0) {
+    const health = [...healthById.values()];
+    if (health.length === 0) {
+      return (
+        <div className="empty-state">
+          <strong>{t("dashboard.noMetricsTitle")}</strong>
+          <span>{t("dashboard.noMetricsBody")}</span>
+        </div>
+      );
+    }
+    return (
+      <Panel title={t("dashboard.healthTitle")}>
+        <div className="providers-grid">
+          {health.map((item) => (
+            <HealthCard key={item.id} health={item} />
+          ))}
+        </div>
+      </Panel>
+    );
+  }
+  return <ProviderGrid rows={rows} healthById={healthById} />;
+}
+
 /** Render the metrics dashboard for a selected range. */
 export function Dashboard({
   data,
@@ -174,7 +234,22 @@ export function Dashboard({
   range: string;
   onRangeChange: (range: string) => void;
 }) {
-  const rows = data?.providers ?? [];
+  if (!data) return <DashboardLoading />;
+  return <DashboardContent data={data} range={range} onRangeChange={onRangeChange} />;
+}
+
+/** Dashboard content once metrics are available. */
+function DashboardContent({
+  data,
+  range,
+  onRangeChange,
+}: {
+  data: MetricsResponse;
+  range: string;
+  onRangeChange: (range: string) => void;
+}) {
+  const { t } = useI18n();
+  const rows = data.providers ?? [];
   const totals = aggregate(rows);
   const success = ratio(totals.calls - totals.failures, totals.calls);
   const cacheRate = ratio(totals.cacheRead, totals.promptTokens);
@@ -190,13 +265,13 @@ export function Dashboard({
         cacheRate={cacheRate}
         providers={data?.overview.providers ?? 0}
       />
-      <Panel title="Traffic (calls per bucket)">
-        <TrafficChart buckets={buckets} />
-      </Panel>
-      <ProviderGrid rows={rows} healthById={healthById} />
-      <Panel title="Per-provider detail">
-        <DetailTable rows={rows} />
-      </Panel>
+      <TrafficPanel buckets={buckets} />
+      <ProviderSection rows={rows} healthById={healthById} />
+      {rows.length > 0 ? (
+        <Panel title={t("dashboard.detailTitle")}>
+          <DetailTable rows={rows} />
+        </Panel>
+      ) : null}
     </div>
   );
 }

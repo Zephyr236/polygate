@@ -8,7 +8,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import JSONResponse, Response, StreamingResponse
 
-from polygate.api.auth import require_proxy_key
+from polygate.api.auth import require_admin, require_proxy_key
 from polygate.api.bodies import read_json
 from polygate.api.deps import gateway_of
 from polygate.config import ClientPolicy
@@ -62,9 +62,8 @@ def failure_response(error: AllProvidersFailedError) -> JSONResponse:
     )
 
 
-@router.post("/v1/chat/completions", response_model=None)
-async def chat_completions(request: Request, policy: Policy) -> Response:
-    """Serve OpenAI chat-completions requests through the router."""
+async def _chat_response(request: Request, policy: ClientPolicy) -> Response:
+    """Build a chat response for a trusted caller policy."""
     body = await read_json(request)
     gateway = gateway_of(request)
     internal = openai.parse_request(body)
@@ -76,6 +75,18 @@ async def chat_completions(request: Request, policy: Policy) -> Response:
         return failure_response(error)
     await record_route_result(gateway, internal, route)
     return JSONResponse(openai.build_response_body(route.result.response))
+
+
+@router.post("/v1/chat/completions", response_model=None)
+async def chat_completions(request: Request, policy: Policy) -> Response:
+    """Serve OpenAI chat-completions requests through the router."""
+    return await _chat_response(request, policy)
+
+
+@router.post("/admin/playground", response_model=None, dependencies=[Depends(require_admin)])
+async def admin_playground(request: Request) -> Response:
+    """Run one console chat through the legacy all-provider policy."""
+    return await _chat_response(request, ClientPolicy("legacy"))
 
 
 async def _openai_stream(

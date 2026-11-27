@@ -5,26 +5,10 @@
 import { useState } from "react";
 
 import type { ProviderConfig } from "../api/types";
-
-/** Editable copy of a provider config with string-encoded numeric inputs. */
-interface ProviderDraft {
-  id: string;
-  base_url: string;
-  protocol: ProviderConfig["protocol"];
-  model: string;
-  api_key_env: string;
-  auth_style: ProviderConfig["auth_style"];
-  session_header: string;
-  session_mode: ProviderConfig["session_mode"];
-  lanes: string;
-  max_concurrency: string;
-  max_tokens_min: string;
-  stream_usage: ProviderConfig["stream_usage"];
-  cost_coefficient: string;
-  priority: string;
-  enabled: boolean;
-  tags: string;
-}
+import { Icon } from "../components/icons";
+import { useI18n, type Translate } from "../i18n";
+import { ProviderCard } from "./ProviderCard";
+import type { ProviderDraft } from "./providerDraft";
 
 /** Build an editable draft from a provider config. */
 export function toDraft(config: ProviderConfig): ProviderDraft {
@@ -85,13 +69,21 @@ export function fromDraft(draft: ProviderDraft): ProviderConfig {
   };
 }
 
+const ENGLISH_VALIDATION: Record<string, string> = {
+  "providers.validation.id": "id must be lowercase alphanumeric with dashes",
+  "providers.validation.baseUrl": "base_url must be an http(s) URL",
+  "providers.validation.concurrency": "max_concurrency must be at least 1",
+  "providers.validation.cost": "cost_coefficient must be positive",
+};
+
 /** Validate a draft before sending it to the server. */
-export function validateDraft(draft: ProviderDraft): string[] {
+export function validateDraft(draft: ProviderDraft, t?: Translate): string[] {
+  const tr: Translate = t ?? ((key) => ENGLISH_VALIDATION[key] ?? key);
   const problems: string[] = [];
-  if (!/^[a-z0-9][a-z0-9-]*$/.test(draft.id)) problems.push("id must be lowercase alphanumeric with dashes");
-  if (!draft.base_url.startsWith("http")) problems.push("base_url must be an http(s) URL");
-  if (Number(draft.max_concurrency) < 1) problems.push("max_concurrency must be at least 1");
-  if (Number(draft.cost_coefficient) <= 0) problems.push("cost_coefficient must be positive");
+  if (!/^[a-z0-9][a-z0-9-]*$/.test(draft.id)) problems.push(tr("providers.validation.id"));
+  if (!draft.base_url.startsWith("http")) problems.push(tr("providers.validation.baseUrl"));
+  if (Number(draft.max_concurrency) < 1) problems.push(tr("providers.validation.concurrency"));
+  if (Number(draft.cost_coefficient) <= 0) problems.push(tr("providers.validation.cost"));
   return problems;
 }
 
@@ -114,7 +106,59 @@ const EMPTY_DRAFT: ProviderDraft = {
   tags: "",
 };
 
-/** Editable table of provider configs. */
+/** Filter drafts by id, model or tags. */
+function filterDrafts(drafts: ProviderDraft[], filter: string): { draft: ProviderDraft; index: number }[] {
+  const needle = filter.trim().toLowerCase();
+  return drafts
+    .map((draft, index) => ({ draft, index }))
+    .filter(
+      ({ draft }) =>
+        needle === "" ||
+        draft.id.toLowerCase().includes(needle) ||
+        draft.model.toLowerCase().includes(needle) ||
+        draft.tags.toLowerCase().includes(needle),
+    );
+}
+
+/** Render the provider cards or an appropriate empty state. */
+function ProviderList({
+  drafts,
+  visible,
+  update,
+  remove,
+}: {
+  drafts: ProviderDraft[];
+  visible: { draft: ProviderDraft; index: number }[];
+  update: (index: number, patch: Partial<ProviderDraft>) => void;
+  remove: (index: number) => void;
+}) {
+  const { t } = useI18n();
+  if (drafts.length === 0) {
+    return (
+      <div className="empty-state">
+        <strong>{t("providers.emptyTitle")}</strong>
+        <span>{t("providers.emptyBody")}</span>
+      </div>
+    );
+  }
+  if (visible.length === 0) {
+    return (
+      <div className="empty-state">
+        <strong>{t("providers.noMatchesTitle")}</strong>
+        <span>{t("providers.noMatchesBody", { count: drafts.length })}</span>
+      </div>
+    );
+  }
+  return (
+    <div className="provider-list">
+      {visible.map(({ draft, index }) => (
+        <ProviderCard key={index} draft={draft} index={index} onChange={update} onRemove={remove} />
+      ))}
+    </div>
+  );
+}
+
+/** Editable provider pool. */
 export function ProviderEditor({
   providers,
   onSave,
@@ -124,24 +168,60 @@ export function ProviderEditor({
   onSave: (providers: ProviderConfig[]) => void;
   saving: boolean;
 }) {
+  const { t } = useI18n();
   const [drafts, setDrafts] = useState<ProviderDraft[]>(() => providers.map(toDraft));
   const [errors, setErrors] = useState<string[]>([]);
+  const [filter, setFilter] = useState("");
 
   const update = (index: number, patch: Partial<ProviderDraft>) => {
     setDrafts((current) => current.map((draft, i) => (i === index ? { ...draft, ...patch } : draft)));
   };
 
+  const remove = (index: number) => {
+    setDrafts((current) => current.filter((_, i) => i !== index));
+    setErrors([]);
+  };
+
   const submit = () => {
-    const problems = drafts.flatMap(validateDraft);
+    const problems = drafts.flatMap((draft) => validateDraft(draft, t));
     setErrors(problems);
     if (problems.length > 0) return;
     onSave(drafts.map(fromDraft));
   };
 
+  const visible = filterDrafts(drafts, filter);
+
   return (
-    <div className="main">
+    <>
+      <div className="page-head">
+        <div>
+          <div className="eyebrow">{t("providers.eyebrow")}</div>
+          <p>{t("providers.description")}</p>
+        </div>
+        <div className="toolbar">
+          <input
+            aria-label="provider-filter"
+            placeholder={t("providers.filter")}
+            value={filter}
+            onChange={(event) => setFilter(event.target.value)}
+            style={{ width: 240 }}
+          />
+          <button
+            className="ghost"
+            onClick={() => {
+              setDrafts((current) => [...current, { ...EMPTY_DRAFT }]);
+              setErrors([]);
+            }}
+          >
+            <Icon name="plus" size={16} />
+            {t("providers.add")}
+          </button>
+        </div>
+      </div>
+
       {errors.length > 0 ? (
         <div className="card" role="alert">
+          <div className="eyebrow">{t("providers.validationTitle")}</div>
           {errors.map((problem) => (
             <div className="error" key={problem}>
               {problem}
@@ -149,144 +229,19 @@ export function ProviderEditor({
           ))}
         </div>
       ) : null}
-      <div className="card" style={{ overflowX: "auto" }}>
-        <table>
-          <thead>
-            <tr>
-              <th>id</th>
-              <th>base_url</th>
-              <th>protocol</th>
-              <th>model</th>
-              <th>api_key_env</th>
-              <th>auth</th>
-              <th>session header</th>
-              <th>lanes</th>
-              <th>concurrency</th>
-              <th>min tokens</th>
-              <th>cost coefficient</th>
-              <th>priority</th>
-              <th>enabled</th>
-            </tr>
-          </thead>
-          <tbody>
-            {drafts.map((draft, index) => (
-              <tr key={index}>
-                <td>
-                  <input
-                    aria-label={`id-${index}`}
-                    value={draft.id}
-                    onChange={(event) => update(index, { id: event.target.value })}
-                  />
-                </td>
-                <td>
-                  <input
-                    aria-label={`base_url-${index}`}
-                    value={draft.base_url}
-                    onChange={(event) => update(index, { base_url: event.target.value })}
-                  />
-                </td>
-                <td>
-                  <select
-                    aria-label={`protocol-${index}`}
-                    value={draft.protocol}
-                    onChange={(event) =>
-                      update(index, { protocol: event.target.value as ProviderConfig["protocol"] })
-                    }
-                  >
-                    <option value="openai">openai</option>
-                    <option value="anthropic">anthropic</option>
-                  </select>
-                </td>
-                <td>
-                  <input
-                    aria-label={`model-${index}`}
-                    value={draft.model}
-                    onChange={(event) => update(index, { model: event.target.value })}
-                  />
-                </td>
-                <td>
-                  <input
-                    aria-label={`api_key_env-${index}`}
-                    value={draft.api_key_env}
-                    onChange={(event) => update(index, { api_key_env: event.target.value })}
-                  />
-                </td>
-                <td>
-                  <select
-                    aria-label={`auth-${index}`}
-                    value={draft.auth_style}
-                    onChange={(event) =>
-                      update(index, { auth_style: event.target.value as ProviderConfig["auth_style"] })
-                    }
-                  >
-                    <option value="bearer">bearer</option>
-                    <option value="x-api-key">x-api-key</option>
-                    <option value="both">both</option>
-                  </select>
-                </td>
-                <td>
-                  <input
-                    aria-label={`session-${index}`}
-                    value={draft.session_header}
-                    onChange={(event) => update(index, { session_header: event.target.value })}
-                  />
-                </td>
-                <td>
-                  <input
-                    aria-label={`lanes-${index}`}
-                    value={draft.lanes}
-                    onChange={(event) => update(index, { lanes: event.target.value })}
-                  />
-                </td>
-                <td>
-                  <input
-                    aria-label={`concurrency-${index}`}
-                    value={draft.max_concurrency}
-                    onChange={(event) => update(index, { max_concurrency: event.target.value })}
-                  />
-                </td>
-                <td>
-                  <input
-                    aria-label={`min-tokens-${index}`}
-                    value={draft.max_tokens_min}
-                    onChange={(event) => update(index, { max_tokens_min: event.target.value })}
-                  />
-                </td>
-                <td>
-                  <input
-                    aria-label={`cost-${index}`}
-                    value={draft.cost_coefficient}
-                    onChange={(event) => update(index, { cost_coefficient: event.target.value })}
-                  />
-                </td>
-                <td>
-                  <input
-                    aria-label={`priority-${index}`}
-                    value={draft.priority}
-                    onChange={(event) => update(index, { priority: event.target.value })}
-                  />
-                </td>
-                <td>
-                  <input
-                    aria-label={`enabled-${index}`}
-                    type="checkbox"
-                    checked={draft.enabled}
-                    onChange={(event) => update(index, { enabled: event.target.checked })}
-                  />
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      <div style={{ display: "flex", gap: 12 }}>
-        <button className="action" onClick={() => setDrafts((current) => [...current, { ...EMPTY_DRAFT }])}>
-          Add provider
-        </button>
+
+      <ProviderList drafts={drafts} visible={visible} update={update} remove={remove} />
+
+      <div className="savebar">
+        <div className="muted">
+          {t("providers.count", { count: drafts.length })}
+          {filter ? ` · ${t("providers.shown", { count: visible.length })}` : ""}
+        </div>
         <button className="action" onClick={submit} disabled={saving}>
-          {saving ? "Saving…" : "Save providers"}
+          <Icon name="save" size={16} />
+          {saving ? t("providers.saving") : t("providers.save")}
         </button>
       </div>
-    </div>
+    </>
   );
 }

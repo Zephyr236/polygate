@@ -20,6 +20,13 @@ Candidates are ordered by `(priority, -score)` by default, so a lower `priority`
 A client key with `respect_priority = false` orders its allowed providers by score alone, so its
 per-key weights can cross global priority tiers.
 
+## Generated keys and tiers
+
+Keys issued in the console carry a tier and a provider allowlist. `premium` weights success and
+speed most heavily and respects global priority; `standard` uses the global weights; `economy`
+weights cost most heavily and sets `respect_priority = false`, so it may cross global priority tiers.
+A generated key can never route outside its allowlist, even if other providers score higher.
+
 ## Per-key policy
 
 A `[[client_key]]` narrows the candidate pool to `allowed_providers` and may override the global

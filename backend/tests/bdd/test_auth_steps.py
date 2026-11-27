@@ -8,6 +8,7 @@ from typing import Any
 import pytest
 from pytest_bdd import given, parsers, scenarios, then, when
 
+from polygate.api_keys import policy_for_record
 from polygate.config import ClientPolicy, ConfigError, ProviderConfig
 from polygate.config_loader import build_app_config
 
@@ -106,3 +107,25 @@ def succeeds(state: dict[str, Any]) -> None:
 def unusable(state: dict[str, Any]) -> None:
     assert state["error"] is not None
     assert "no usable proxy credential" in str(state["error"])
+
+
+@given(parsers.parse('a generated key record for tier "{tier}" allowing only "{provider}"'))
+def generated_key_record(state: dict[str, Any], tier: str, provider: str) -> None:
+    state["record"] = {"id": "key_test", "tier": tier, "allowed_providers": [provider]}
+
+
+@when("I resolve the generated key policy")
+def resolve_generated_policy(state: dict[str, Any]) -> None:
+    state["policy"] = policy_for_record(state["record"])
+
+
+@then(parsers.parse('the generated policy rejects provider "{provider}"'))
+def generated_policy_rejects(state: dict[str, Any], provider: str) -> None:
+    assert state["policy"].allows(provider) is False
+
+
+@then("the generated policy uses economy weights")
+def generated_policy_economy(state: dict[str, Any]) -> None:
+    assert state["policy"].weights is not None
+    assert state["policy"].weights.cost == 0.5
+    assert state["policy"].respect_priority is False

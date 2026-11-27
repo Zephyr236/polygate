@@ -2,21 +2,48 @@
  * Application shell wiring navigation, queries and the token gate.
  */
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
-import { clearToken, setToken } from "./api/client";
+import { ApiError, clearToken, logoutSession, setToken } from "./api/client";
+import { Icon } from "./components/icons";
+import { I18nProvider, LocaleSwitch, useI18n, type Locale } from "./i18n";
 import { Dashboard } from "./pages/Dashboard";
 import { TokenGate } from "./pages/Login";
 import { Playground } from "./pages/Playground";
 import { Routes } from "./pages/Routes";
+import { ApiKeys } from "./pages/ApiKeys";
 import { ProviderEditor } from "./pages/Providers";
 import { useChat, useMetrics, useProviders, useSaveProviders, useSimulate } from "./state/queries";
 
-const TABS = ["Dashboard", "Providers", "Routes", "Playground"] as const;
-type Tab = (typeof TABS)[number];
+type Tab = "Dashboard" | "Providers" | "ApiKeys" | "Routes" | "Playground";
 
-/** Root component rendering the selected tab. */
-export function App({ initialToken }: { initialToken: string }) {
+const NAV = [
+  { name: "Dashboard", key: "nav.dashboard", icon: "dashboard" },
+  { name: "Providers", key: "nav.providers", icon: "server" },
+  { name: "ApiKeys", key: "nav.apiKeys", icon: "key" },
+  { name: "Routes", key: "nav.routes", icon: "route" },
+  { name: "Playground", key: "nav.playground", icon: "play" },
+] as const satisfies readonly {
+  name: Tab;
+  key: "nav.dashboard" | "nav.providers" | "nav.apiKeys" | "nav.routes" | "nav.playground";
+  icon: "dashboard" | "server" | "key" | "route" | "play";
+}[];
+
+/** Root component providing locale context. */
+export function App({ initialToken, initialLocale }: { initialToken: string; initialLocale?: Locale }) {
+  return (
+    <I18nProvider initialLocale={initialLocale}>
+      <AppContent initialToken={initialToken} />
+    </I18nProvider>
+  );
+}
+
+function tabLabel(tab: Tab) {
+  return NAV.find((item) => item.name === tab)?.key ?? "nav.dashboard";
+}
+
+function AppContent({ initialToken }: { initialToken: string }) {
+  const { t } = useI18n();
   const [token, setTokenState] = useState(initialToken);
   const [tab, setTab] = useState<Tab>("Dashboard");
   const [range, setRange] = useState("1h");
@@ -26,49 +53,90 @@ export function App({ initialToken }: { initialToken: string }) {
   const simulation = useSimulate();
   const chat = useChat();
 
-  if (!token) {
+  const unauthorized = providers.error instanceof ApiError && providers.error.status === 401;
+  useEffect(() => {
+    if (unauthorized) clearToken();
+  }, [unauthorized]);
+
+  if (!token || unauthorized) {
     return (
       <TokenGate
+        invalid={unauthorized}
         onSubmit={(value) => {
           setToken(value);
           setTokenState(value);
+          void providers.refetch();
         }}
       />
     );
   }
 
+  const providerCount = providers.data?.providers.length ?? 0;
   return (
     <div className="app">
-      <header className="topbar">
-        <h1>polygate</h1>
-        <nav className="nav">
-          {TABS.map((item) => (
-            <button key={item} className={item === tab ? "active" : ""} onClick={() => setTab(item)}>
-              {item}
+      <aside className="sidebar">
+        <div className="brand sidebar-brand">
+          <div className="brand-mark">PG</div>
+          <div>
+            <h1>polygate</h1>
+            <p>{t("app.tagline")}</p>
+          </div>
+        </div>
+        <nav className="nav sidebar-nav" aria-label={t("app.workspace")}>
+          {NAV.map((item) => (
+            <button
+              key={item.name}
+              className={item.name === tab ? "active" : ""}
+              onClick={() => setTab(item.name)}
+            >
+              <Icon name={item.icon} size={17} />
+              <span>{t(item.key)}</span>
             </button>
           ))}
         </nav>
-        <button
-          className="action"
-          style={{ marginLeft: "auto" }}
-          onClick={() => {
-            clearToken();
-            setTokenState("");
-          }}
-        >
-          Sign out
-        </button>
-      </header>
-      <TabBody
-        tab={tab}
-        range={range}
-        onRangeChange={setRange}
-        metrics={metrics}
-        providers={providers}
-        save={save}
-        simulation={simulation}
-        chat={chat}
-      />
+        <div className="sidebar-foot">
+          <span className="pill mono">{t("providers.count", { count: providerCount })}</span>
+          <LocaleSwitch />
+          <button
+            className="ghost sidebar-signout"
+            onClick={() => {
+              void logoutSession().catch(() => undefined);
+              clearToken();
+              setTokenState("");
+            }}
+          >
+            <Icon name="logout" size={16} />
+            <span>{t("app.signOut")}</span>
+          </button>
+        </div>
+      </aside>
+      <div className="app-main">
+        <section className="workspace">
+          <header className="workspace-head">
+            <div>
+              <div className="eyebrow">{t("app.workspace")}</div>
+              <h2>{t(tabLabel(tab))}</h2>
+            </div>
+            <div className="workspace-meta">
+              <span className="pill">
+                <span className="status-dot" />
+                {t("app.live")}
+              </span>
+              <span className="pill mono">v0.1.0</span>
+            </div>
+          </header>
+          <TabBody
+            tab={tab}
+            range={range}
+            onRangeChange={setRange}
+            metrics={metrics}
+            providers={providers}
+            save={save}
+            simulation={simulation}
+            chat={chat}
+          />
+        </section>
+      </div>
     </div>
   );
 }
@@ -87,14 +155,46 @@ type TabBodyProps = {
 
 function TabBody({ tab, range, onRangeChange, metrics, providers, save, simulation, chat }: TabBodyProps) {
   if (tab === "Providers") return <ProvidersTab providers={providers} save={save} />;
+  if (tab === "ApiKeys") return <ApiKeysTab providers={providers} />;
   if (tab === "Routes") return <RoutesTab simulation={simulation} />;
   if (tab === "Playground") return <PlaygroundTab chat={chat} />;
   return <DashboardTab metrics={metrics} range={range} onRangeChange={onRangeChange} />;
 }
 
 function ProvidersTab({ providers, save }: Pick<TabBodyProps, "providers" | "save">) {
+  return <ProvidersState providers={providers} save={save} />;
+}
+
+function ProvidersState({ providers, save }: Pick<TabBodyProps, "providers" | "save">) {
+  const { t } = useI18n();
+  if (providers.isPending) {
+    return (
+      <div className="main">
+        <div className="skeleton" style={{ height: 120 }} />
+        <div className="skeleton" style={{ height: 260 }} />
+      </div>
+    );
+  }
+  if (providers.isError) {
+    return (
+      <div className="main">
+        <div className="empty-state">
+          <strong>{t("providers.loadFailed")}</strong>
+          <span>{providers.error.message}</span>
+          <button className="ghost" onClick={() => void providers.refetch()}>
+            {t("providers.retry")}
+          </button>
+        </div>
+      </div>
+    );
+  }
+  return <ProvidersReady providers={providers} save={save} />;
+}
+
+function ProvidersReady({ providers, save }: Pick<TabBodyProps, "providers" | "save">) {
+  const { t } = useI18n();
   return (
-    <>
+    <div className="main">
       {providers.data ? (
         <ProviderEditor
           providers={providers.data.providers}
@@ -102,9 +202,38 @@ function ProvidersTab({ providers, save }: Pick<TabBodyProps, "providers" | "sav
           saving={save.isPending}
         />
       ) : null}
-      {save.isError ? <div className="main error">Save failed</div> : null}
-    </>
+      {save.isError ? (
+        <div className="empty-state" role="alert">
+          <strong>{t("providers.saveFailed")}</strong>
+          <span>{save.error.message}</span>
+        </div>
+      ) : null}
+    </div>
   );
+}
+
+function ApiKeysTab({ providers }: Pick<TabBodyProps, "providers">) {
+  const { t } = useI18n();
+  if (providers.isPending) {
+    return (
+      <div className="main">
+        <div className="skeleton" style={{ height: 120 }} />
+      </div>
+    );
+  }
+  if (providers.isError) {
+    return (
+      <div className="main">
+        <div className="empty-state">
+          <strong>{t("providers.loadFailed")}</strong>
+          <button className="ghost" onClick={() => void providers.refetch()}>
+            {t("providers.retry")}
+          </button>
+        </div>
+      </div>
+    );
+  }
+  return <ApiKeys providers={providers.data?.providers ?? []} />;
 }
 
 function RoutesTab({ simulation }: Pick<TabBodyProps, "simulation">) {
@@ -133,9 +262,10 @@ function DashboardTab({
   range,
   onRangeChange,
 }: Pick<TabBodyProps, "metrics" | "range" | "onRangeChange">) {
+  const { t } = useI18n();
   return (
     <>
-      {metrics.isError ? <div className="main error">Failed to load metrics</div> : null}
+      {metrics.isError ? <div className="main error">{t("dashboard.loadFailed")}</div> : null}
       <Dashboard data={metrics.data} range={range} onRangeChange={onRangeChange} />
     </>
   );
