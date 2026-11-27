@@ -41,6 +41,7 @@ remains an optional bearer credential for API automation; the UI never asks for 
 | Route | Method | Purpose |
 | --- | --- | --- |
 | `/admin/clients` | GET | List static caller keys, allowlists and key-presence flags. |
+| `/admin/playground` | POST | Run one console chat with the legacy all-provider policy. |
 | `/admin/api-keys` | GET | List generated caller key metadata (never the secret). |
 | `/admin/api-keys` | POST | Generate a key; returns its plaintext token once. |
 | `/admin/api-keys/{id}` | DELETE | Revoke a generated key. |

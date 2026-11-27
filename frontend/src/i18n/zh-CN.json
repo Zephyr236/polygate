@@ -194,5 +194,7 @@
   "apiKeys.clear": "清空",
   "apiKeys.noProviders": "没有匹配的提供商",
   "apiKeys.remove": "移除",
-  "apiKeys.noneSelected": "尚未选择提供商"
+  "apiKeys.noneSelected": "尚未选择提供商",
+  "providers.expand": "展开编辑",
+  "providers.collapse": "收起编辑"
 }

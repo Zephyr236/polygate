@@ -52,3 +52,5 @@ Keys are referenced by environment variable name. The gateway never stores secre
 ## Metrics retention
 
 The SQLite file grows with call volume. Use `range` endpoints for dashboards and archive or prune the database on a monthly cadence for large deployments.
+
+An unconfigured admin password makes admin API calls return `428 Precondition Required`; open the UI to finish first-run setup.

@@ -2,15 +2,95 @@
  * One editable provider card.
  */
 
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 
 import type { ProviderConfig } from "../api/types";
+import { Icon } from "../components/icons";
 import { useI18n } from "../i18n";
 import type { ProviderDraft } from "./providerDraft";
 
 type Change = (index: number, patch: Partial<ProviderDraft>) => void;
 
 /** Render one provider with grouped editable fields. */
+function ProviderToggle({ open, index, onToggle }: { open: boolean; index: number; onToggle: () => void }) {
+  const { t } = useI18n();
+  return (
+    <button
+      type="button"
+      className={open ? "provider-toggle open" : "provider-toggle"}
+      aria-label={`toggle-provider-${index}`}
+      aria-expanded={open}
+      title={open ? t("providers.collapse") : t("providers.expand")}
+      onClick={onToggle}
+    >
+      <Icon name="chevron" size={16} />
+    </button>
+  );
+}
+
+function ProviderPills({ draft }: { draft: ProviderDraft }) {
+  const { t } = useI18n();
+  return (
+    <div className="provider-summary-pills">
+      <span className="pill">{t("providers.pill.priority", { value: draft.priority || "—" })}</span>
+      <span className="pill">{t("providers.pill.cost", { value: draft.cost_coefficient || "—" })}</span>
+      <span className="pill">{draft.max_concurrency || "—"}×</span>
+      <span className="pill">{draft.model || t("providers.pill.noModel")}</span>
+    </div>
+  );
+}
+
+function ProviderRowHeader({
+  draft,
+  index,
+  open,
+  onToggle,
+  onChange,
+  onRemove,
+}: {
+  draft: ProviderDraft;
+  index: number;
+  open: boolean;
+  onToggle: () => void;
+  onChange: Change;
+  onRemove: (index: number) => void;
+}) {
+  const { t } = useI18n();
+  return (
+    <header className="provider-row-head">
+      <ProviderToggle open={open} index={index} onToggle={onToggle} />
+      <div className="provider-primary">
+        <div className="eyebrow">{t("providers.eyebrow")}</div>
+        <input
+          aria-label={`id-${index}`}
+          className="provider-id"
+          value={draft.id}
+          onChange={(event) => onChange(index, { id: event.target.value })}
+        />
+      </div>
+      <span className="provider-url mono" title={draft.base_url}>
+        {draft.base_url}
+      </span>
+      <ProviderPills draft={draft} />
+      <div className="provider-row-actions">
+        <label className="switch">
+          <input
+            aria-label={`enabled-${index}`}
+            type="checkbox"
+            checked={draft.enabled}
+            onChange={(event) => onChange(index, { enabled: event.target.checked })}
+          />
+          {t("providers.enabled")}
+        </label>
+        <button className="danger" onClick={() => onRemove(index)}>
+          {t("providers.remove")}
+        </button>
+      </div>
+    </header>
+  );
+}
+
+/** Render one expandable provider list row with its editable fields. */
 export function ProviderCard({
   draft,
   index,
@@ -22,45 +102,25 @@ export function ProviderCard({
   onChange: Change;
   onRemove: (index: number) => void;
 }) {
-  const { t } = useI18n();
+  const [open, setOpen] = useState(false);
   return (
-    <article className="provider-card" data-testid={`provider-card-${index}`}>
-      <header className="provider-card-head">
-        <div style={{ minWidth: 0, flex: 1 }}>
-          <div className="eyebrow">{t("providers.eyebrow")}</div>
-          <input
-            aria-label={`id-${index}`}
-            className="provider-id"
-            value={draft.id}
-            onChange={(event) => onChange(index, { id: event.target.value })}
-          />
-          <div className="toolbar" style={{ marginTop: 8 }}>
-            <span className="pill">{t("providers.pill.priority", { value: draft.priority || "—" })}</span>
-            <span className="pill">{t("providers.pill.cost", { value: draft.cost_coefficient || "—" })}</span>
-            <span className="pill">{draft.model || t("providers.pill.noModel")}</span>
-          </div>
+    <article className="provider-row" data-testid={`provider-card-${index}`}>
+      <ProviderRowHeader
+        draft={draft}
+        index={index}
+        open={open}
+        onToggle={() => setOpen((value) => !value)}
+        onChange={onChange}
+        onRemove={onRemove}
+      />
+      {open ? (
+        <div className="field-grid provider-row-body">
+          <ConnectionFields draft={draft} index={index} onChange={onChange} />
+          <RuntimeFields draft={draft} index={index} onChange={onChange} />
+          <RoutingFields draft={draft} index={index} onChange={onChange} />
+          <MetaFields draft={draft} index={index} onChange={onChange} />
         </div>
-        <div className="toolbar" style={{ justifyContent: "flex-end" }}>
-          <label className="switch">
-            <input
-              aria-label={`enabled-${index}`}
-              type="checkbox"
-              checked={draft.enabled}
-              onChange={(event) => onChange(index, { enabled: event.target.checked })}
-            />
-            {t("providers.enabled")}
-          </label>
-          <button className="danger" onClick={() => onRemove(index)}>
-            {t("providers.remove")}
-          </button>
-        </div>
-      </header>
-      <div className="field-grid">
-        <ConnectionFields draft={draft} index={index} onChange={onChange} />
-        <RuntimeFields draft={draft} index={index} onChange={onChange} />
-        <RoutingFields draft={draft} index={index} onChange={onChange} />
-        <MetaFields draft={draft} index={index} onChange={onChange} />
-      </div>
+      ) : null}
     </article>
   );
 }

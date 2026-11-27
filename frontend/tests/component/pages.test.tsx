@@ -119,6 +119,7 @@ describe("Provider editor", () => {
   it("edits fields and saves the pool", async () => {
     const onSave = vi.fn();
     render(<ProviderEditor providers={providerFixtures} onSave={onSave} saving={false} />);
+    await userEvent.click(screen.getByLabelText("toggle-provider-0"));
     await userEvent.clear(screen.getByLabelText("id-0"));
     await userEvent.type(screen.getByLabelText("id-0"), "amr-2");
     await userEvent.clear(screen.getByLabelText("cost-0"));
@@ -131,6 +132,7 @@ describe("Provider editor", () => {
   it("blocks saving invalid input and can add rows", async () => {
     const onSave = vi.fn();
     render(<ProviderEditor providers={providerFixtures} onSave={onSave} saving={false} />);
+    await userEvent.click(screen.getByLabelText("toggle-provider-0"));
     await userEvent.clear(screen.getByLabelText("base_url-0"));
     await userEvent.type(screen.getByLabelText("base_url-0"), "ftp://bad");
     await userEvent.click(screen.getByText("Save providers"));
@@ -144,6 +146,8 @@ describe("Provider editor", () => {
     const onSave = vi.fn();
     render(<ProviderEditor providers={providerFixtures} onSave={onSave} saving={true} />);
     expect(screen.getByText("Saving…")).toBeDisabled();
+    await userEvent.click(screen.getByLabelText("toggle-provider-0"));
+    await userEvent.click(screen.getByLabelText("toggle-provider-1"));
     await userEvent.selectOptions(screen.getByLabelText("protocol-0"), "anthropic");
     await userEvent.selectOptions(screen.getByLabelText("auth-0"), "both");
     await userEvent.type(screen.getByLabelText("session-0"), "x-header");

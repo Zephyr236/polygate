@@ -150,6 +150,13 @@ def test_generated_api_key_is_scoped_to_providers_and_revocable(
     assert listed[0]["prefix"] == token[:12]
     assert "token" not in listed[0]
     assert "key_hash" not in listed[0]
+    calls: list[str] = []
+
+    def disallowed(_: object) -> httpx.Response:
+        calls.append("amr.example")
+        return httpx.Response(200, json={"choices": [{"message": {"content": "LEAKED"}}]})
+
+    upstreams.on("amr.example", disallowed)
     upstreams.on(
         "zen.example",
         upstreams.respond(
@@ -171,7 +178,9 @@ def test_generated_api_key_is_scoped_to_providers_and_revocable(
     )
     assert routed.status_code == 200
     assert routed.json()["choices"][0]["message"]["content"] == "ZEN"
-    assert client.delete(f"/admin/api-keys/{body['id']}", headers=admin).status_code == 200
+    assert calls == []
+    deleted = client.delete(f"/admin/api-keys/{body['id']}", headers=admin)
+    assert deleted.status_code == 200
     assert (
         client.post(
             "/v1/chat/completions",
@@ -180,6 +189,34 @@ def test_generated_api_key_is_scoped_to_providers_and_revocable(
         ).status_code
         == 401
     )
+
+
+def test_readyz_degrades_after_the_last_generated_key_is_revoked(client: TestClient) -> None:
+    admin = {"authorization": "Bearer admin-token"}
+    created = client.post(
+        "/admin/api-keys",
+        headers=admin,
+        json={"name": "ready key", "tier": "standard", "allowed_providers": ["amr"]},
+    ).json()
+    assert client.get("/readyz").json()["status"] == "ready"
+    deleted = client.delete(f"/admin/api-keys/{created['id']}", headers=admin)
+    assert deleted.status_code == 200
+    ready = client.get("/readyz").json()
+    assert ready["status"] == "degraded"
+    assert ready["caller_auth"] is False
+
+
+def test_admin_playground_uses_legacy_policy(client: TestClient, upstreams: Upstreams) -> None:
+    upstreams.on("amr.example", upstreams.respond({"choices": [{"message": {"content": "PONG"}}]}))
+    admin = {"authorization": "Bearer admin-token"}
+    response = client.post(
+        "/admin/playground",
+        headers=admin,
+        json={"model": "m", "messages": [{"role": "user", "content": "hi"}]},
+    )
+    assert response.status_code == 200
+    assert response.json()["choices"][0]["message"]["content"] == "PONG"
+    assert client.post("/admin/playground", json={"model": "m", "messages": []}).status_code == 401
 
 
 def test_chat_completions_routes_to_amr(client: TestClient, upstreams: Upstreams) -> None:
@@ -368,7 +405,7 @@ def test_admin_without_token_config(tmp_path: Path) -> None:
     )
     with TestClient(app) as test_client:
         response = test_client.get("/admin/providers")
-    assert response.status_code == 503
+    assert response.status_code == 428
 
 
 def test_client_key_selects_provider_and_admin_lists_it(tmp_path: Path, upstreams: Upstreams) -> None:

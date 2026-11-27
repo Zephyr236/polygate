@@ -150,7 +150,7 @@ function ProviderList({
     );
   }
   return (
-    <div className="provider-grid">
+    <div className="provider-list">
       {visible.map(({ draft, index }) => (
         <ProviderCard key={index} draft={draft} index={index} onChange={update} onRemove={remove} />
       ))}

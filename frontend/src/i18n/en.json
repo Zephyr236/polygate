@@ -194,5 +194,7 @@
   "apiKeys.clear": "Clear",
   "apiKeys.noProviders": "No matching providers",
   "apiKeys.remove": "Remove",
-  "apiKeys.noneSelected": "No providers selected"
+  "apiKeys.noneSelected": "No providers selected",
+  "providers.expand": "Edit provider",
+  "providers.collapse": "Collapse"
 }

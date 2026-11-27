@@ -52,7 +52,7 @@ test.beforeEach(async ({ page }) => {
       },
     }),
   );
-  await page.route("**/v1/chat/completions", async (route) => {
+  await page.route("**/admin/playground", async (route) => {
     const body = route.request().postDataJSON() as { stream?: boolean };
     if (body.stream) {
       return route.fulfill({
@@ -86,6 +86,7 @@ test("provider editor saves changes", async ({ page }) => {
   await page.getByRole("button", { name: "Sign in" }).click();
   await page.getByRole("button", { name: "Providers" }).click();
   await expect(page.getByRole("button", { name: "Save providers" })).toBeVisible();
+  await page.getByLabel("toggle-provider-0").click();
   await page.getByLabel("priority-0").fill("3");
   await page.getByRole("button", { name: "Save providers" }).click();
   await expect(page.getByRole("button", { name: "Save providers" })).toBeEnabled();

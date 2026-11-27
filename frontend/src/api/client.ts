@@ -150,7 +150,7 @@ export async function chat(model: string, prompt: string, stream: boolean): Prom
 }
 
 async function postChat(model: string, prompt: string, stream: boolean): Promise<Response> {
-  const response = await fetch("/v1/chat/completions", {
+  const response = await fetch("/admin/playground", {
     method: "POST",
     headers: { "content-type": "application/json", ...authHeaders() },
     body: JSON.stringify({ model, messages: [{ role: "user", content: prompt }], stream }),

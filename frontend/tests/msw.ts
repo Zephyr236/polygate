@@ -200,6 +200,28 @@ const handlers = [
       decisions: [{ provider_id: "amr", model: "m", eligible: true, reasons: [] }],
     }),
   ),
+  http.post("/admin/playground", async ({ request }) => {
+    const body = (await request.json()) as { stream?: boolean };
+    if (body.stream) {
+      const frames = [
+        'data: {"choices":[{"delta":{"content":"PO"}}]}',
+        "",
+        'data: {"choices":[{"delta":{"content":"NG"}}],"model":"amr"}',
+        "",
+        'data: {"choices":[],"usage":{"prompt_tokens":5,"completion_tokens":2}}',
+        "",
+        "data: [DONE]",
+        "",
+      ].join("\n");
+      return new HttpResponse(frames, { headers: { "content-type": "text/event-stream" } });
+    }
+    await delay(1);
+    return HttpResponse.json({
+      model: "amr",
+      choices: [{ message: { content: "PONG" } }],
+      usage: { prompt_tokens: 5, completion_tokens: 2, prompt_tokens_details: { cached_tokens: 1 } },
+    });
+  }),
   http.post("/v1/chat/completions", async ({ request }) => {
     const body = (await request.json()) as { stream?: boolean };
     if (body.stream) {

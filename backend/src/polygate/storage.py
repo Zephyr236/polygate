@@ -154,6 +154,15 @@ class MetricsStore:
         row = await cursor.fetchone()
         return int(row["count"]) if row is not None else 0
 
+    async def active_api_key_count(self) -> int:
+        """Return the number of usable generated API keys."""
+        db = await self._connection()
+        cursor = await db.execute(
+            "SELECT COUNT(*) AS count FROM api_keys WHERE enabled = 1 AND revoked_at IS NULL"
+        )
+        row = await cursor.fetchone()
+        return int(row["count"]) if row is not None else 0
+
     async def revoke_api_key(self, key_id: str) -> bool:
         """Revoke one generated key; return False when it does not exist."""
         async with self._lock:

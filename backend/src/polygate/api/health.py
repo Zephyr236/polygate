@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 from fastapi import APIRouter, Request
 from fastapi.responses import PlainTextResponse
 
@@ -16,14 +18,30 @@ async def healthz() -> dict[str, str]:
     return {"status": "ok"}
 
 
+async def _caller_auth_usable(request: Request, gateway: Any) -> bool:
+    """Return whether /v1 can authenticate at least one caller credential."""
+    store = request.app.state.store
+    generated = await store.api_key_count()
+    if generated == 0:
+        return True
+    active_generated = await store.active_api_key_count()
+    active_clients = any(value for _, value in request.app.state.client_keys)
+    return bool(gateway.config.proxy_api_key or active_clients or active_generated)
+
+
 @router.get("/readyz")
 async def readyz(request: Request) -> dict[str, object]:
-    """Report whether at least one provider is usable."""
+    """Report whether providers and caller authentication are usable."""
     gateway = gateway_of(request)
     usable = [
         config.id for config in gateway.providers if config.enabled and gateway.keys.get(config.api_key_env)
     ]
-    return {"status": "ready" if usable else "degraded", "usable_providers": usable}
+    caller_auth = await _caller_auth_usable(request, gateway)
+    return {
+        "status": "ready" if usable and caller_auth else "degraded",
+        "usable_providers": usable,
+        "caller_auth": caller_auth,
+    }
 
 
 @router.get("/metrics", response_class=PlainTextResponse, include_in_schema=False)

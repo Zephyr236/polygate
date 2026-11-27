@@ -23,6 +23,7 @@ describe("ProviderCard", () => {
       />,
     );
 
+    await userEvent.click(screen.getByLabelText("toggle-provider-0"));
     for (const label of [
       "id",
       "base_url",

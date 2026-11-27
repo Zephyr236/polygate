@@ -37,7 +37,7 @@ async def require_admin(request: Request) -> None:
         return
     configured = await request.app.state.store.admin_password_configured()
     if not expected and not configured:
-        raise HTTPException(status_code=503, detail="admin password is not configured")
+        raise HTTPException(status_code=428, detail="admin password is not configured")
     raise HTTPException(status_code=401, detail="invalid admin credentials")
 
 

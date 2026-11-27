@@ -15,7 +15,8 @@ export type IconName =
   | "alert"
   | "check"
   | "pulse"
-  | "key";
+  | "key"
+  | "chevron";
 
 const PATHS: Record<IconName, string> = {
   dashboard: "M4 4h6v7H4zM14 4h6v4h-6zM14 12h6v8h-6zM4 15h6v5H4z",
@@ -31,6 +32,7 @@ const PATHS: Record<IconName, string> = {
   check: "M5 12l4 4L19 6",
   pulse: "M3 12h4l2-7 4 14 2-7h6",
   key: "M15 7a4 4 0 1 1-3.5 5.9L4 20.5V17h3v-3h3l1.5-1.1A4 4 0 0 1 15 7z",
+  chevron: "M8 10l4 4 4-4",
 };
 
 /** Render one inline icon. */

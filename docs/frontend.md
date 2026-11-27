@@ -62,3 +62,5 @@ The **API keys** tab generates scoped caller credentials. A secret is shown once
 its provider allowlist and tier (`premium`, `standard`, `economy`) and can be revoked immediately.
 
 The shell uses a persistent left sidebar for navigation; below 900px it collapses into a horizontally scrollable header. API key provider selection is a searchable multi-select with removable chips, not a checkbox wall, so large provider pools stay usable.
+
+Provider editing uses expandable list rows; API keys and their generated secrets are also shown as full-width list rows.

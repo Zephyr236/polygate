@@ -18,7 +18,8 @@ password. The token also had no expiry or per-browser session model.
   random bearer session token. Sessions are stored hashed server-side for seven days.
 - Logout revokes the server session and clears the browser token.
 - `ADMIN_TOKEN` remains a legacy API credential for automation; the browser UI does not ask for it.
-  A missing password with no usable session returns a setup-required response, not a 503 loop.
+  A missing password with no usable session returns `428 Precondition Required` with a
+  setup-required message, not a 503 outage loop.
 - The first person who can reach an unconfigured instance can set the password. Bind the service to
   localhost or a trusted network until the password is set.
 
